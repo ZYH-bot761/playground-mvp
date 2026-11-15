@@ -1,6 +1,6 @@
 {
   "module": "six-upgrades",
-  "at": "2026-11-15T09:46:09.096Z",
+  "at": "2026-11-15T11:06:56.895Z",
   "passed": 20,
   "total": 20,
   "allPass": true,
@@ -297,7 +297,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 600227
+        "shotBytes": 599893
       }
     }
   ],

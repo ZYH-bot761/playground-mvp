@@ -57,7 +57,7 @@ try {
   const struct = await page.evaluate(async () => {
     const pg = window.__playground;
     const scene = pg.sceneManager.scene;
-    const mod = await import('/src/attractions/Districts.js');
+    const mod = await import('/src/scenes/districts.js');
     const g = mod.DISTRICT_GRID;
     const root = scene.getObjectByName('Districts/root');
     const structure = root?.getObjectByName('Districts/structure');

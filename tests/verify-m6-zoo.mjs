@@ -45,7 +45,7 @@ try {
 
   const d = await page.evaluate(async () => {
     const pg = window.__playground;
-    const mod = await import('/src/attractions/Zoo.js');
+    const mod = await import('/src/scenes/zoo-scene.js');
     const root = pg.sceneManager.scene.getObjectByName('Zoo/root');
     const layout = mod.ZOO_LAYOUT;
     const species = mod.ZOO_SPECIES ? [...mod.ZOO_SPECIES] : [];
@@ -84,7 +84,7 @@ try {
     { species: d.species, missing });
 
   const traits = await page.evaluate(async () => {
-    const mod = await import('/src/attractions/Zoo.js');
+    const mod = await import('/src/scenes/zoo-scene.js');
     return mod.ZOO_TRAITS || null;
   });
   const traitKeys = traits ? Object.keys(traits) : [];

@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-15T09:07:40.716Z",
+  "at": "2026-11-15T10:46:44.480Z",
   "passed": 8,
   "total": 8,
   "allPass": true,
@@ -148,7 +148,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m6-closeup.png",
-        "bytes": 1034135
+        "bytes": 1034101
       }
     },
     {

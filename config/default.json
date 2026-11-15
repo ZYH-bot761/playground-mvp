@@ -1,0 +1,21 @@
+{
+  "app": {
+    "name": "playground-mvp",
+    "entry": "src/main.js",
+    "canvasSelector": "#app"
+  },
+  "dev": {
+    "host": "127.0.0.1",
+    "port": 5173,
+    "strictPort": true
+  },
+  "cache": {
+    "hashedAssetMaxAge": 31536000,
+    "htmlCacheControl": "no-cache"
+  },
+  "render": {
+    "pixelRatioCap": 2,
+    "triangleBudget": 300000,
+    "drawCallBudget": 900
+  }
+}

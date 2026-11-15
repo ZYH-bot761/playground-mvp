@@ -1,6 +1,6 @@
 {
   "module": "M7",
-  "at": "2026-11-15T09:35:09.989Z",
+  "at": "2026-11-15T10:50:39.333Z",
   "passed": 8,
   "total": 8,
   "allPass": true,
@@ -173,7 +173,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 604016
+        "shotBytes": 604030
       }
     }
   ],

@@ -48,3 +48,17 @@ _rl.log
 *.njsproj
 *.sln
 *.sw?
+
+# 私密信息（含凭证，禁止入库；中文文件名已改为小写短横线）
+private-info.txt
+本机私密信息.txt
+
+# 归档区：只保留清单文档入库，大体积中间产物不推远端
+_archive/*.zip
+_archive/tmp-blender/
+_archive/tmp-t07/
+_archive/tmp-pkg-inspect/
+_archive/tmp-preview-*.log
+_archive/arts/
+_archive/codeartsdoer/
+_archive/blender-zoo/*.blend1

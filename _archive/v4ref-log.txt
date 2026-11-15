@@ -1,0 +1,24 @@
+[PASS] ① 启动性能与首帧 :: boot=12710ms 点击→可玩=1061ms renderOnce=27
+[PASS] ② WASD / 鼠标切换 :: 切换=orbit→wasd→orbit 位移=7.2m 跳变=0m
+[PASS] ③ 人物建模与人群 :: draw=1 NPC=10 minDist=0.82 穿墙=0 面/人=2478
+[PASS] ④ 世纪钟钟面与夜间 :: 三针误差=0 夜间pureWhite=0 正背方位=true/true
+[PASS] ⑤ 摩天轮嵌入同一大厅 :: embedded=ferris-wheel angle=0.4175860000000018→0.5605860000000015 cabin=0
+[PASS] ⑥ 建筑比例与小车贴轨 :: {"carCount":3,"maxGap":0,"trackLength":192.11,"advanced":0.023809523809523725}
+[PASS] ⑦ 触发环分散 :: 9环 minDist=8.062m 告警=0
+[PASS] ⑧ 城堡大门（拱门/双塔/城垛） :: {"present":true,"hasArch":true,"towers":8,"crenels":1,"children":42,"sample":["Lobby/gate","Lobby/gate-pillar--1","Lobby/gate-orb--1","Lobby/gate-strip--1","Lobby/gate-pillar-1","Lobby/gate-orb-1","Lobby/gate-strip-1","Lobby/gate-beam","Lobby/gate-beam-glow-top","Lobby/gate-beam-glow-bottom","Lobby/gate-sign-front","Lobby/gate-sign-back"]}
+[PASS] ⑨ 文字清晰度 / 无橙色马赛克 :: edgeDensity=0.08602 orange=0/0.0077
+[PASS] ⑩ 场景一体化（嵌入态大厅常驻） :: embedded=ferris-wheel activeKey=lobby lobbyInScene=true sky=0.32877
+[PASS] ⑪ 常驻动效（木马/海盗船/小车/小火车） :: carousel=true pirate=true train=true coaster=true
+[PASS] ⑫ 跳一跳嵌入（背景是大厅） :: {"lobbyInScene":true,"activeKey":"lobby","independentSky":false,"independentGround":false,"blockCount":3}
+[PASS] ⑬ 全量回归（5轮 Δ0/0 + 预算 + 0 报错） :: Δgeo=0 Δtex=0 (steady 73geo/36tex, 惰性 +27) calls=688 tris=267292 err=0/0
+
+=== v4 全量验收汇总 ===
+{
+  "PASS": 13,
+  "FAIL": 0,
+  "SKIP": 0,
+  "total": 13
+}
+明细: ①:PASS ②:PASS ③:PASS ④:PASS ⑤:PASS ⑥:PASS ⑦:PASS ⑧:PASS ⑨:PASS ⑩:PASS ⑪:PASS ⑫:PASS ⑬:PASS
+报告: D:\playground-mvp\docs\screenshots\v4-final-verification.json
+截图: 17 张，目录 D:\playground-mvp\docs\screenshots

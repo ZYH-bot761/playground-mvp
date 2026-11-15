@@ -21,7 +21,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const MODULE = process.argv[2] || 'M0';
+const MODULE = (process.argv[2] || 'M0').toLowerCase();
 const PORT = process.env.PORT || 5173;
 const BASE = `http://localhost:${PORT}/`;
 const OUT = path.resolve('docs/screenshots');

@@ -14,7 +14,7 @@
  *     强制为 true（只影响验收浏览器，不改 core 源码）；每次截图前显式
  *     renderOnce() 再 page.screenshot()；若 PNG 异常小则用像素统计兜底。
  *  2. renderOnce 启动期计数：用 page.route 拦截 dev server 的
- *     /src/core/SceneManager.js 模块并追加一段原型包装（"route 注入"）。
+ *     /src/core/scene-manager.js 模块并追加一段原型包装（"route 注入"）。
  *     production build 无单模块可拦 → 该项 SKIP，不误报 FAIL。
  *  3. 未实现项优雅 SKIP：每项先探测能力（EMBEDDED_KEYS / facilityRuntime /
  *     具体命名对象 / 状态字段），不存在就 SKIP 并注明"待 T0x 实现"。
@@ -133,7 +133,7 @@ await context.addInitScript(() => {
 
 // ② route 注入：统计启动期 renderOnce() 调用次数（仅 dev server 单模块形态有效）
 let routeHit = false;
-await context.route('**/src/core/SceneManager.js*', async (route) => {
+await context.route('**/src/core/scene-manager.js*', async (route) => {
   try {
     const resp = await route.fetch();
     const body = await resp.text();
@@ -435,7 +435,7 @@ try {
     } catch (e) {
       // route 注入若意外破坏模块加载，撤掉注入后重载一次（不影响业务源码）
       if (routeHit && attempt === 0) {
-        await context.unroute('**/src/core/SceneManager.js*');
+        await context.unroute('**/src/core/scene-manager.js*');
         report.errors.consoleWarning.push('[verify] route 注入导致启动失败，已撤销注入并重载');
       }
       await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
