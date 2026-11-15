@@ -1,0 +1,161 @@
+{
+  "at": "2026-11-15T09:07:40.716Z",
+  "passed": 8,
+  "total": 8,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 四区 + 地面 + 标牌 + 围栏",
+      "pass": true,
+      "detail": {
+        "bird_zone": {
+          "ground": true,
+          "fence": true,
+          "sign": true
+        },
+        "reptile_zone": {
+          "ground": true,
+          "fence": true,
+          "sign": true
+        },
+        "marine_zone": {
+          "ground": true,
+          "fence": true,
+          "sign": true
+        },
+        "mammal_zone": {
+          "ground": true,
+          "fence": true,
+          "sign": true
+        }
+      }
+    },
+    {
+      "name": "B 具体物种资产（鸡/鸭/鹅/狗/龟/鱼）",
+      "pass": true,
+      "detail": {
+        "species": [
+          "鸡",
+          "鸭",
+          "鹅",
+          "狗",
+          "龟",
+          "鱼"
+        ],
+        "missing": []
+      }
+    },
+    {
+      "name": "C 物种造型差异（红冠/扁喙/长颈/竖耳）",
+      "pass": true,
+      "detail": {
+        "鸡": {
+          "zone": "bird_zone",
+          "count": 3,
+          "feature": "红冠 + 短喙 + 短尾",
+          "color": 16765503
+        },
+        "鸭": {
+          "zone": "bird_zone",
+          "count": 3,
+          "feature": "扁喙 + 圆头 + 白羽",
+          "color": 15923199
+        },
+        "鹅": {
+          "zone": "bird_zone",
+          "count": 2,
+          "feature": "长颈 + 橙喙 + 大体型",
+          "color": 15398143
+        },
+        "狗": {
+          "zone": "mammal_zone",
+          "count": 5,
+          "feature": "竖耳 + 上翘尾 + 项圈",
+          "color": 12155199
+        },
+        "龟": {
+          "zone": "reptile_zone",
+          "count": 4,
+          "feature": "硬壳 + 短腿 + 缩头",
+          "color": 6734426
+        },
+        "鱼": {
+          "zone": "marine_zone",
+          "count": 15,
+          "feature": "流线体 + 尾鳍集群",
+          "color": 5884402
+        }
+      }
+    },
+    {
+      "name": "D 动物 8/4/15/5 且 InstancedMesh ≤18 draw call",
+      "pass": true,
+      "detail": {
+        "instancedMeshes": 18,
+        "zooTriangles": 4718,
+        "animalParts": 12,
+        "fenceParts": 2
+      }
+    },
+    {
+      "name": "E 动物在动且 240 帧闭环",
+      "pass": true,
+      "detail": {
+        "p0": [
+          52.442955017089844,
+          7.126585006713867,
+          18.1144962310791
+        ],
+        "p1": [
+          45,
+          4.199999809265137,
+          21
+        ],
+        "pBefore": [
+          52.442955017089844,
+          7.126585006713867,
+          18.1144962310791
+        ],
+        "pAfter": [
+          50.407623291015625,
+          6.163525581359863,
+          19.663118362426758
+        ],
+        "pRef": [
+          50.407623291015625,
+          6.163525581359863,
+          19.663118362426758
+        ],
+        "pEnd": [
+          47.84295654296875,
+          4.81832218170166,
+          20.65739631652832
+        ],
+        "move": 7.982713284772263,
+        "loopErr": 0
+      }
+    },
+    {
+      "name": "F 鱼不穿水 / 鸟不飞出包络",
+      "pass": true,
+      "detail": {
+        "fishBad": 0,
+        "birdBad": 0
+      }
+    },
+    {
+      "name": "G 栏边近景截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m6-closeup.png",
+        "bytes": 1034135
+      }
+    },
+    {
+      "name": "H 0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "errors": []
+}

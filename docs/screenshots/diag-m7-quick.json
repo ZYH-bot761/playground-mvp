@@ -1,0 +1,88 @@
+{
+  "data": {
+    "rootExists": true,
+    "structureCount": 28,
+    "lods": [
+      {
+        "name": "Districts/castle/lod",
+        "levels": 2,
+        "detailChildren": 15
+      },
+      {
+        "name": "Districts/farm/lod",
+        "levels": 2,
+        "detailChildren": 9
+      }
+    ],
+    "overview": {
+      "calls": 1197,
+      "triangles": 298494
+    },
+    "standard": {
+      "calls": 1059,
+      "triangles": 285034
+    },
+    "noDistrict": {
+      "calls": 1195,
+      "triangles": 298382
+    },
+    "parts": {
+      "withoutStructure": {
+        "calls": 1195,
+        "triangles": 298382
+      },
+      "withoutCastle": {
+        "calls": 1197,
+        "triangles": 298494
+      },
+      "withoutFarm": {
+        "calls": 1197,
+        "triangles": 298494
+      },
+      "lodLevels": {
+        "castle": 0,
+        "farm": 0
+      }
+    },
+    "grid": {
+      "center": {
+        "x": 30,
+        "z": 30
+      },
+      "outer": {
+        "minX": -30,
+        "maxX": 90,
+        "minZ": -30,
+        "maxZ": 90,
+        "size": 120
+      },
+      "quads": {
+        "amusement": {
+          "cx": 0,
+          "cz": 0,
+          "content": "existing"
+        },
+        "zoo": {
+          "cx": 60,
+          "cz": 0,
+          "content": "existing"
+        },
+        "castle": {
+          "cx": 0,
+          "cz": 60,
+          "content": "placeholder"
+        },
+        "farm": {
+          "cx": 60,
+          "cz": 60,
+          "content": "placeholder"
+        }
+      }
+    },
+    "mem": {
+      "geometries": 46,
+      "textures": 33
+    }
+  },
+  "errors": []
+}

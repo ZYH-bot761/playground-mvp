@@ -1,0 +1,78 @@
+{
+  "at": "2026-11-15T09:03:38.455Z",
+  "passed": 5,
+  "total": 5,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 不按 M 直接按 W 即可走动",
+      "pass": true,
+      "detail": {
+        "before": {
+          "pos": [
+            0,
+            30,
+            34
+          ],
+          "mode": "orbit",
+          "blend": false,
+          "owner": null,
+          "transitioning": null
+        },
+        "after": {
+          "pos": [
+            0,
+            30,
+            25
+          ],
+          "mode": "orbit",
+          "blend": false,
+          "owner": null,
+          "transitioning": null
+        },
+        "distance": 9
+      }
+    },
+    {
+      "name": "B M 切换后 D 键生效",
+      "pass": true,
+      "detail": {
+        "mode": "wasd",
+        "blend": false,
+        "owner": null,
+        "distance": 9
+      }
+    },
+    {
+      "name": "C 设施返回后方向键仍生效",
+      "pass": true,
+      "detail": {
+        "state": {
+          "pos": [
+            9,
+            1.6,
+            25
+          ],
+          "mode": "orbit",
+          "blend": false,
+          "owner": null,
+          "transitioning": null
+        },
+        "distance": 9
+      }
+    },
+    {
+      "name": "D 无相机跳变",
+      "pass": true,
+      "detail": {
+        "maxVerticalJump": 0
+      }
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "errors": []
+}

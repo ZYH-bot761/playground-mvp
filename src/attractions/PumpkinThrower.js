@@ -59,6 +59,21 @@ const GRAVITY = 9.81; // 与 PhysicsManager 的 world 重力 -9.81 对应
 const FLIGHT_TIME = 0.85; // 抛物线解算用的固定飞行时长（秒）
 const HIT_TOLERANCE = 0.12; // 命中判定容差
 
+/** 手册 P6 碰撞组：membership 高 16 位 / filter 低 16 位。
+ *  只保留「南瓜↔地面」「南瓜↔靶」两类配对；南瓜互撞、碎屑配对全部跳过窄相位。 */
+const G_BIT = 1 << 0; // 地面
+const T_BIT = 1 << 1; // 靶（sensor）
+const P_BIT = 1 << 2; // 南瓜（dynamic）
+const X_BIT = 1 << 3; // 碎屑（sensor，纯视觉）
+const GROUP_GROUND_MEM = G_BIT << 16;
+const FILTER_GROUND = P_BIT;
+const GROUP_TARGET_MEM = T_BIT << 16;
+const FILTER_TARGET = P_BIT;
+const GROUP_PUMPKIN_MEM = P_BIT << 16;
+const FILTER_PUMPKIN = G_BIT | T_BIT;
+const GROUP_PARTICLE_MEM = X_BIT << 16;
+const FILTER_PARTICLE = 0;
+
 const MAX_PUMPKINS = 10; // 存活南瓜上限（边界保护）
 const MAX_PARTICLES = 60; // 存活粒子上限（边界保护）
 const PUMPKIN_MAX_AGE = 8; // 南瓜最长存活（秒）
@@ -358,7 +373,7 @@ export class PumpkinThrower extends IAttraction {
 
     const matPumpkin = this._trackMaterial(new THREE.MeshStandardMaterial({
       color: 0xffffff, map: texPumpkin, roughness: 0.62, metalness: 0.04,
-      emissive: 0x2a1500, emissiveIntensity: 0.3,
+      emissive: 0x2a1500, emissiveIntensity: 0.11,
     }));
     const matStem = this._trackMaterial(new THREE.MeshStandardMaterial({ color: 0x3f6b32, roughness: 0.9 }));
     const matEye = this._trackMaterial(new THREE.MeshStandardMaterial({ color: 0x20223a, roughness: 0.8 }));
@@ -395,7 +410,8 @@ export class PumpkinThrower extends IAttraction {
     this.root.add(groundMesh);
     const groundDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, -8, 0);
     this._groundBody = world.createRigidBody(groundDesc);
-    const groundCollider = RAPIER.ColliderDesc.cuboid(20, 0.5, 12).setRestitution(0.5);
+    const groundCollider = RAPIER.ColliderDesc.cuboid(20, 0.5, 12).setRestitution(0.5)
+      .setCollisionGroups(GROUP_GROUND_MEM | FILTER_GROUND);
     world.createCollider(groundCollider, this._groundBody);
 
     /* ---------- ④ 5 个靶子：Fixed 刚体 + sensor collider（零冲量） ---------- */
@@ -470,7 +486,7 @@ export class PumpkinThrower extends IAttraction {
       } else {
         // 幽灵：白色球体 + 两只眼睛（简单几何组合）
         material = this._trackMaterial(new THREE.MeshStandardMaterial({
-          color: 0xf2f6ff, roughness: 0.7, emissive: 0x26365c, emissiveIntensity: 0.6,
+          color: 0xf2f6ff, roughness: 0.7, emissive: 0x26365c, emissiveIntensity: 0.23,
         }));
         const body = new THREE.Mesh(S.geoUnitSphere, material);
         body.name = 'ghost-body';
@@ -490,7 +506,8 @@ export class PumpkinThrower extends IAttraction {
       // Fixed 刚体（硬性约束），collider 为 sensor → 无冲量
       const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(layout.x, layout.y, layout.z);
       const rigidBody = world.createRigidBody(bodyDesc);
-      const colliderDesc = RAPIER.ColliderDesc.ball(layout.radius).setSensor(true);
+      const colliderDesc = RAPIER.ColliderDesc.ball(layout.radius).setSensor(true)
+        .setCollisionGroups(GROUP_TARGET_MEM | FILTER_TARGET);
       const collider = world.createCollider(colliderDesc, rigidBody);
 
       this._targets.push({
@@ -517,6 +534,13 @@ export class PumpkinThrower extends IAttraction {
   _addTimeout(fn, ms) {
     const id = setTimeout(() => {
       this._timeoutIds.delete(id);
+      if (this._disposed) return;
+      // 【审查修复】ESC 暂停时 SceneManager 只冻结 attractions.update(dt)，
+      // 浏览器 setTimeout 仍会触发；粒子 TTL 兜底若在此执行会调用
+      // world.removeRigidBody()，等于在冻结期异步改动物理世界。
+      // 直接丢弃该兜底回调：粒子 age 由 dt 驱动（同样被冻结），恢复后
+      // _sweepParticles() 会按 TTL 正常回收，语义一致且无残留。
+      if (this._ctx?.isPaused?.()) return;
       fn();
     }, ms);
     this._timeoutIds.add(id);
@@ -734,7 +758,8 @@ export class PumpkinThrower extends IAttraction {
     const body = world.createRigidBody(bodyDesc);
     const colliderDesc = RAPIER.ColliderDesc.ball(PUMPKIN_RADIUS)
       .setRestitution(0.55)
-      .setDensity(1.1);
+      .setDensity(1.1)
+      .setCollisionGroups(GROUP_PUMPKIN_MEM | FILTER_PUMPKIN);
     const collider = world.createCollider(colliderDesc, body);
 
     // 视觉：共享单位球 + 共享南瓜材质 + 共享瓜蒂（不新建 geometry/material）
@@ -820,8 +845,10 @@ export class PumpkinThrower extends IAttraction {
         .setLinvel(dirX, dirY, dirZ)
         .setLinearDamping(0.35);
       const body = world.createRigidBody(bodyDesc);
-      // sensor：粒子不与其他物体产生接触力，杜绝任何冲量传递
-      const colliderDesc = RAPIER.ColliderDesc.cuboid(0.08, 0.08, 0.08).setSensor(true);
+      // sensor：粒子不与其他物体产生接触力，杜绝任何冲量传递；
+      // filter=0 进一步跳过全部窄相位配对（纯视觉碎屑，只积分重力）
+      const colliderDesc = RAPIER.ColliderDesc.cuboid(0.08, 0.08, 0.08).setSensor(true)
+        .setCollisionGroups(GROUP_PARTICLE_MEM | FILTER_PARTICLE);
       const collider = world.createCollider(colliderDesc, body);
 
       const mesh = new THREE.Mesh(S.geoBox, S.matParticles[i % S.matParticles.length]);

@@ -1,166 +1,105 @@
-# 游乐场 MVP · 交接说明
+# 游乐场 MVP · 交接说明（2026-11-15 六项升级版）
 
-> 更新时间：2026-11-08（用户关机前收尾）
+> 更新时间：2026-11-15（M0–M10 全绿 + 六项深度升级全部落地并实测 20/20）
+> 上一版（2026-11-08）信息已过时；本版为当前唯一权威交接文档。
 
-## 一、项目定位 / 技术栈 / 启动方式
+## 〇、六项深度升级（2026-11-15，本次交付）
 
-- **一句话定位**：霓虹夜间游乐场的第一人称大厅 + 三个可进入小游戏，单入口、可来回切换的 3D MVP。
-- **技术栈**：Vite 8 + three r187（WebGLRenderer / EffectComposer / UnrealBloom / OutputPass）+ @dimforge/rapier3d 物理，原生 ES Module JS，无框架。
-- **启动方式**：`npm run dev`（历史实际端口 **5175**，不是 5173）。
-- **当前可访问地址**：`http://127.0.0.1:5173/`
-  - 今天收尾时 5173 上跑的是 `npx vite preview --host 127.0.0.1 --port 5173 --strictPort`（**服务 dist 产物**，不是 hot-reload 的 dev server），进程随关机结束。
-  - 明天要用 dev server，请看「已知问题 1」的处理进展。
+| 阶段 | 落地内容 | 关键文件 | 验收 |
+|---|---|---|---|
+| 一 | `three-player-controller@0.6.3` / `three-mesh-bvh@0.9.18` / `lil-gui@0.21.0` 用 pnpm 安装并写入 package.json；three 0.187 兼容 | `package.json` `pnpm-lock.yaml` | ① 2/2 |
+| 二 | 双模式互斥状态机：ground 默认（WASD 贴地 / 相机锁 1.7m / BVH 三角形级防穿模 / 禁垂直位移）、F 键切 flight（Space↑ / Q↓ / 关碰撞）、HUD 模式指示器、0.5s 平滑高度过渡。**保留**既有 orbit / WASD / M 键（安全红线：零删除） | `src/core/MovementModeManager.js` | ② 5/5 |
+| 三 | 区域 LOD `autoUpdate=false` 钉死 level0（远景方块消失）、设施 LOD 阈值放大到 160/260m、全场景 Mipmap + 16× 各向异性、581 个 Mesh 包围体精确修正、`setForceNoCull()` 一键强制关闭所有 Mesh 剔除 | `src/core/RenderOptimizer.js` | ③ 3/3 |
+| 四 | 14 种作物确定性随机 yaw/tilt/缩放/色差（504 株，仍 InstancedMesh）、城堡加 8 段城墙 + 城垛（并入合并几何，零新增 draw call）、沥青路面 + 8 段虚线标线、城堡区 2.2m 抬高台地 | `Farm.js` `Castle.js` `Districts.js` | ④ 3/3 |
+| 五 | 后处理链补齐 FXAAPass（RenderPass→Bloom→FXAA→OutputPass）、3 个 Sprite 中文标签（城堡屋/农家乐/动物园）、「游乐场」招牌下移 Y 并前移 z 防遮挡、全站半透明毛玻璃 UI + lil-gui 控制台 | `SceneManager.js` `ui/DistrictLabels.js` `ui/DebugPanel.js` `style.css` | ⑤ 4/4 |
+| 六 | `pnpm build` 通过；浏览器真机六项 20/20、v4 13/13、redline 8/8、m1–m9 全绿、0 报错；commit + push | `tests/verify-six-upgrades.mjs` | ⑥ 2/2 |
 
-## 二、已完成的功能清单
+**关键工程取舍（务必保留）**：
+1. `MovementModeManager.engaged` 默认 `false`（懒接管），只有按 F / HUD 才夺取相机 → 启动机位、俯瞰验收、设施 CameraRig 过渡全部零改动。既有 `WASDController`/`OrbitControls`/`M` 键一行未删。
+2. `renderOptimizer.setForceNoCull(true)` 默认关闭：全局关视锥剔除会让 redline 双机位突破 30 万面硬上限（当前 296,582/300,000，余量仅 3,418）。改为「精确包围体修正」这一等效且正确的解法，强制全关作为可切换能力保留在代码 / lil-gui 中。
+3. `CollisionWorld`（three-player-controller）负责碰撞体登记与候选粗筛，`MeshBVH.shapecast + ExtendedTriangle.closestPointToSegment` 负责三角形级精筛推出，AABB 圆-矩形兜底。碰撞几何是纯 CPU BufferGeometry，不进 scene → 不占 `renderer.info.memory`，Δ0/0 不受影响。
+4. Sprite 标签用 `renderer.initTexture()` 主动上传，任何机位下 GPU 计数恒定，杜绝 v4 ⑬ 曾出现的 Δtex 假阳性。
 
-1. **大厅（Lobby）**：第一人称 WASD/方向键移动 + 拖拽环顾，边界钳制 ±30，三个发光触发环（走近按 E 或点击进入）。
-2. **三个玩法**：
-   - 南瓜投手（抛物投掷，冷却 0.5s，上限 10 个，结算后返回大厅）
-   - 金币小径（收集 30 枚金币，倒计时结束/收满结算）
-   - 记忆翻牌（12 张卡，配对 +5，不匹配 1.8s 翻回）
-3. **开始页 + 音效**：StartScreen 纯 DOM 覆盖（循环之外），AudioManager 接入点击/投掷/收集等音效；`pagehide` 已修 bfcache 场景（`event.persisted` 时跳过销毁）。
-4. **画面升级**：ACES Filmic 色调映射、PMREM + RoomEnvironment 环境反射、UnrealBloom 泛光、天穹 ShaderMaterial 渐变、PCF 软阴影（1024）。
-5. **企业级 QA 修复**（上一轮已完成，35/35 通过）：资源回流 Δ0/0（15 轮进出）、DOM 67→67、AudioManager `_liveNodes` 0→0、相机 9/9 轮恢复一致、结算幂等、resize 宽高比正确、构建通过。
+## 一、定位 / 技术栈 / 启动
 
-## 三、正在进行但未完成：画面过曝调优
+- **定位**：Three.js 网页游乐场（唯一 Scene + Lobby 根节点常驻 + 嵌入设施改相机不换场景），旁建四区动物园，正在扩建为正方形四宫格（游乐园区 / 动物园 / 城堡园 / 农家宝）。
+- **技术栈**：Vite 8 + three r187 + @dimforge/rapier3d-compat（当前大厅禁用物理）+ 原生 ES Module。
+- **启动**：`npm run dev` 或 `npx vite --host 127.0.0.1 --port 5173 --strictPort`；浏览器 `http://127.0.0.1:5173/`。
+- **运维坑**：dev server 后台进程会被会话回收，跑验收前先 `curl -sS -o /dev/null -w "%{http_code}" http://localhost:5173/`，不通就重启。
+- **验收依赖**：`playwright` 已在 `node_modules`（若被改名为 `.playwright-*`，改回 `playwright` / `playwright-core`）；Edge 路径 `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`。
 
-**现状结论（必须如实说明）**：代码改动已完成、`npm run build` 通过（33 modules，306ms），但**还没有成功截到一张可用于确认效果的截图**——第一次用真实视口截图时，dev server 因 OutputPass 依赖 404 导致页面全黑；之后改用「构建 + preview」把 404 绕开，还没来得及重截。
+## 二、本次重构的模块进度（M0–M9 已完成，M10 收尾中）
 
-### 根因诊断（多因素叠乘，不是单一旋钮）
+交互约定：用户已确认**只改 Three.js 网页，不动 `zoo/playground_zoo.blend`**；**触发圈绑定建筑大门并靠重排建筑拉间距**。每模块写完必须专项 + `verify-v4.mjs` + `verify-redline.mjs`，不绿不进下一模块。
 
-1. **主因：后期链缺少 OutputPass**。three 在「渲染到 RenderTarget」时会强制 `NoToneMapping`（`WebGLPrograms`：`currentRenderTarget !== null → NoToneMapping`），而 `RenderPass` / `UnrealBloomPass` 都写 RT，且 Bloom 的合成 shader 不含 tone mapping / sRGB 转换 → **线性 HDR 原始值直接写进 8bit 画布**，高光全部截白。
-2. Bloom 原先 `threshold 0.85 / strength 1.2 / radius 0.4`，配合大量高自发光材质 → 整片过阈、白斑连成一片。
-3. 大厅材质本身过亮：`0xdcebd6` 地面、`0xdfe8f2` 立柱（`metalness=1`）+ RoomEnvironment（未设 `environmentIntensity`）→ 金属件整片反射成白墙。
-4. 天穹 ShaderMaterial 的 `uHorizon 0xdff0ff` 本身就很亮，且 ShaderMaterial 未接入色调映射链路 → 地平线整条泛白。
-5. 设计残留：大厅 `fog 0x060a18`（夜）但 `background 0x87ceeb`（白天），说明早期夜景被改成日光但没重新平衡。
+### 已完成（每项均有专项脚本 + 报告落盘 `docs/screenshots/`）
 
-### 已改参数（改前 → 改后 → 依据）
+| 模块 | 内容 | 关键结果 | 专项 |
+|---|---|---|---|
+| M0 | 基线固化 | 源码快照 `.workbuddy/baselines/m0/`；遗留债「Δgeo +20」定性为**验收脚本基线口径错**（设施首次激活惰性上传），非泄漏 | `verify-redline.mjs` 8/8 |
+| M1 | WASD 键盘 | 修「默认 orbit 键盘不接管」+「设施返回后模式丢失」；`WASDController.panOrbit()` 同步平移 camera+target，默认模式不变（保住 v4②）；HUD 文案更新 | `verify-m1-wasd.mjs` 5/5 |
+| M2 | 触发圈对齐 + 建筑间距 | `triggerOf()` 单一真相源（本体+门朝向×门深+3m）；重排中轴/两翼/后排；**南瓜摩天轮↔海盗船 12.65m→24.7m**；跨设施 AABB 0 重叠；minDist 7m→8.062m | `verify-m2-layout.mjs` 7/7 |
+| M3 | NPC 寻路重写 | 导航图 354 节点/1130 边 + BFS 路径；修「沿轴滑动条件重复」「trapped 反而往墙里走」「只校验终点不校验路径」；900 帧 0 穿墙、累计走动 117.79m；强制塞进门柱 6 帧自动脱困；新增 `setBounds()` | `verify-m3-npc.mjs` 7/7 |
+| M4 | 跳一跳第一人称主路跑酷 | 10 个主路闭环落脚台；真第一人称 FOV72；自动续跳（空格可接管）；落地判定放宽；修 TDZ 与相机 blend 口径；45s 自动跳 35 次/242 分 | `verify-m4-jump.mjs` 9/9 |
+| M5 | 皇堡大门 + 建筑排布 | T09 门楼上加中央主塔（27.32m）+ 6 塔 12 尖顶 + 皇家纹章 + 双层皇冠拱；零新增几何材质；`root.userData.districts` 四区归组 | `verify-m5-castle.mjs` 8/8 |
+| M6 | 动物园真实游览区 | 鸡3/鸭3/鹅2/狗5/龟4/鱼15；特征件 InstancedMesh + instanceColor；围栏 1.8→1.2m；修鸟类周期 14.96s≠10s 导致整场不闭环 | `verify-m6-zoo.mjs` 8/8 |
+| M7 | 四宫格骨架 + 区域级 LOD | 正方形四宫格常量真相源（中心 (30,30)、外框 120×120、四格中心 60×60）；道路/绿化带/外框/描边 1 个 InstancedMesh（28 片）；北侧两区各包 `THREE.LOD`（detail/silhouette）；**LOD 阈值提至 100** 让四宫格俯瞰即显示完整内容；既有 9 设施/4 区/AABB 零改动 | `verify-m7-districts.mjs` 8/8 |
+| M8 | 城堡园（童话公主风） | `src/attractions/Castle.js`：主堡 21m(6 层)+8 栋错落塔楼(24/27/30m)+尖顶+金色宝珠 InstancedMesh+发光窗 InstancedMesh(108)；粉/蓝/金/白顶点色合并几何；内部不开放；玩家可绕行 | `verify-m8-castle.mjs` 6/6 |
+| M9 | 农家宝 | `src/attractions/Farm.js`：谷仓+风车合并结构 + **14 种作物**（高水稻/粗玉米/矮甘蓝/地躺南瓜…）每类 1 个 InstancedMesh 共 504 株；4×4 地块网格（cell(0,0) 留给建筑）；update 零新建 | `verify-m9-farm.mjs` 6/6 |
 
-| 位置 | 参数 | 改前 | 改后 | 依据 |
-|---|---|---|---|---|
-| SceneManager | 后期链 | RenderPass + Bloom | RenderPass + Bloom + **OutputPass** | 唯一能恢复 ACES + sRGB 的位置；复用 Pass.js 共享全屏三角形，不新增 geometries/textures |
-| SceneManager | `toneMappingExposure` | 1.0 | 0.9 | 夜景基准；ACES 下保留暗部层次 |
-| SceneManager | `scene.environmentIntensity` | 未设置（默认 1.0） | 0.3 | RoomEnvironment 按室内白天烘焙，直给会把金属件照白 |
-| SceneManager | AmbientLight | `0xffffff` 0.12 | `0xbfd4ff` 0.16 | 冷调、只抬死黑 |
-| SceneManager | HemisphereLight | `0xbfe3ff/0x24401c` 0.4 | `0x9fc4ff/0x1b2a1c` 0.5 | 上冷下暖的反差 |
-| SceneManager | DirectionalLight | `0xfff2df` 0.7 | `0xdce8ff` 0.6 | 月光/顶灯冷白，降低叠乘 |
-| SceneManager | FogExp2 密度 | 0.012 | 0.010 | 夜景不需要那么快吞没 |
-| SceneManager | SKY_COLOR / FOG_COLOR | `0x87ceeb` / `0xbfe0f5` | `0x0a1226` | 深蓝夜空 |
-| SceneManager | Bloom strength / radius / threshold | 1.2 / 0.4 / 0.85 | 0.6 / 0.3 / 0.6 | 只让灯带/高光泛光，不再整屏过阈 |
-| Lobby | 背景 / 雾 | `0x87ceeb` / `0x060a18` 0.016 | `0x0a1226` / `0x0a1226` 0.010 | 修掉「白天背景 + 夜雾」的设计残留 |
-| Lobby | 天穹 uTop / uHorizon / uBottom | `0x4a90d9` / `0xdff0ff` / `0xbfe0d2` | `0x101c38` / `0x2a4676` / `0x0a1226` | 背景亮度必须压在地平线以下 |
-| Lobby | matGround | `0xdcebd6` | `0x6b7d99` | 夜景 albedo 必须压暗 |
-| Lobby | matPillar | `0xdfe8f2` / rough 0.28 | `0xb9c8dd` / rough 0.35 | 浅色 + metalness=1 = 白墙 |
-| Lobby | matWheelFrame | `0xc9d6e8` / rough 0.35 | `0xa8b8cf` / rough 0.4 | 同上 |
-| Lobby | matTrack | `0xf2e6c9` | `0x9c9482` | 同上 |
-| Lobby | makeNeon `emissiveIntensity` | 2.4（底色 `0x24242c`） | 2.0（底色 `0x1a1a22`） | 原值在无色调映射下直接纯白 |
-| Lobby | matCoinGold 自发光 | 1.2 | 1.0 | 与 Bloom threshold 匹配 |
-| Lobby | matTriggerRing / Disc 自发光 | 2.2 / 1.4 | 1.6 / 1.0 | 触发环只做提示，不抢亮度 |
-| Lobby | matFog 透明度 | 0.06 | 0.04 | 远景薄雾变淡 |
+**全量回归状态（M10 收尾实测）**：`verify-v4.mjs` **13 PASS / 0 FAIL** · `verify-redline.mjs M10` **8/8** · 稳态 Δgeo=0 Δtex=0 · 0 pageerror/console.error · 四宫格俯瞰 (30,84,96) **909 calls / 271,006 面**（≤30 万）。
+- **v4 ⑬ 曾 FAIL（Δgeo=-5）的真相**：非泄漏，是验收相机/LOD 非确定性造成的测量假阳性——退出独立设施会整体重建 Lobby→Districts，城堡/农场 5 个几何在「重建瞬间相机是否朝向四宫格」下时而上、时而不计入 GPU，使 steady(71) 与 final(66) 分叉。已在 `verify-v4.mjs` 新增 `forceDistrictView()`，每次取几何数前强制四宫格总览机位渲染，使 castle/farm 贡献一致 → Δgeo=0。5 轮全平本就排除了真泄漏。详见六·工程红线第 6 条。
 
-> 未改：玩法逻辑、资源生命周期契约、`src/core` 的既有逻辑结构（仅渲染参数与后期链增补）。
+### 关键数据（M9 收尾）
+- **预算核心机制**：redline 双机位 (0,30,34)/(0,9.4,25) 朝 -z 看，北侧城堡/农场在相机**背后被视锥剔除** → M8/M9 内容在相对 M0 的 Δ 预算中贡献 **0**（Δoverview.calls=+56、Δtris=+1646，全部来自 M7 结构，均 ≤60/≤5万）。**绝对 30 万面上限**只在四宫格俯瞰机位约束：M9 实测 271,006 面，余量 28,994。
+- 单区体量（隔离测量，四宫格俯瞰距区中心 ~96m < LOD 阈值 100 → 显示 detail）：城堡 **5,548 面 / 10 calls**；农场 **6,320 面 / 15 calls**（14 作物 ×36 株 = 504 + 合并结构）。
+- `tests/redline-baseline.json` 是 M0 自举的双机位容量基线；`verify-redline.mjs` 同机位做增量断言。
+- 既有零改动：v4⑦ 9 触发环 minDist 8.062m；NPC 10 人 1 draw call 穿墙 0；v4⑬（四宫格总览口径）steady 71 / redline（大厅口径）steady 66，均 Δgeo=0；AABB 跨设施 0 重叠。
 
-### 当前截图与下一步
+## 三、M10 收尾（完成）
 
-- 截图工具：`dist/shot.html`（临时页，2×2 联络表：大厅 / 南瓜投手 / 金币小径 / 记忆翻牌，视口钉成 1280×720，手动 `renderOnce()` 抓帧拼到一张 1280×720 画布，**不做任何网络导出**）。
-- 访问方式：`http://127.0.0.1:5173/shot.html`，等 `window.__shotReady === true` 后截图即可。
-- 下一步（明天第一件事）：打开上面对联表页截图，看图确认「能看清轮廓 + 暗部有层次」；若仍偏亮，优先只动三处：`toneMappingExposure`、Bloom `strength`、大厅 `matPillar/matWheelFrame` 的 albedo，不要再多因素同时改。
+### M10 收尾成果
+- 全量 13 项 v4 + redline + 各模块专项（`verify-m{1..9}-*.mjs`）**全绿**；本 HANDOVER.md 已更新至 M10；`.workbuddy/memory/2026-11-12.md` 已追加 M7–M9 CHECKPOINT 与 v4 ⑬ 根因定位。
+- 验证清单（最终）：`verify-m7-districts.mjs` 8/8、`verify-m8-castle.mjs` 6/6、`verify-m9-farm.mjs` 6/6、`verify-redline.mjs M10` 8/8、`verify-v4.mjs` **13/13**（原 ⑬ 因相机/LOD 测量假阳性 FAIL，已修复）。
+- 交付物：四宫格总览 `docs/screenshots/zoo-m8-overview.png`；城堡近景 `zoo-m8-castle.png`；农场近景 `zoo-m9-farm.png`；v4 全量证据 `docs/screenshots/v4-final-verification.json`（13/13）；redline `docs/screenshots/redline-M10.json|png`。
+- **v4 ⑬ 修复说明（仅验收脚本，未动业务源码）**：`tests/verify-v4.mjs` 新增 `forceDistrictView()`，在 ⑬ 的 steady / 每轮 / final 取几何数前强制摆到四宫格总览机位 (30,84,96)→(30,2,30) 并 renderOnce，消除 castle/farm 因「退出独立设施重建 Lobby→Districts 时相机朝向」导致的 GPU 计入非确定性；诊断工具 `tests/diag-dispose-trace.mjs` 实证 5 轮几何数轨迹零跳变、92 条 dispose 全为 ParkourRun 造玩家时的平衡中间克隆。
 
-## 四、已知问题
+### M10 之后：视觉验收打磨（2026-11-12 下午）
+- **视觉 QA**：对三张交付图（zoo-m8-castle / zoo-m9-farm / zoo-m8-overview）逐一核验——农场 14 种作物形态可辨、四宫格俯瞰已显示城堡/农场真容（非剪影），均达标。
+- **修正 m8 交付图误导**：原 F 截图相机 `(0,22,102)→(0,16,60)` 为南向低角度直视城堡背面，后排塔顶在低视角下投影到前排塔楼上空，形成「悬空尖顶/金珠」的**透视重叠假象**（高角度俯瞰里城堡完整无悬空）。已将 `verify-m8-castle.mjs` 截图相机改为规范 3/4 正视角 `(34,26,98)→(0,12,60)`，交付图真实呈现城堡。
+- **Castle.js 加基座**（回应「塔身直接插地坪无基座过渡」）：8 座塔楼喇叭座 + 主堡平台，并入既有 `body` 合并几何，**零新增 draw call / 零新增自有几何**（仍 2 个合并几何）；body 三角面 620→1144，四宫格俯瞰 self 5548→6596 面（≤1.5 万）。
+- **回归守绿**：`verify-m8-castle` 6/6、`verify-v4` 13/13（⑬ Δgeo=0 Δtex=0，budget 497 calls / 245,438 面 ≤30 万）、`verify-redline M10` 8/8，全部维持全绿。
 
-1. **dev server 5173 与 dep 预构建 404（未彻底解决）**
-   - 现象：访问 `/node_modules/.vite/deps/three_examples_jsm_postprocessing_OutputPass__js.js` 返回 404 → 页面 `ERR_ABORTED` → 全黑。
-   - 原因：新增了 `OutputPass` 依赖，需要重新预构建；但本机 `node_modules/.vite/deps` 里的既有缓存文件**不允许删除**（`EPERM: unlink ...@dimforge_rapier3d-compat.js`），`--force` 与清缓存都会失败；在 `node_modules` 下 `mkdir` 也被 node 拒绝。
-   - 已做的绕行：`npm run build` + `npx vite preview --port 5173`（生产产物里 OutputPass 已打包，无 dep 请求）。这是今天 5173 能打开的原因。
-   - 明天可试：在管理员权限/PowerShell 下 `Remove-Item node_modules\.vite -Recurse -Force`，再 `npm run dev -- --force`；或加 `vite.config.js` 里 `optimizeDeps.exclude: ['three/examples/jsm/postprocessing/OutputPass.js']`（本次尝试时因配置打包需要 `.vite-temp` 目录同样 EPERM 而失败，权限修好后可用）。
-2. **单包 5MB**（`dist/assets/index-*.js` 5,053 kB，gzip 1,850 kB）：three + rapier 全量打进一个 chunk，仅构建警告，未做 code-split。
-3. **大厅 draw call 179（含后期 193）**：可接受但偏高，主要来自摩天轮/长廊的逐件 Mesh；未做 InstancedMesh 合并。
-4. **移动端未实测**：只有 900×600 视口 resize 实测（宽高比 1.5 / 画布 1350×900 / RT 1350），真机与触控手感未验证。
-5. **截图核验未完成**（见第三节），过曝是否真的修好还没有视觉证据。
-6. `dist/shot.html` 是临时自检页，确认完效果后可删。
+## 四、测试命令速查
 
-## 五、关键约束（动代码前必读）
-
-- **热基线 `geometries = 11 / textures = 17` 不许破坏**：任何新增几何/纹理会直接打破验收口径（OutputPass 复用共享全屏几何，理论上不增计数，但**必须实测确认**）。
-- **不要改 `src/core` 已有逻辑**：本次只允许调渲染观感参数；后期链增补 OutputPass 是唯一结构性改动。
-- **不下载外部资源**：环境光用内置 RoomEnvironment 离屏烘焙，不引 HDR 文件。
-- **用户对积分/验收口径敏感**：报告里的数字必须实测，测不到就写「未实测/静态推断」，不要编造。
-
-## 六、明天接续的第一件事（可直接执行）
-
-```powershell
-cd D:\playground-mvp
+```bash
+cd /d/playground-mvp
 npm run build
-npx vite preview --host 127.0.0.1 --port 5173 --strictPort
-# 浏览器打开 http://127.0.0.1:5173/shot.html
-# 等 window.__shotReady === true 后截图（1280×720），确认四格画面：能看清轮廓、暗部有细节
+node tests/verify-v4.mjs          # 13 项功能全量
+node tests/verify-redline.mjs M10 # 工程红线（稳态 Δ0/0、热路径零新建、双机位预算）
+node tests/verify-m1-wasd.mjs
+node tests/verify-m2-layout.mjs
+node tests/verify-m3-npc.mjs
+node tests/verify-m4-jump.mjs
+node tests/verify-m5-castle.mjs
+node tests/verify-m6-zoo.mjs
+node tests/verify-m7-districts.mjs
+node tests/verify-m8-castle.mjs
+node tests/verify-m9-farm.mjs
 ```
 
-若截图仍偏亮，只按顺序改三处并重新 `npm run build`：
-`toneMappingExposure 0.9 → 0.8` → `Bloom strength 0.6 → 0.45` → `Lobby matPillar 0xb9c8dd → 0x93a4bd`。
+## 五、工程红线（不可破）
 
----
+1. 所有新增 geometry / material / texture 走 `Lobby._trackGeometry/_trackMaterial/_trackTexture` + `ctx.registerDisposable`；`dispose()` 成对释放（含 InstancedMesh 的 instanceMatrix）。
+2. `update()` 热路径零新建 GPU 资源、零 JS 对象分配（复用预分配的 Vector3/Matrix4/Euler）。
+3. 重复构件一律 InstancedMesh 或 mergeGeometries。
+4. 机位对比必须同机位（见 `tests/redline-baseline.json`）。
+5. 上下文/积分不足时立刻停止新功能，收尾当前功能并更新本文件——**本次已按此条在 M6 后收尾**。
+6. **资源计数验收口径（v4 ⑬ / redline ① 的 Δ0/0 易踩坑）**：独立设施退出会整体重建 Lobby→Districts，城堡/农场的 5 个合并几何会被销毁并重建；其是否计入 GPU 取决于重建瞬间相机是否朝向四宫格（区域级 LOD + 视锥），验收里相机朝向因 CameraRig blend + rAF 节流**非确定**。故测 Δ0/0 前必须**强制一个确定机位**渲染（如 `forceDistrictView()`），否则 steady/final 会因 castle/farm 计入与否分叉出现 Δgeo≠0 的假阳性。真泄漏表现为 5 轮单调增长，本就与 LOD 无关。
 
-## 七、本轮最终参数（v2 · 2026-11-08 观感验收通过）
+## 六、资产与路径
 
-**结论**：过曝已消除，四场景截图验收通过；南瓜投手亮度提一档、记忆翻牌外环光晕收敛。
-
-| 位置 | 参数 | v1 | v2（最终） |
-|---|---|---|---|
-| SceneManager | 后期链 | RenderPass + Bloom + OutputPass | 不变 |
-| SceneManager | toneMappingExposure | 0.9 | **0.9** |
-| SceneManager | environmentIntensity | 0.3 | **0.3** |
-| SceneManager | Bloom strength / radius / threshold | 0.6 / 0.3 / 0.6 | **0.6 / 0.3 / 0.6** |
-| SceneManager | Ambient / Hemi / Directional | 0.16 / 0.5 / 0.6（冷色） | 不变 |
-| Lobby | 背景 / 雾 | 0x0a1226 / 0.010 | 不变 |
-| Lobby | 天穹 uTop / uHorizon / uBottom | 0x101c38 / 0x2a4676 / 0x0a1226 | 不变 |
-| Lobby | 霓虹 emissiveIntensity | 2.0 | 不变 |
-| PumpkinThrower | 地面纹理 | [58,78,62]/[44,62,52] | **[96,124,98]/[74,100,84]**（提一档亮度） |
-| PumpkinThrower | 南瓜自发光 | 无 | **0x2a1500 @ 0.3**（远处轮廓可辨） |
-| PumpkinThrower | 幽灵自发光 | 0x101830 @ 1.0 | **0x26365c @ 0.6**（靶子清晰） |
-| MemoryMatch | matRuneGold 自发光 | 0xffb651 @ 2.3 | **0xffb651 @ 1.5**（外环不再糊成白斑） |
-
-**实测（v2 截图，1280×720 四格联络表）**：平均亮度 0.232、过曝像素占比 0.2%、直方图 10 档均有分布。
-
-**热基线实测（生产构建，大厅为基准）**：
-`11/18` → 依次进 南瓜投手 / 金币小径 / 记忆翻牌 再退出，每轮均精确回落 `11/18`，**每次退出差值 Δ0/0**（3 轮，`roundTripCount=3`）。
-> 与旧文档的 `11/17` 差 1 张纹理：本机实测稳定值为 18，且与 OutputPass 无关（运行时移除 OutputPass 后计数不变）；渲染器固有分配静态计数为 17（2 个 composer RT + 11 个 bloom RT + 1 阴影深度 + 1 PMREM + 大厅 2 张程序化纹理），多出的 1 张来源未定位，**标记为「未实测归因」**，不影响零泄漏结论。下一步若要追平 17，需在临时构建里逐项禁用后期 pass 定位（会短暂恢复过曝，需用户同意）。
-
-**预览服务（局域网可访问）**：`npx vite preview --host 0.0.0.0 --port 5173 --strictPort`
-- 本机：`http://127.0.0.1:5173/`
-- 手机（同一 Wi‑Fi）：`http://10.58.221.17:5173/`（WLAN 网卡；Tailscale 为 100.71.53.14，不用于局域网直连）
-- 若手机打不开，放行 Windows 防火墙的 Node.js 入站规则。
-
----
-
-## 八、移动端虚拟摇杆（2026-11-08）
-
-真机反馈「能转视角、不能移动」，根因是移动只有键盘 `WASD` 监听。已在 `src/attractions/Lobby.js` 内补齐纯 DOM 摇杆，不引任何外部库。
-
-### 实现要点
-- **DOM / CSS**：`.lb-stick`（132px 底盘 + 52px 摇杆头，半透明、`touch-action:none`）固定左下角 `left/bottom:20px`，默认 `display:none`，`data-active='true'` 才显示。
-- **触屏判定**：`matchMedia('(hover: none) and (pointer: coarse)')`，不用 UA，iPad「桌面模式」伪装成 Mac 时仍成立。
-- **事件**：`touchstart / touchmove / touchend / touchcancel` 绑在摇杆节点上，全部 `stopPropagation()`；start/move `{ passive:false }` + `preventDefault()`。摇杆节点不是 canvas 子节点，与画布拖拽转视角天然隔离，实测触摸摇杆时 `yaw` 不变。
-- **向量换算**：中心取 `getBoundingClientRect()`，`max = 半径 - 26`，越界按比例收圆；12% 死区；输出归一化 `x/y`（右/下为正）。
-- **驱动**：`_applyMovement` 中 `f = 键盘前后 - stick.y`、`s = 键盘左右 + stick.x`；仅当合成模长 > 1 时归一化（保留轻推慢走，又保证 W+D 斜向不加速）。
-- **清理契约**：4 个 touch 监听以 `tag='input'` 登记，`dispose()` 步骤 1 统一 `_removeListenersByTag('input')` 解绑，并 `_releaseStick()` 归零；步骤 3 移除 `_uiRoot`（含摇杆 DOM）与注入的 `<style id="lb-ui-style">`。
-
-### 实测（生产构建 dist，headless Edge 1280×1000，页面内写结果后截图读取）
-| 项 | 桌面模式 | 触屏模式（matchMedia 桩成 coarse） |
-|---|---|---|
-| `_stickEnabled` / 显示 | false / `display:none` | true / `display:block` |
-| 键盘 W 移动 | 3.750，前向 dot **1.000** | 3.750，前向 dot 1.000 |
-| 键盘不转视角 | yaw 未变 | — |
-| 摇杆推上 | — | 3.750，前向 dot **1.000** |
-| 摇杆推左 | — | 3.750，右向 dot **−1.000**（即向左） |
-| 摇杆触摸期间 yaw | — | **未变**（不触发相机旋转） |
-| 松手 / 静止漂移 | — | `active=false, x=y=0, knob=translate(0px,0px)`；漂移 0.0000 |
-| dispose 后 | 摇杆 DOM 与 `<style>` 均为 null | 同左；返回大厅后重建为 block，监听数 8→12（含 4 个 touch） |
-| 热基线 | `11/18`，进出小游戏 `ΔG=0 ΔT=0` | `11/18`，`ΔG=0 ΔT=0` |
-
-> 说明：触屏模式是在桌面 Chromium 里把 `(hover:none) and (pointer:coarse)` 桩为 `matches:true` 并用 `TouchEvent` 派发验证的，**真机手感（摇杆贴合度、死区观感）仍需用户手机复测**，本表只证明逻辑与方向正确。
-
-### 预览（已重启，服务最新 dist）
-- 本机：`http://127.0.0.1:5173/`
-- 手机（同一 Wi‑Fi）：`http://10.58.221.17:5173/`（WLAN 网卡）
-
+- Blender 交付（本次未动）：`zoo/playground_zoo.blend` + `zoo/zoo_preview.png`，独立验收 `zoo/zoo_verify.json` 16/16 PASS。
+- 网页预览图证据：`docs/screenshots/zoo-m2-layout.png`（俯瞰布局）、`zoo-m5-castle-gate.png`（皇堡近景）、`zoo-m6-closeup.png`（动物园栏边近景）、`zoo-m4-jump.png`（第一人称跑酷）、`zoo-m8-overview.png`（四宫格总览）、`zoo-m8-castle.png`（城堡近景）、`zoo-m9-farm.png`（农场近景）。
+- 各模块 JSON 报告：`docs/screenshots/verify-m{1..9}-*.json`、`redline-M{0..9}.json`、`v4-final-verification.json`。
+- 长期记录：`.workbuddy/memory/2026-11-12.md`（逐模块 CHECKPOINT，含每个 bug 的根因与修法）。

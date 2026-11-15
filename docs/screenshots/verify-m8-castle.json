@@ -1,0 +1,135 @@
+{
+  "module": "M8",
+  "at": "2026-11-15T09:38:45.329Z",
+  "passed": 6,
+  "total": 6,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 城堡结构（detail 含 5 子对象）",
+      "pass": true,
+      "detail": {
+        "childCount": 6,
+        "names": [
+          "Districts/castle/body",
+          "Districts/castle/walls",
+          "Districts/castle/roof",
+          "Districts/castle/finials",
+          "Districts/castle/windows",
+          "Districts/castle/gate"
+        ],
+        "body": {
+          "isMerged": true,
+          "hasColor": true,
+          "tris": 1144
+        },
+        "roof": {
+          "isMerged": true,
+          "hasColor": true,
+          "tris": 126
+        },
+        "wins": {
+          "isInstanced": true,
+          "count": 108
+        },
+        "fins": {
+          "isInstanced": true,
+          "count": 9
+        },
+        "gate": true
+      }
+    },
+    {
+      "name": "B 几何形态（合并+顶点色 / 实例窗与宝珠）",
+      "pass": true,
+      "detail": {
+        "childCount": 6,
+        "names": [
+          "Districts/castle/body",
+          "Districts/castle/walls",
+          "Districts/castle/roof",
+          "Districts/castle/finials",
+          "Districts/castle/windows",
+          "Districts/castle/gate"
+        ],
+        "body": {
+          "isMerged": true,
+          "hasColor": true,
+          "tris": 1144
+        },
+        "roof": {
+          "isMerged": true,
+          "hasColor": true,
+          "tris": 126
+        },
+        "wins": {
+          "isInstanced": true,
+          "count": 108
+        },
+        "fins": {
+          "isInstanced": true,
+          "count": 9
+        },
+        "gate": true
+      }
+    },
+    {
+      "name": "C 体量合理（body 500-4000 面 / 窗 60-200）",
+      "pass": true,
+      "detail": {
+        "bodyTris": 1144,
+        "winCount": 108,
+        "finCount": 9
+      }
+    },
+    {
+      "name": "E 稳态 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 67,
+          "textures": 36
+        },
+        "rounds": [
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "D 预算（俯瞰≤30万面 / 城堡增量≤1.5万面·≤15calls）",
+      "pass": true,
+      "detail": {
+        "top": {
+          "calls": 916,
+          "triangles": 273076
+        },
+        "self": {
+          "calls": 12,
+          "triangles": 7556
+        }
+      }
+    },
+    {
+      "name": "F 0 报错 + 城堡近景截图有效",
+      "pass": true,
+      "detail": {
+        "errors": [],
+        "shotBytes": 620637
+      }
+    }
+  ],
+  "errors": []
+}

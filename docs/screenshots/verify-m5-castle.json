@@ -1,0 +1,142 @@
+{
+  "at": "2026-11-15T09:06:54.566Z",
+  "passed": 8,
+  "total": 8,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A v4⑧ 判据保持（arch/tower/crenel）",
+      "pass": true,
+      "detail": {
+        "hasArch": true,
+        "towers": 6,
+        "crenels": 1
+      }
+    },
+    {
+      "name": "B 皇堡体量升级（主塔 ≥20m / 塔楼 ≥4 / 尖顶 ≥3 / 纹章）",
+      "pass": true,
+      "detail": {
+        "mainTop": 27.32,
+        "towers": 6,
+        "spires": 12,
+        "emblem": true,
+        "children": 42
+      }
+    },
+    {
+      "name": "C 建筑逻辑归组（中轴/左翼/右翼/后排，9 设施各属其一）",
+      "pass": true,
+      "detail": {
+        "districts": {
+          "central": [
+            "century-clock",
+            "memory-match"
+          ],
+          "westWing": [
+            "train-ride",
+            "pirate-ship",
+            "pumpkin-thrower"
+          ],
+          "eastWing": [
+            "jump-jump",
+            "carousel",
+            "fireworks-deck"
+          ],
+          "southRow": [
+            "parkour-run"
+          ]
+        },
+        "layoutKeys": [
+          "pumpkin-thrower",
+          "parkour-run",
+          "memory-match",
+          "jump-jump",
+          "train-ride",
+          "carousel",
+          "pirate-ship",
+          "fireworks-deck",
+          "century-clock"
+        ]
+      }
+    },
+    {
+      "name": "D 门洞中央可通行（AABB 不挡 |x|<4）",
+      "pass": true,
+      "detail": {
+        "gateBoxes": [
+          {
+            "key": "gate-left",
+            "minX": -8.6,
+            "maxX": -4.4,
+            "minZ": 12.8,
+            "maxZ": 17.2
+          },
+          {
+            "key": "gate-right",
+            "minX": 4.4,
+            "maxX": 8.6,
+            "minZ": 12.8,
+            "maxZ": 17.2
+          }
+        ],
+        "blockingCenter": []
+      }
+    },
+    {
+      "name": "E M2 trigger 派生关系未破坏",
+      "pass": true,
+      "detail": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "F 预算：新增 ≤5万面 / calls 增量 ≤60",
+      "pass": true,
+      "detail": {
+        "base": {
+          "camera": [
+            0,
+            9.4,
+            25
+          ],
+          "lookAt": [
+            0,
+            12.4,
+            0
+          ],
+          "calls": 1011,
+          "triangles": 283352
+        },
+        "measured": {
+          "calls": 1063,
+          "triangles": 285114
+        },
+        "dCalls": 52,
+        "dTris": 1762
+      }
+    },
+    {
+      "name": "G 0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m5-castle-gate.png",
+        "bytes": 1258777
+      }
+    }
+  ],
+  "errors": []
+}

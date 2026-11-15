@@ -26,6 +26,12 @@
 /** 默认主音量（0 ~ 1） */
 const DEFAULT_VOLUME = 0.7;
 
+/**
+ * 解锁手势监听的 options。注册与解绑必须共用同一份配置，
+ * 避免日后加上 capture:true 时因参数不一致而漏解绑。
+ */
+const GESTURE_OPTIONS = Object.freeze({ passive: true });
+
 /** 支持的音效名：play(name) 的合法入参 */
 export const SOUND_NAMES = Object.freeze(['click', 'score', 'flip', 'explode']);
 
@@ -297,18 +303,17 @@ export class AudioManager {
 
   _bindUnlock() {
     if (this._unlockBound) return;
-    const options = { passive: true };
-    window.addEventListener('pointerdown', this._onGesture, options);
-    window.addEventListener('keydown', this._onGesture, options);
-    window.addEventListener('touchstart', this._onGesture, options);
+    window.addEventListener('pointerdown', this._onGesture, GESTURE_OPTIONS);
+    window.addEventListener('keydown', this._onGesture, GESTURE_OPTIONS);
+    window.addEventListener('touchstart', this._onGesture, GESTURE_OPTIONS);
     this._unlockBound = true;
   }
 
   _unbindUnlock() {
     if (!this._unlockBound) return;
-    window.removeEventListener('pointerdown', this._onGesture);
-    window.removeEventListener('keydown', this._onGesture);
-    window.removeEventListener('touchstart', this._onGesture);
+    window.removeEventListener('pointerdown', this._onGesture, GESTURE_OPTIONS);
+    window.removeEventListener('keydown', this._onGesture, GESTURE_OPTIONS);
+    window.removeEventListener('touchstart', this._onGesture, GESTURE_OPTIONS);
     this._unlockBound = false;
   }
 

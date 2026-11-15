@@ -94,12 +94,19 @@ export class PauseMenu {
       if (this._disposed) return;
       const isEsc = event.key === 'Escape' || event.code === 'Escape';
       if (isEsc) {
+        // 长按 ESC 会连续触发 keydown；不设防抖会在 open/close 之间高频抖动，
+        // 反复改写 sceneManager._paused，甚至让恢复态错乱。
+        if (event.repeat) return;
         if (event.cancelable) event.preventDefault();
         this.toggle();
         return;
       }
       // 暂停期间冻结游戏输入（方向键 / 空格 / R 等）；ESC 已在上面处理
-      if (this._open) event.stopPropagation();
+      if (this._open) {
+        event.stopPropagation();
+        // 方向键 / 空格在未传播到页面时仍可能滚动视口，一并阻止默认行为
+        if (event.cancelable) event.preventDefault();
+      }
     };
 
     /** 移动端「暂停」按钮：只负责开/关菜单 */

@@ -23,6 +23,21 @@ shot-vp*.html
 .trae/
 .workbuddy/
 
+# 本地临时 / 诊断产物（不入库；避免把大体积中间文件推到远端）
+.tmp-blender/
+.tmp-t07/
+.tmp-pkg-inspect/
+.arts/
+.merkle-snapshot.json
+.tmp_t04b_*.mjs
+_dev.log
+_v4six.log
+_v4b.log
+_rl.log
+
+# 本地私密信息（含凭证，禁止入库）
+本机私密信息.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

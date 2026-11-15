@@ -1,0 +1,187 @@
+{
+  "url": "http://localhost:5188/tmpverify/index.html",
+  "errors": [],
+  "bootOk": true,
+  "reg": {
+    "geo": 7,
+    "mat": 7,
+    "tex": 4
+  },
+  "memAfterUpload": {
+    "geometries": 2,
+    "textures": 1
+  },
+  "faceInfo": [
+    {
+      "name": "CenturyClock/dial-front",
+      "z": 0.17,
+      "matUuid": "cfc78d3d-4119-4035-bb4f-27a014d95707",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    },
+    {
+      "name": "CenturyClock/dial-back",
+      "z": -0.17,
+      "matUuid": "3ba34750-0615-4c4e-a118-3be46237840a",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    }
+  ],
+  "front": {
+    "path": "D:/playground-mvp/.tmp-t05/iso-front.png",
+    "bytes": 164546,
+    "analysis": {
+      "samples": 92224,
+      "avgLum": 144.71,
+      "minLum": 0,
+      "maxLum": 175.3,
+      "pureWhiteRatio": 0,
+      "nearWhiteRatio": 0,
+      "hist": [
+        0.099,
+        0.041,
+        0.112,
+        0.748,
+        0
+      ]
+    }
+  },
+  "back": {
+    "path": "D:/playground-mvp/.tmp-t05/iso-back.png",
+    "bytes": 159879,
+    "analysis": {
+      "samples": 92224,
+      "avgLum": 118.38,
+      "minLum": 0,
+      "maxLum": 208,
+      "pureWhiteRatio": 0,
+      "nearWhiteRatio": 0,
+      "hist": [
+        0.116,
+        0.04,
+        0.842,
+        0.002,
+        0
+      ]
+    }
+  },
+  "nightFront": {
+    "path": "D:/playground-mvp/.tmp-t05/iso-night-front.png",
+    "bytes": 147420,
+    "analysis": {
+      "samples": 92224,
+      "avgLum": 60.3,
+      "minLum": 0,
+      "maxLum": 163.3,
+      "pureWhiteRatio": 0,
+      "nearWhiteRatio": 0,
+      "hist": [
+        0.197,
+        0.753,
+        0.05,
+        0.001,
+        0
+      ]
+    }
+  },
+  "nightFaceInfo": [
+    {
+      "name": "CenturyClock/dial-front",
+      "z": 0.17,
+      "matUuid": "cfc78d3d-4119-4035-bb4f-27a014d95707",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.85
+    },
+    {
+      "name": "CenturyClock/dial-back",
+      "z": -0.17,
+      "matUuid": "3ba34750-0615-4c4e-a118-3be46237840a",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.85
+    }
+  ],
+  "nightBack": {
+    "path": "D:/playground-mvp/.tmp-t05/iso-night-back.png",
+    "bytes": 129639,
+    "analysis": {
+      "samples": 92224,
+      "avgLum": 44.95,
+      "minLum": 0,
+      "maxLum": 152.6,
+      "pureWhiteRatio": 0,
+      "nearWhiteRatio": 0,
+      "hist": [
+        0.925,
+        0.029,
+        0.046,
+        0,
+        0
+      ]
+    }
+  },
+  "hands": {
+    "date": "Wed Nov 11 2026 10:08:36 GMT+0800 (China Standard Time)",
+    "expected": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "backZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontErr": [
+      0,
+      0,
+      0
+    ],
+    "backErr": [
+      0,
+      0,
+      0
+    ],
+    "frontEqualsBack": true
+  },
+  "memAfterDispose": {
+    "geometries": 0,
+    "textures": 1
+  },
+  "memDelta": {
+    "geometries": -2,
+    "textures": 0
+  }
+}

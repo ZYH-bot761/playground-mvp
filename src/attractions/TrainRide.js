@@ -28,7 +28,8 @@
  *
  * 【视觉：方块像素风】
  *   · 全场景只有 1 个 BoxGeometry(1,1,1)，所有物体用非等比缩放拼方块；
- *   · 材质统一 MeshLambertMaterial + flatShading，硬边、平直着色、无高光；
+ *   · 材质统一 MeshStandardMaterial + flatShading（手册 P5 弃用 Lambert），
+ *     硬边平直着色保留，金属/木材/涂料按 PBR 规范分类参数；
  *   · 方块游乐场全景：草坪广场、中央大厅、摩天轮、四座设施、树木。
  *
  * 【暂停】
@@ -93,6 +94,12 @@ const CAM_FOV_LANDSCAPE = 76;
 const CAM_FOV_PORTRAIT = 84;
 const MAX_BANK = 0.42; // 最大压弯 24°
 const BANK_SMOOTH = 7; // 侧倾低通系数（越大越跟手；7 ≈ 每帧滚动 <3.1°，约 185°/s）
+
+/* ---- 自由转头 / 朝向惯性（手册 §5） ---- */
+const LOOK_YAW_LIMIT = (Math.PI * 2) / 3; // 相对车厢 yaw ±120°
+const LOOK_PITCH_LIMIT = Math.PI / 3; // 相对车厢 pitch ±60°
+const LOOK_SENS = 0.0032; // 拖动灵敏度 rad/px
+const ORI_FACTOR = 0.08; // 朝向 slerp 系数（0.05~0.1，60fps 基准）→ 转弯惯性延迟
 
 /* ---- 轨道造型 ---- */
 const RAIL_HALF = 0.46; // 双轨中心到中线距离
@@ -248,6 +255,13 @@ export class TrainRide extends IAttraction {
     this._cameraSaved = null;
     this._lastAspect = 0;
 
+    // ---- 自由转头（相对车厢朝向） ----
+    this._lookYaw = 0;
+    this._lookPitch = 0;
+    this._lookDragging = false;
+    this._lookLastX = 0;
+    this._lookLastY = 0;
+
     // ---- 资源台账 ----
     this._geometries = new Set();
     this._materials = new Set();
@@ -275,6 +289,12 @@ export class TrainRide extends IAttraction {
     this._bankedUp = new THREE.Vector3();
     this._basis = new THREE.Matrix4();
     this._bankQuat = new THREE.Quaternion();
+    this._baseQuat = new THREE.Quaternion();
+    this._lookQuat = new THREE.Quaternion();
+    this._targetQuat = new THREE.Quaternion();
+    this._lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+    this._camMat = new THREE.Matrix4();
+    this._lookPoint = new THREE.Vector3();
     this._eye = new THREE.Vector3();
     this._look = new THREE.Vector3();
     this._tanA = new THREE.Vector3();
@@ -395,11 +415,19 @@ export class TrainRide extends IAttraction {
     };
 
     const materials = {};
+    // 手册 P5：弃用 Lambert → Standard + flatShading（保留方块硬边），
+    // 按手册 PBR 规范分类：金属 1.0/0.3，木材 0/0.85，涂料 0.15/0.55，植被 0/0.9
+    const pbr = (key) => {
+      if (key === 'rail' || key === 'pillar' || key === 'wheel') return { metalness: 1.0, roughness: 0.3 };
+      if (key === 'tie') return { metalness: 0.0, roughness: 0.85 };
+      if (key === 'grass' || key === 'leaf') return { metalness: 0.0, roughness: 0.9 };
+      return { metalness: 0.15, roughness: 0.55 };
+    };
     for (const key of Object.keys(palette)) {
-      // Lambert + flatShading：平直着色、无高光，符合方块像素风
-      materials[key] = this._trackMaterial(new THREE.MeshLambertMaterial({
+      materials[key] = this._trackMaterial(new THREE.MeshStandardMaterial({
         color: palette[key],
         flatShading: true,
+        ...pbr(key),
       }));
     }
 
@@ -702,10 +730,11 @@ export class TrainRide extends IAttraction {
   }
 
   /**
-   * 第一人称相机：机位 = 轨道点 + 切线*0.35 + 侧倾后的上向量*1.35；
-   * 朝向沿切线（固定 6° 俯角），相机 up 同步取侧倾后的上向量 → roll 生效。
+   * 第一人称相机：机位 = 轨道点 + 切线*EYE_FORWARD + 侧倾后的上向量*EYE_HEIGHT（车厢前排）。
+   * 朝向 = 车厢基准朝向（切线 + 固定俯角 + 压弯 roll）× 自由转头（yaw/pitch，相对车厢），
+   * 再用 Quaternion.slerp(系数 ORI_FACTOR) 平滑 → 轨道转弯时朝向有惯性延迟，不完全同步车厢。
    * @param {number} dt
-   * @param {boolean} [snap] true 时不做侧倾平滑（开局 / 重开用）
+   * @param {boolean} [snap] true 时不做侧倾/朝向平滑（开局 / 重开用）
    */
   _updateCamera(dt, snap = false) {
     const camera = this._ctx?.camera;
@@ -728,11 +757,26 @@ export class TrainRide extends IAttraction {
     camera.position.copy(this._eye);
     camera.up.copy(this._bankedUp);
 
+    // 车厢基准朝向：沿切线、固定俯角、roll 由 bankedUp 体现
     const pitchDrop = Math.tan((CAM_PITCH_DEG * Math.PI) / 180) * 10;
-    this._look.copy(this._eye)
+    this._lookPoint.copy(this._eye)
       .addScaledVector(this._tangent, 10)
       .addScaledVector(this._bankedUp, -pitchDrop);
-    camera.lookAt(this._look);
+    this._camMat.lookAt(this._eye, this._lookPoint, this._bankedUp);
+    this._baseQuat.setFromRotationMatrix(this._camMat);
+
+    // 自由转头（相对车厢朝向）：yaw 绕本地 up、pitch 绕本地 right
+    this._lookEuler.set(this._lookPitch, this._lookYaw, 0);
+    this._lookQuat.setFromEuler(this._lookEuler);
+    this._targetQuat.copy(this._baseQuat).multiply(this._lookQuat);
+
+    if (snap) {
+      camera.quaternion.copy(this._targetQuat);
+    } else {
+      // 帧率无关 slerp：60fps 时 t 恰为 ORI_FACTOR（0.05~0.1）→ 转弯惯性延迟
+      const k = 1 - Math.pow(1 - ORI_FACTOR, dt * 60);
+      camera.quaternion.slerp(this._targetQuat, k);
+    }
   }
 
   /** 视口自适应：竖屏放宽 fov，保证轨道与轨道下方的悬空都在画面里 */
@@ -777,8 +821,34 @@ export class TrainRide extends IAttraction {
     }
   };
 
+  /* ---- 自由转头拖动（仅鼠标；触屏留给 UI） ---- */
+  _onLookDown = (event) => {
+    if (this._disposed || this._state === STATE.OVER) return;
+    if (event.pointerType !== 'mouse') return;
+    this._lookDragging = true;
+    this._lookLastX = event.clientX;
+    this._lookLastY = event.clientY;
+  };
+  _onLookMove = (event) => {
+    if (!this._lookDragging || this._disposed) return;
+    const dx = event.clientX - this._lookLastX;
+    const dy = event.clientY - this._lookLastY;
+    this._lookLastX = event.clientX;
+    this._lookLastY = event.clientY;
+    this._lookYaw = clamp(this._lookYaw - dx * LOOK_SENS, -LOOK_YAW_LIMIT, LOOK_YAW_LIMIT);
+    this._lookPitch = clamp(this._lookPitch - dy * LOOK_SENS, -LOOK_PITCH_LIMIT, LOOK_PITCH_LIMIT);
+  };
+  _onLookUp = () => { this._lookDragging = false; };
+
   _bindInputListeners() {
     this._addListener(window, 'keydown', this._onKeyDown);
+    const canvas = this._ctx?.renderer?.domElement;
+    if (canvas) {
+      this._addListener(canvas, 'pointerdown', this._onLookDown);
+      this._addListener(canvas, 'pointermove', this._onLookMove);
+      this._addListener(canvas, 'pointerup', this._onLookUp);
+      this._addListener(canvas, 'pointercancel', this._onLookUp);
+    }
   }
 
   _buildUI() {
@@ -794,7 +864,7 @@ export class TrainRide extends IAttraction {
       <div class="tr-panel" data-role="panel">
         <div class="tr-panel__title" data-role="title">高空环游</div>
         <p class="tr-panel__desc" data-role="desc"></p>
-        <p class="tr-panel__hint">第一人称坐在车厢最前排：轨道会在脚下向前伸展，最高处约 40 米。ESC 或右上角「暂停」可随时停下。</p>
+        <p class="tr-panel__hint">第一人称坐在车厢最前排：轨道会在脚下向前伸展，最高处约 40 米。按住鼠标拖动可左右上下环顾（±120°/±60°）。ESC 或右上角「暂停」可随时停下。</p>
         <div class="tr-panel__stat" data-role="stat" data-hidden="true"></div>
         <div class="tr-panel__buttons">
           <button type="button" class="tr-btn tr-btn--primary" data-action="ride" data-role="primary">开始乘坐</button>
@@ -877,6 +947,9 @@ export class TrainRide extends IAttraction {
     this._bank = 0;
     this._bankTarget = 0;
     this._clock = 0;
+    this._lookYaw = 0;
+    this._lookPitch = 0;
+    this._lookDragging = false;
 
     this._placeTrain(0);
     this._updateCamera(0, true);
@@ -1140,5 +1213,7 @@ export class TrainRide extends IAttraction {
     );
   }
 }
+
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export default TrainRide;

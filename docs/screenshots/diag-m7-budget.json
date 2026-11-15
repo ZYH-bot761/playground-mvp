@@ -1,0 +1,62 @@
+{
+  "data": {
+    "overview": {
+      "full": {
+        "calls": 1195,
+        "triangles": 298382
+      }
+    },
+    "standard": {
+      "full": {
+        "calls": 1057,
+        "triangles": 284922
+      }
+    },
+    "castleDir": {
+      "full": {
+        "calls": 427,
+        "triangles": 240494
+      }
+    },
+    "groups": {
+      "Zoo/root": {
+        "hidden": {
+          "calls": 1078,
+          "triangles": 288956
+        },
+        "delta": 9426
+      },
+      "Lobby/ground": {
+        "hidden": {
+          "calls": 1193,
+          "triangles": 261518
+        },
+        "delta": 36864
+      },
+      "Lobby/gate": {
+        "hidden": {
+          "calls": 1095,
+          "triangles": 294088
+        },
+        "delta": 4294
+      }
+    },
+    "tops": [
+      "AmbientLight",
+      "HemisphereLight",
+      "DirectionalLight",
+      "SceneContext.worldRoot",
+      "SceneContext.propsRoot",
+      "DayNightCycle/global",
+      "FireworkSystem/global",
+      "NPCManager/global",
+      "Lobby"
+    ],
+    "zooTris": 4718,
+    "mem": {
+      "geometries": 46,
+      "textures": 33
+    }
+  },
+  "errors": []
+}

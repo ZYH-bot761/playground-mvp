@@ -37,6 +37,21 @@ canvas {
   touch-action: none; /* 移动端基础适配：避免点击/拖拽被浏览器手势抢占 */
 }
 
+/* ==========================================================================
+ * 【六项升级·阶段五】半透明毛玻璃统一 UI 色调
+ * 所有面板共用一套 glass token：低饱和半透底色 + 背景模糊 + 极淡内高光描边，
+ * 去除原先高对比的蓝紫色实边框（"默认丑陋边框"）。
+ * ========================================================================== */
+:root {
+  --pg-glass-bg: rgba(18, 28, 44, 0.42);
+  --pg-glass-bg-strong: rgba(14, 24, 40, 0.55);
+  --pg-glass-edge: rgba(255, 255, 255, 0.14);
+  --pg-glass-text: rgba(238, 246, 255, 0.94);
+  --pg-glass-muted: rgba(198, 216, 238, 0.72);
+  --pg-glass-blur: blur(18px) saturate(150%);
+  --pg-glass-shadow: 0 12px 40px rgba(4, 10, 24, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
 /* ---------- 悬浮 UI ---------- */
 .pg-ui {
   position: fixed;
@@ -60,49 +75,51 @@ canvas {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: #cfe0ff;
+  color: var(--pg-glass-text);
   cursor: pointer;
-  background: rgba(14, 20, 38, 0.82);
-  border: 1px solid rgba(140, 170, 255, 0.35);
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--pg-glass-bg-strong);
+  border: 1px solid var(--pg-glass-edge);
+  border-radius: 16px;
+  box-shadow: var(--pg-glass-shadow);
+  backdrop-filter: var(--pg-glass-blur);
+  -webkit-backdrop-filter: var(--pg-glass-blur);
   -webkit-tap-highlight-color: transparent;
 }
 
 .pg-ui__toggle:active {
-  background: rgba(120, 170, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .pg-ui__panel {
   pointer-events: auto;
   min-width: 268px;
   max-width: min(340px, calc(100vw - 32px));
-  padding: 14px 16px 12px;
-  color: #e8eeff;
-  background: rgba(14, 20, 38, 0.86);
-  border: 1px solid rgba(140, 170, 255, 0.3);
-  border-radius: 12px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
+  padding: 16px 18px 14px;
+  color: var(--pg-glass-text);
+  background: var(--pg-glass-bg);
+  border: 1px solid var(--pg-glass-edge);
+  border-radius: 20px;
+  box-shadow: var(--pg-glass-shadow);
+  backdrop-filter: var(--pg-glass-blur);
+  -webkit-backdrop-filter: var(--pg-glass-blur);
 }
 
 .pg-ui__title {
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  color: #a9c6ff;
+  letter-spacing: 0.6px;
+  color: var(--pg-glass-text);
 }
 
 .pg-ui__status {
   margin-top: 8px;
-  padding: 6px 9px;
+  padding: 7px 10px;
   font-size: 12px;
   line-height: 1.4;
-  color: #cbd9ff;
-  background: rgba(90, 130, 220, 0.14);
-  border-radius: 6px;
+  color: var(--pg-glass-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
 }
 
 .pg-ui__buttons {
@@ -115,17 +132,17 @@ canvas {
   flex: 1;
   padding: 8px 10px;
   font-size: 13px;
-  color: #dbe6ff;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(160, 190, 255, 0.35);
-  border-radius: 7px;
+  color: var(--pg-glass-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 
 .pg-ui__btn:hover {
-  background: rgba(140, 180, 255, 0.2);
-  border-color: rgba(190, 215, 255, 0.65);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .pg-ui__btn:active {
@@ -133,22 +150,111 @@ canvas {
 }
 
 .pg-ui__btn--primary {
-  color: #0b1020;
+  color: #10243a;
   font-weight: 600;
-  background: #8fc7ff;
-  border-color: #8fc7ff;
+  background: rgba(176, 220, 255, 0.78);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .pg-ui__btn--primary:hover {
-  background: #a9d6ff;
-  border-color: #a9d6ff;
+  background: rgba(198, 233, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .pg-ui__hint {
   margin: 10px 0 0;
   font-size: 11px;
   line-height: 1.6;
-  color: #93a4c8;
+  color: var(--pg-glass-muted);
+}
+
+/* ---------- 移动模式 HUD 指示器（毛玻璃） ---------- */
+.pg-mode-hud {
+  position: fixed;
+  left: 50%;
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  pointer-events: auto;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-size: 12px;
+  color: var(--pg-glass-text);
+  background: var(--pg-glass-bg);
+  border: 1px solid var(--pg-glass-edge);
+  border-radius: 999px;
+  box-shadow: var(--pg-glass-shadow);
+  backdrop-filter: var(--pg-glass-blur);
+  -webkit-backdrop-filter: var(--pg-glass-blur);
+  transition: background 0.3s;
+}
+.pg-mode-hud[data-engaged='false'] { opacity: 0.78; }
+.pg-mode-hud[data-mode='flight'] { background: rgba(28, 54, 82, 0.52); }
+.pg-mode-hud__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #8fe3a8; box-shadow: 0 0 10px #8fe3a8;
+}
+.pg-mode-hud[data-mode='flight'] .pg-mode-hud__dot { background: #8fd0ff; box-shadow: 0 0 10px #8fd0ff; }
+.pg-mode-hud__label { font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+.pg-mode-hud__key {
+  font-size: 10px; color: var(--pg-glass-muted);
+  padding: 2px 7px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1); white-space: nowrap;
+}
+.pg-mode-hud__btn {
+  pointer-events: auto; cursor: pointer;
+  font: inherit; font-size: 11px;
+  padding: 4px 10px; border-radius: 999px;
+  color: var(--pg-glass-text);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.pg-mode-hud__btn:hover { background: rgba(255, 255, 255, 0.22); }
+.pg-mode-hud__hint {
+  position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%); z-index: 25;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-size: 10px; letter-spacing: 0.3px; white-space: nowrap;
+  color: var(--pg-glass-muted); pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- lil-gui 毛玻璃皮肤 ---------- */
+.pg-gui.lil-gui {
+  --background-color: rgba(16, 26, 42, 0.46);
+  --text-color: rgba(238, 246, 255, 0.94);
+  --title-background-color: rgba(255, 255, 255, 0.08);
+  --title-text-color: rgba(238, 246, 255, 0.96);
+  --widget-color: rgba(255, 255, 255, 0.12);
+  --hover-color: rgba(255, 255, 255, 0.2);
+  --focus-color: rgba(255, 255, 255, 0.24);
+  --number-color: #a9e3ff;
+  --string-color: #ffe2a9;
+  --font-size: 12px;
+  --input-font-size: 11px;
+  --padding: 8px;
+  --spacing: 6px;
+  --widget-height: 22px;
+  border: 1px solid var(--pg-glass-edge);
+  border-radius: 16px;
+  box-shadow: var(--pg-glass-shadow);
+  backdrop-filter: var(--pg-glass-blur);
+  -webkit-backdrop-filter: var(--pg-glass-blur);
+  overflow: hidden;
+}
+.pg-gui.lil-gui .title { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.pg-gui.lil-gui .children { border: 0; }
+.pg-gui.lil-gui input, .pg-gui.lil-gui select {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+}
+
+@media (max-width: 700px) {
+  .pg-mode-hud__key, .pg-mode-hud__hint { display: none; }
+  .pg-gui.lil-gui { display: none; }
 }
 
 /* ---------- 小屏 / 矮屏：调试面板折叠为 44px 开关，避免遮挡 HUD 与游戏区 ---------- */

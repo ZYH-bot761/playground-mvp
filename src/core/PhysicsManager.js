@@ -99,6 +99,13 @@ export class PhysicsManager {
   step(deltaTime = this._fixedStep) {
     if (!this._ready) return;
 
+    // 手册 P6：大厅闲置暂停物理。当前激活设施若无刚体（大厅/多数观赏设施），
+    // 世界静止，直接清空累加器返回，避免空转 world.step() 的 WASM 开销。
+    if (this._world.bodies.len() === 0) {
+      this._accumulator = 0;
+      return;
+    }
+
     this._accumulator += Math.min(Math.max(deltaTime, 0), this._maxFrameDelta);
     let steps = 0;
     while (this._accumulator >= this._fixedStep && steps < this._maxSubSteps) {

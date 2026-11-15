@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+import path from 'node:path';
+const PORT = process.env.PORT || 5173;
+const BASE = `http://localhost:${PORT}/`;
+const OUT = path.resolve('docs/screenshots');
+const SHOT = path.join(OUT, 'zoo-m8-overview.png');
+const EDGE = process.env.EDGE_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+fs.mkdirSync(OUT, { recursive: true });
+const browser = await chromium.launch({ executablePath: fs.existsSync(EDGE) ? EDGE : undefined, headless: true,
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+await ctx.addInitScript(() => { const o = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, a) { if (t==='webgl2'||t==='webgl'||t==='experimental-webgl') a = Object.assign({}, a, { preserveDrawingBuffer: true }); return o.call(this, t, a); }; });
+const page = await ctx.newPage();
+await page.goto(`${BASE}?t=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+await page.waitForFunction(() => window.__playground?.bootReady === true, null, { timeout: 120000 });
+await page.locator('[data-action="start"]').click();
+await page.waitForFunction(() => window.__playground?.baselineCalibrated === true, null, { timeout: 120000 });
+const res = await page.evaluate(() => {
+  const pg = window.__playground; const sm = pg.sceneManager, r = sm.renderer, cam = sm.camera;
+  const measure = () => { const o = r.info.autoReset; r.info.autoReset=false; r.info.reset(); r.render(sm.scene, cam); const out={calls:r.info.render.calls,triangles:r.info.render.triangles}; r.info.autoReset=o; return out; };
+  cam.position.set(30,84,96); cam.up.set(0,1,0); cam.lookAt(30,2,30); cam.updateProjectionMatrix();
+  const withC = measure();
+  const lod = sm.scene.getObjectByName('Districts/castle/lod'); const pv = lod.visible; lod.visible=false;
+  const noC = measure(); lod.visible=pv;
+  cam.position.set(30,84,96); cam.up.set(0,1,0); cam.lookAt(30,2,30); cam.updateProjectionMatrix(); sm.renderOnce();
+  const data = sm.renderer.domElement.toDataURL('image/png');
+  return { withCastle: withC, noCastle: noC, delta: { calls: withC.calls-noC.calls, triangles: withC.triangles-noC.triangles }, data };
+});
+fs.writeFileSync(SHOT, Buffer.from(res.data.split(',')[1], 'base64'));
+console.log(JSON.stringify(res, null, 2));
+await browser.close();

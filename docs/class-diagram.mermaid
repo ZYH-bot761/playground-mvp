@@ -1,0 +1,181 @@
+classDiagram
+    %% ============ 现有核心契约（保持不变）============
+    class IAttraction {
+        <<interface>>
+        +init(ctx) void
+        +update(dt) void
+        +onInteract(hitInfo) void
+        +dispose() void
+    }
+
+    class AttractionManager {
+        -Map~string,Function~ _factories
+        -IAttraction _active
+        -DisposableRegistry _registry
+        -Object _baseCtx
+        +configure(baseCtx) this
+        +register(key, factory) this
+        +activate(key) IAttraction
+        +deactivate() void
+        +update(dt) void
+        +onInteract(hitInfo) void
+    }
+
+    class SceneManager {
+        +Scene scene
+        +PerspectiveCamera camera
+        +WebGLRenderer renderer
+        +EffectComposer composer
+        +UnrealBloomPass bloomPass
+        +renderOnce() void
+        +start() void
+        +setPaused(p) this
+        +configure(deps) this
+    }
+
+    class DisposableRegistry {
+        +register(obj) void
+        +disposeAll() void
+        +size number
+    }
+
+    %% ============ v4 新增：一体化视图契约 ============
+    class IEmbeddedView {
+        <<interface>>
+        +get isEmbedded() boolean
+        +attach(host) void
+        +detach() void
+        +onRideStart() void
+        +onRideEnd() void
+    }
+
+    class SceneContext {
+        <<v4新增·共享上下文>>
+        +Scene scene
+        +Camera camera
+        +Group worldRoot
+        +Group propsRoot
+        +Map~string,Group~ facilityAnchors
+        +WASDController wasd
+        +registerAnchor(key, object3D) void
+        +getAnchor(key) Group
+    }
+
+    class FacilityRuntime {
+        <<v4新增·常驻设施动效协调器>>
+        -Map~string,IEmbeddedView~ views
+        -SceneContext sceneCtx
+        +register(key, view) void
+        +update(dt) void
+        +activateRide(key) void
+        +deactivateRide(key) void
+        +disposeAll() void
+    }
+
+    class WASDController {
+        <<v4新增·第一人称漫游>>
+        -Camera camera
+        -Object3D domElement
+        -Vector3 velocity
+        -boolean enabled
+        -number eyeHeight
+        +enable() void
+        +disable() void
+        +update(dt) void
+        +setCameraSaved(pose) void
+        +dispose() void
+    }
+
+    class CameraRig {
+        <<v4新增·相机接管/归还（抽取公共逻辑）>>
+        -Camera camera
+        -Object saved
+        -number blendT
+        +save() void
+        +blendTo(target, duration) void
+        +restore(duration) void
+        +update(dt) void
+    }
+
+    class FerrisWheelView {
+        <<v4重写·原 PumpkinThrower>>
+        -Group cabinRoot
+        -number angle
+        -IEmbeddedView impl
+        +attach(host) void
+        +update(dt) void
+        +onRideStart() void
+    }
+
+    class CoasterCarRuntime {
+        <<v4新增·大厅常驻小车挂轨>>
+        -CatmullRomCurve3 curve
+        -Group carGroup
+        -number t
+        +build(curve, shared) void
+        +update(dt) void
+        +getPoseAt(t) Pose
+    }
+
+    class NPCManager {
+        <<改造·人物建模升级>>
+        +init(ctx) this
+        +setObstacles(boxes) this
+        +setContext(key) this
+        +warmUp() void
+        +update(dt) void
+        +upgradeMeshes() void
+    }
+
+    class ModelLoader {
+        +load(url) Promise~GLTF~
+        +loadOrFallback(url, factory) Promise
+        +createLOD(levels) LOD
+        +registerAsset(url) this
+        +clear() void
+    }
+
+    %% ============ 关系 ============
+    IAttraction <|.. Lobby
+    IAttraction <|.. Carousel
+    IAttraction <|.. PirateShip
+    IAttraction <|.. TrainRide
+    IAttraction <|.. JumpJump
+    IAttraction <|.. CenturyClock
+    IAttraction <|.. PumpkinThrower
+    IAttraction <|.. FireworksDeck
+    IAttraction <|.. MemoryMatch
+    IAttraction <|.. ParkourRun
+
+    IEmbeddedView <|.. FerrisWheelView
+    IEmbeddedView <|.. CarouselEmbedView
+    IEmbeddedView <|.. PirateShipEmbedView
+    IEmbeddedView <|.. JumpJumpEmbedView
+
+    AttractionManager "1" o-- "1" DisposableRegistry : 每轮激活新建
+    AttractionManager "1" --> "*" IAttraction : activate/deactivate
+    SceneManager "1" --> "1" SceneContext : v4 持有共享世界上下文
+    SceneContext "1" o-- "*" Group : facilityAnchors
+    FacilityRuntime "1" o-- "*" IEmbeddedView : register
+    FacilityRuntime "1" --> "1" SceneContext : 复用同一 scene
+    FacilityRuntime "1" --> "1" CoasterCarRuntime : 常驻挂轨小车
+    CameraRig <|-- WASDController
+    Lobby "1" --> "1" WASDController : 鼠标/WASD 切换
+    Lobby "1" --> "1" CoasterCarRuntime : 挂轨小车
+    Lobby "1" --> "1" CameraRig
+    NPCManager "1" --> "1" ModelLoader : 可选升级资产
+    FerrisWheelView "1" --> "1" CameraRig
+
+    class Lobby
+    class Carousel
+    class PirateShip
+    class TrainRide
+    class JumpJump
+    class CenturyClock
+    class PumpkinThrower
+    class FireworksDeck
+    class MemoryMatch
+    class ParkourRun
+    class CarouselEmbedView
+    class PirateShipEmbedView
+    class JumpJumpEmbedView

@@ -1,0 +1,566 @@
+Three.js 游乐园项目 AI 协作提示词手册
+适用对象：Qwen DOCK 模型（新 AI 编码助手） 项目技术栈：Three.js r187 + Rapier3D compat 0.21.0 + Vite 8.3.6，原生 ESM，无框架 文档用途：按顺序逐条输入给新模型，每条提示词为独立任务，完成后进入下一条
+
+第一部分：项目全局理解（第一条提示词）
+任务目标
+完整阅读 src 目录下所有 .js 文件，建立对项目架构、设施生命周期、全局约束的系统性理解，并输出架构总结报告。
+具体指令
+1. 阅读顺序与范围
+按以下顺序逐文件阅读，不得跳过：
+src/main.js —— 入口文件，重点关注 bootstrap() 函数、场景初始化、设施注册流程、onEnterAttraction/onExitAttraction 回调实现
+src/attractions/IAttraction.js —— 设施接口契约，理解 init/update/onInteract/dispose 四个方法的职责边界
+src/attractions/AttractionManager.js —— 设施管理器，理解 register/activate/deactivate 的实现逻辑，特别是 deactivate 中 dispose → registry.disposeAll → scene.remove 的销毁链
+src/attractions/Lobby.js —— 大厅实现，重点关注 FACILITIES 数组定义、设施入口的注册与渲染
+src/attractions/ParkourRun.js —— 跑酷设施
+src/attractions/JumpJump.js —— 跳一跳设施
+src/attractions/Carousel.js —— 旋转木马设施
+src/attractions/PirateShip.js —— 海盗船设施
+src/ 下其余所有 .js 文件 —— 工具类、全局约束、相机管理、输入管理等
+2. 重点理解内容
+入口流程（src/main.js） - bootstrap() 的完整执行链：场景创建 → 相机设置 → 光照初始化 → 大厅加载 → 设施注册 → 事件绑定 → 动画循环启动 - onEnterAttraction(attractionKey) 的切换逻辑：如何暂停大厅、激活设施、切换相机控制 - onExitAttraction() 的返回逻辑：如何销毁设施、回收资源、恢复大厅状态 - 全局 requestAnimationFrame 循环中如何调度 lobby.update() 和 activeAttraction.update()
+设施契约（src/attractions/IAttraction.js） - init(scene, camera, controls, options) —— 初始化职责，必须将创建的物体加入 scene - update(dt, time) —— 每帧更新，dt 为帧时间增量，必须做到帧率无关 - onInteract(action, payload) —— 交互入口，由 main.js 统一转发 - dispose() —— 销毁职责，必须清理几何体、材质、纹理、事件监听、DOM 元素 - 明确没有 enter/exit 方法，进出由 main.js 的回调处理
+设施管理（src/attractions/AttractionManager.js） - register(key, factory) —— 注册设施工厂函数 - activate(key) —— 通过工厂创建实例，调用 init()，设为当前活跃设施 - deactivate() —— 调用当前设施的 dispose()，清空 registry，从 scene 中移除相关物体 - 确认 deactivate 后 scene 中不应残留任何设施相关的 Mesh/Group
+大厅逻辑（src/attractions/Lobby.js） - FACILITIES 数组结构：{ key, name, position, ... } - 大厅场景的构建方式：地面、建筑、设施入口标识 - 大厅相机控制方式（OrbitControls 或其他） - 点击设施入口如何触发 onEnterAttraction
+全局约束（查阅项目中的约束文档或注释） - 帧率无关性：所有运动必须基于 dt 而非固定步长 - 资源生命周期：几何体、材质、纹理在 dispose() 中必须显式释放 - DOM 管理：设施创建的 UI 元素必须在 dispose() 中移除 - 相机归属：相机由 main.js 统一管理，设施不得自行创建或持有相机 - 纹理色彩空间：所有纹理加载后必须正确设置 colorSpace（Three.js r187 使用 SRGBColorSpace） - 泄漏验收标准：切换设施 10 次后，几何体/纹理/材质数量应回落至基线
+3. 输出要求
+输出《项目架构理解总结》，包含以下章节：
+入口流程图 —— 用文字描述 bootstrap() 的执行步骤
+设施生命周期图 —— 用文字描述 register → activate → update → deactivate → dispose 的完整链路
+大厅-设施切换时序 —— 描述用户点击设施入口到进入设施、从设施返回大厅的完整流程
+IAttraction 契约表 —— 列出四个方法的签名、职责、注意事项
+全局约束清单 —— 逐条列出约束内容及违反后果
+已知问题映射 —— 将用户提供的 7 个已知问题映射到可能的代码位置
+4. 验收标准
+能准确描述 bootstrap() 的每一步执行内容
+能画出设施从注册到销毁的完整生命周期
+能指出 onEnterAttraction/onExitAttraction 在 main.js 中的具体行号范围
+能列出至少 5 条全局约束并说明其重要性
+能对每个已知问题给出至少一个可能的根因假设
+5. 注意事项与常见陷阱
+不要假设设施有 enter/exit 方法，契约中不存在
+不要假设相机由设施管理，相机归属 main.js
+阅读时注意 Three.js r187 的 API 变化（如 THREE.SRGBColorSpace 而非旧的 THREE.sRGBEncoding）
+Rapier3D 的物理世界初始化可能在 bootstrap() 中，注意其生命周期与设施的关系
+
+第二部分：运行时自检与 Bug 修复（第二条提示词）
+任务目标
+在浏览器中实际运行项目，通过 F12 Console 排查运行时错误，重点修复 warmUp() 抛错导致画面冻结的问题，验证大厅显示和设施切换功能，检查资源泄漏。
+具体指令
+1. 运行与排查步骤
+执行 npm run dev 启动开发服务器
+在浏览器中打开项目地址，执行硬刷新（Ctrl+Shift+R / Cmd+Shift+R）
+打开 F12 Developer Tools，切换到 Console 标签
+观察是否有红色报错，记录完整错误堆栈
+切换到 Network 标签，检查是否有资源加载失败（404/500）
+切换到 Performance 标签，录制 5 秒，观察是否有长任务阻塞
+2. 重点排查项
+P0 问题：画面冻结 - 症状：打开浏览器直接进跑酷、大厅不显示、按钮无响应 - 最可能根因：ParkourRun.warmUp() 或 JumpJump.warmUp() 抛错，导致 bootstrap() 的 try-catch 捕获后冻结画面 - 排查方法： - 在 src/main.js 的 bootstrap() 函数中找到 try-catch 块 - 在 catch 块中添加 console.error('bootstrap failed:', err) 临时日志 - 在 ParkourRun.js 和 JumpJump.js 的 warmUp() 方法入口处添加 console.log('warmUp start: xxx') - 重新运行，观察哪个 warmUp() 未打印日志或打印后报错 - 修复方法： - 定位 warmUp() 中的具体抛错行 - 常见原因：引用未定义的变量、访问 null 对象属性、物理世界未初始化就调用 Rapier API - 修复后移除临时日志
+大厅显示问题 - 验证大厅地面、建筑、设施入口标识是否正常渲染 - 验证 FACILITIES 数组中的所有设施是否都有入口标识 - 验证 OrbitControls（或对应相机控制）是否正常工作
+设施进入/退出问题 - 逐一点击每个设施入口，验证： - 能否正常进入（画面切换、相机视角变化） - 设施功能是否正常（跑酷能跑、跳一跳能跳、旋转木马能转、海盗船能摆） - 能否正常退出（返回大厅、大厅状态恢复） - 每次切换后检查 Console 是否有报错
+资源泄漏检查 - 打开 F12 Memory 标签，使用 Heap Snapshot - 操作步骤： 1. 在大厅拍摄快照 1 2. 进入跑酷，返回大厅 3. 进入跳一跳，返回大厅 4. 进入旋转木马，返回大厅 5. 进入海盗船，返回大厅 6. 拍摄快照 2 7. 对比快照 1 和快照 2，检查 Mesh、Geometry、Texture、Material 数量是否显著增加 - 如果数量增加，说明 dispose() 未正确清理，需逐个设施排查
+3. 修复范围
+修复所有 Console 红色报错
+修复 warmUp() 抛错问题
+修复大厅不显示或显示异常问题
+修复设施进入/退出异常问题
+修复已发现的资源泄漏问题
+4. 输出要求
+输出《运行时自检报告》，包含：
+Console 报错清单 —— 每条报错的完整堆栈和根因分析
+修复记录表 —— 文件名、行号、问题描述、修复方法、验证结果
+设施功能验证表 —— 每个设施的进入/功能/退出三项验证结果
+资源泄漏检查结果 —— 快照对比数据，是否有泄漏，泄漏类型
+剩余问题清单 —— 本次未修复的问题及原因
+5. 验收标准
+Console 无红色报错
+大厅正常显示，所有设施入口可见
+所有设施可正常进入、运行、退出
+切换设施 5 次后，几何体/纹理/材质数量无明显增长
+warmUp() 不再抛错
+6. 注意事项与常见陷阱
+硬刷新是必须的，浏览器缓存可能掩盖问题
+dispose() 中不仅要 scene.remove()，还要 geometry.dispose()、material.dispose()、texture.dispose()
+如果设施创建了 DOM 元素（如 UI 面板），dispose() 中必须 element.remove()
+Rapier 的物理体（RigidBody/Collider）必须在 dispose() 中从物理世界中移除
+修复后不要引入新报错，每次修改后重新运行验证
+
+第三部分：各设施视角与交互深度优化（第三条提示词）
+任务目标
+对每个设施的相机视角和交互体验进行深度优化，使视角符合真实游乐设施的体验逻辑，消除”固定视角”和”AI感”。
+具体指令
+1. 旋转木马（src/attractions/Carousel.js）
+当前问题 - 大厅界面与游戏内不一致 - 游戏内是俯瞰鸟瞰视角，而非第一人称坐姿视角
+优化要求 - 阶段一：木马选择界面 - 进入旋转木马设施后，首先进入选择界面 - 展示至少 8 个可选木马，排列成圆形或两排 - 每个木马有视觉高亮效果（hover 时发光或放大） - 点击木马后进入该木马的第一人称视角 - 选择界面期间相机为 OrbitControls，可拖动旋转查看整体
+阶段二：第一人称骑乘视角
+相机位置绑定到所选木马的座位位置，略高于座位（模拟人眼高度）
+旋转木马旋转时，相机跟随木马做圆周运动
+旋转木马的上下起伏运动（如果有）相机同步跟随
+鼠标拖动可 360 度自由环顾（在骑乘状态下覆盖 OrbitControls，使用自定义鼠标拖动旋转逻辑）
+滚轮可轻微调整视野角度（抬头/低头，限制角度范围如 ±30°）
+阶段三：退出逻辑
+按 ESC 或点击退出按钮，相机平滑过渡回大厅视角
+退出时清除骑乘状态和自定义相机控制
+实现要点 - 在 onInteract('select', horseIndex) 中处理木马选择 - 骑乘状态下，每帧 update() 中同步相机位置到木马的世界坐标 - 鼠标拖动旋转使用 mousemove 事件累加 yaw/pitch 角度，转换为相机四元数 - 注意相机不要穿透木马模型，可设置最小距离约束
+2. 海盗船（src/attractions/PirateShip.js）
+当前问题 - 视角固定，缺乏真实感
+优化要求 - 第一人称船上视角 - 相机位置绑定到船体上的座位位置 - 船体摆动时，相机跟随船体做圆弧摆动 - 摆动过程中，相机保持”坐在船上”的姿态（即相机始终垂直于船体甲板） - 自由环顾 - 鼠标拖动可在船上左右上下环顾（yaw ±90°，pitch ±45°） - 环顾角度相对于船体坐标系，而非世界坐标系 - 晃动反馈 - 船体摆动到最高点时，相机有轻微的延迟跟随（模拟惯性） - 可使用 lerp 平滑插值相机位置，lerp 系数 0.1~0.3 - 第三人称备选视角 - 按 V 键可切换到第三人称视角，相机位于船体侧后方，可看到整艘船的摆动
+实现要点 - 在 update(dt) 中获取船体的世界旋转，将其应用到相机 - 环顾角度叠加在船体旋转之上：camera.quaternion = shipQuaternion * lookQuaternion - 惯性延迟使用 Vector3.lerp() 或 Quaternion.slerp()
+3. 跑酷（src/attractions/ParkourRun.js）
+当前问题 - 打开浏览器可能直接进跑酷（P0 bug，已在第二部分修复） - 视角可能不够自然
+优化要求 - 第三人称追尾视角 - 相机位于角色后上方，距离角色 3~5 个单位 - 相机高度略高于角色头部，形成俯视追尾视角 - 角色移动时相机平滑跟随（使用 lerp，系数 0.05~0.1） - 轻微左右调整 - 鼠标左右拖动可轻微调整相机水平角度（±30°） - 松开鼠标后相机自动回正到角色正后方 - 跑步晃动 - 角色跑步时，相机有轻微的上下晃动（模拟头部晃动） - 晃动幅度 0.05~0.1 个单位，频率与跑步步频同步 - 可使用 Math.sin(time * stepFrequency) * amplitude 实现
+实现要点 - 相机目标位置 = 角色位置 + 后方偏移向量（经角色朝向旋转） - 每帧 camera.position.lerp(targetPosition, lerpFactor) - 晃动叠加在相机 Y 坐标上
+4. 跳一跳（src/attractions/JumpJump.js）
+当前问题 - 视角可能固定或不跟随
+优化要求 - 跟随视角 - 相机始终朝向跳跃球体，保持固定距离 - 球体跳跃时，相机垂直跟随，但有延迟和缓冲 - 延迟使用 lerp，系数 0.05~0.15 - 蓄力视角变化 - 按住蓄力时，相机缓慢拉近（距离从 8 缩短到 5） - 松开跳跃后，相机缓慢恢复到正常距离 - 落地缓冲 - 球体落地瞬间，相机有轻微的向下冲击感（快速下移 0.2 单位后恢复）
+实现要点 - 相机目标位置 = 球体位置 + 固定偏移 - 蓄力时在 onInteract('charge', power) 中调整相机距离 - 落地检测可通过比较球体 Y 坐标是否从下降转为静止
+5. 过山车（如项目中存在）
+优化要求 - 第一人称视角 - 相机绑定到过山车车厢的前排座位 - 沿轨道运动时，相机跟随车厢的位置和朝向 - 自由转头 - 鼠标拖动可左右上下自由转头（yaw ±120°，pitch ±60°） - 转头角度相对于车厢朝向 - 惯性延迟 - 轨道转弯时，相机朝向有轻微的惯性延迟，不完全同步于车厢朝向 - 使用 Quaternion.slerp() 实现，t 值 0.05~0.1
+6. 大厅（src/attractions/Lobby.js）
+优化要求 - 自由探索视角 - 使用 OrbitControls，允许用户自由拖动旋转、缩放 - 设置合理的缩放范围（minDistance=5, maxDistance=50） - 设置合理的垂直角度限制（minPolarAngle=0, maxPolarAngle=Math.PI/2.2） - 视觉引导 - 每个设施入口有清晰的标识（发光边框、箭头、名称标签） - 入口标识在 hover 时高亮 - 入口位置与 FACILITIES 数组中的定义一致
+7. 输出要求
+输出《视角优化报告》，包含：
+每个设施的优化前后对比 —— 用文字描述视角变化
+相机控制方案表 —— 每个设施的相机类型、控制方式、参数设置
+交互流程图 —— 旋转木马的选择→骑乘→退出流程
+代码变更清单 —— 文件名、行号、变更内容
+8. 验收标准
+旋转木马：可选择木马，骑乘后为第一人称视角，可 360° 环顾，跟随上下起伏
+海盗船：第一人称船上视角，可环顾，有惯性延迟，支持第三人称切换
+跑酷：第三人称追尾视角，可轻微左右调整，有跑步晃动
+跳一跳：视角跟随球体，有延迟缓冲，蓄力时相机拉近
+大厅：OrbitControls 自由探索，入口有清晰视觉引导
+所有视角切换平滑，无突兀跳变
+9. 注意事项与常见陷阱
+相机切换时使用 lerp/slerp 平滑过渡，不要直接赋值
+骑乘/跟随状态下，禁用 OrbitControls 或将其与自定义控制互斥
+鼠标拖动旋转时，注意指针锁定（Pointer Lock）的体验，或提供非锁定的替代方案
+相机不要穿透模型，设置最小距离约束
+设施 dispose() 时必须清理事件监听器（mousemove/keydown 等）
+
+第四部分：Blender 模型接入方案（第四条提示词）
+任务目标
+评估项目中适合替换为 Blender 建模的设施，制定模型导入流程，实现 GLTFLoader 集成、LOD 优化、缓存机制，并制定模型制作规范。
+具体指令
+1. 评估与优先级
+适合替换为 Blender 建模的设施（按优先级排序）
+优先级
+设施/元素
+理由
+P0
+旋转木马主体
+结构复杂，程序化建模难以达到真实效果
+P0
+海盗船主体
+船体曲面和装饰细节适合建模
+P1
+大厅建筑
+地标性建筑，视觉占比大
+P1
+世纪钟（待实现）
+地标建筑，需要精细建模
+P2
+跑酷障碍物
+可部分替换，但程序化生成仍有优势
+P2
+跳一跳平台
+简单几何体，建模收益较低
+P3
+过山车轨道/车厢
+如存在，适合建模
+2. GLTFLoader 集成
+实现步骤 1. 确认 Three.js r187 中 GLTFLoader 的导入路径： js    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; 2. 创建模型加载工具类 src/utils/ModelLoader.js： - 单例模式，全局共享一个 GLTFLoader 实例 - 提供 load(url, onProgress) 方法，返回 Promise - 内部实现缓存机制（见下文） 3. 在 src/main.js 的 bootstrap() 中初始化 ModelLoader 4. 在设施的 init() 中异步加载模型，加载完成前显示占位符或加载动画
+代码骨架 ```js // src/utils/ModelLoader.js import { GLTFLoader } from ‘three/addons/loaders/GLTFLoader.js’; import { DRACOLoader } from ‘three/addons/loaders/DRACOLoader.js’;
+class ModelLoader { constructor() { this.loader = new GLTFLoader(); this.cache = new Map(); // url -> GLTF this.pending = new Map(); // url -> Promise }
+async load(url, onProgress) { if (this.cache.has(url)) return this.cache.get(url); if (this.pending.has(url)) return this.pending.get(url);
+const promise = new Promise((resolve, reject) => {  this.loader.load(url, (g
+
+Three.js游乐园项目AI协作提示词手册（续篇）
+
+第五部分：视觉优化与去AI感（第五条提示词）
+任务目标
+全面升级项目视觉质量，消除”AI生成感”和”低多边形塑料感”，使游乐园达到接近真实游乐园的视觉水平。
+具体指令
+1. 材质全面升级
+当前问题：大量使用 MeshBasicMaterial 和 MeshLambertMaterial，导致物体看起来像塑料玩具，没有真实材质感。
+优化要求：
+全面弃用 MeshBasicMaterial 和 MeshLambertMaterial，强制使用 MeshStandardMaterial 或 MeshPhysicalMaterial
+PBR参数规范：
+金属件（栏杆、轨道、装饰条）：metalness=1.0, roughness=0.1~0.4
+木材（旋转木马底座、海盗船甲板）：metalness=0.0, roughness=0.7~0.9
+塑料/涂料（游乐设施外壳）：metalness=0.1~0.3, roughness=0.4~0.7
+玻璃/透明材质：metalness=0.0, roughness=0.0~0.1, transmission=0.9
+地面（混凝土/地砖）：metalness=0.0, roughness=0.8~0.95
+颜色修正：所有颜色值使用 sRGB 色彩空间，CanvasTexture 必须设置 texture.colorSpace = THREE.SRGBColorSpace
+法线贴图：为地面、建筑墙面添加程序化法线贴图（用 Canvas 生成砖缝/石材纹理），增加表面细节
+2. 光照与阴影升级
+当前问题：光照单一，没有阴影或阴影生硬，画面发灰。
+优化要求：
+环境光：使用 HemisphereLight 模拟天光（天空蓝+地面反光暖色），intensity 0.3~0.5
+主光源：使用 DirectionalLight 模拟太阳，castShadow=true
+shadow.mapSize.width/height = 2048
+shadow.camera.near = 0.5
+shadow.camera.far = 100
+shadow.camera.left/right/top/bottom = -30/30/30/-30
+shadow.bias = -0.001
+阴影软化：开启 renderer.shadowMap.type = THREE.PCFSoftShadowMap
+色调映射：开启 renderer.toneMapping = THREE.ACESFilmicToneMapping，renderer.toneMappingExposure = 1.0
+环境贴图：使用 PMREMGenerator + RoomEnvironment 或代码生成渐变天穹，为所有 MeshStandardMaterial 物体提供环境反射
+禁止使用无阴影的平行光作为唯一光源
+3. 后处理效果（可选但推荐）
+泛光（Bloom）：对霓虹灯、发光标识使用 UnrealBloomPass，threshold=0.2, strength=0.5, radius=0.5
+抗锯齿：确保 renderer.antialias = true
+像素比：移动端设置 renderer.pixelRatio = Math.min(window.devicePixelRatio, 2)
+4. 场景细节增强
+地面： - 禁止使用纯色 PlaneGeometry 作为地面 - 使用程序化生成的地砖纹理（Canvas 绘制方格+缝隙） - 或添加噪点纹理增加地面质感 - 地面法线贴图增加凹凸感
+建筑： - 建筑边缘增加倒角（BevelGeometry）或装饰线条 - 墙面增加窗户、门等细节 - 禁止使用纯长方体作为建筑外观
+植被： - 树木使用组合几何体（CylinderGeometry 树干 + IcosahedronGeometry 树冠） - 树冠使用 MeshStandardMaterial 深绿色 roughness=0.8 - 草地使用 InstancedMesh 批量渲染小草
+水体： - 喷泉/水池使用 MeshPhysicalMaterial 的 transmission 属性模拟水的透明感 - 添加水面波动动画（顶点着色器或逐顶点位移）
+5. 去AI感检查清单
+所有物体有合理的材质粗糙度和金属度，不是纯平颜色
+场景中有阴影，且阴影是柔和的
+物体有环境反射，不是完全哑光
+地面有纹理细节，不是纯色平面
+建筑有装饰细节，不是纯长方体
+整体色调统一，没有突兀的纯色块
+画面有深度感（雾效或距离 fade）
+6. 验收标准
+截图对比优化前后，画面从”低多边形玩具感”变为”接近真实游乐园”
+Console 无材质警告
+帧率保持在 50fps 以上（中端设备）
+7. 注意事项
+后处理效果（尤其是 Bloom）性能开销较大，需在视觉效果和性能间权衡
+PCFSoftShadowMap 在大量阴影源下性能下降明显，控制阴影投射物体数量
+环境贴图使用 RoomEnvironment 时注意场景比例，避免反射失真
+
+第六部分：性能优化（第六条提示词）
+任务目标
+对项目进行全面性能优化，确保在主流设备（包括中低端手机）上稳定 60fps 运行，消除卡顿和掉帧。
+具体指令
+1. 渲染优化
+视锥体剔除：确保 Three.js 的 frustumCulling = true（默认开启），检查是否有物体被错误地排除在剔除之外
+批量渲染：相同材质的物体合并为 InstancedMesh，特别是：
+草地/花朵等植被
+栏杆/柱子等重复构件
+NPC人群（胶囊体）
+LOD（多细节层次）：对远处物体使用低模版本
+实现 LOD 类：根据相机距离自动切换 High/Medium/Low 三个细节级别
+近景：完整模型 + 高质量材质
+中景：简化模型 + 简单材质
+远景：极简模型或仅用 Billboard 代替
+2. 模型加载优化
+模型缓存：实现 ModelLoader 单例，相同 URL 的模型只加载一次
+Draco 压缩：集成 DRACOLoader 解码压缩模型，减少 70~90% 模型体积
+异步加载：设施模型在用户进入时再加载，不阻塞大厅启动
+加载进度：显示加载进度条，提升用户体验
+3. 动画与物理优化
+物理世界节流：Rapier3D 物理步进使用固定时间步长（如 1/60s），与渲染帧率解耦
+碰撞检测优化：
+只对活跃设施内的物体启用碰撞
+大厅闲置时暂停物理世界更新
+使用碰撞组（CollisionGroups）过滤不必要的碰撞检测
+动画节流：
+非活跃设施暂停 update() 调用
+远处/不可见物体的动画暂停
+4. 内存管理
+纹理压缩：使用 KTX2/Basis 格式贴图，减少 VRAM 占用
+及时释放：设施 dispose() 时彻底释放几何体、材质、纹理、动画器
+对象池：对频繁创建销毁的物体（如跑酷中的障碍物、金币）使用对象池
+内存监控：开发环境输出 renderer.info.memory 到 Console
+5. 移动端适配
+像素比限制：mobile 设备 pixelRatio 上限为 2
+简化效果：移动端关闭后处理（Bloom）、降低阴影分辨率
+触控优化：确保所有交互支持 touch 事件
+性能降级：检测到低端设备（通过 navigator.hardwareConcurrency 或 GPU 信息）自动降低画质
+6. 网络优化
+资源预加载：大厅加载时预加载热门设施模型
+CDN 部署：静态资源部署到 CDN
+缓存策略：设置正确的 Cache-Control 头
+7. 验收标准
+中端手机（如骁龙7系列）稳定 55fps+
+低端手机（如骁龙6系列）稳定 30fps+
+切换设施 10 次后内存无明显增长
+首次进入设施加载时间 < 3秒
+8. 注意事项
+性能优化是持续过程，建议集成 stats.js 实时监测
+不要过度优化——先 profiling 再优化，避免盲目优化引入 bug
+物理模拟在移动端开销大，考虑关闭或简化
+
+第七部分：昼夜循环与烟花系统（第七条提示词）
+任务目标
+实现大厅昼夜循环系统和烟花粒子系统，增加时间控制台和烟花站台设施，大幅提升视觉震撼力。
+具体指令
+1. 昼夜循环系统
+实现位置：src/utils/DayNightCycle.js（新建）
+功能要求：
+三种时间模式：白天、黄昏（夕阳）、黑夜，可通过 UI 按钮切换或自动循环
+平滑过渡：切换时通过 lerp 平滑过渡光照颜色、强度、环境光颜色，禁止突变
+太阳/月亮：
+白天：太阳（发光球体+DirectionalLight）在天空移动
+黄昏：太阳位置降低，颜色变暖（橙色/红色），阴影拉长
+黑夜：太阳消失，月亮出现，环境光变暗变蓝
+天空颜色：根据时间模式渐变天空背景色（使用 scene.background）
+霓虹灯效果：黑夜模式下，游乐设施上的 PointLight/Emissive 材质自动亮起
+自动循环：可选开启自动昼夜循环，周期设为 5~10 分钟一轮
+参数配置：
+白天: { skyColor: 0x87CEEB, sunColor: 0xFFFFF0, sunIntensity: 1.5, ambientColor: 0x404060, ambientIntensity: 0.4 }黄昏: { skyColor: 0xFF7F50, sunColor: 0xFF6347, sunIntensity: 0.8, ambientColor: 0x302040, ambientIntensity: 0.25 }黑夜: { skyColor: 0x0a0a2e, sunColor: 0x4466AA, sunIntensity: 0.1, ambientColor: 0x101030, ambientIntensity: 0.15 }
+2. 粒子烟花系统
+实现位置：src/utils/ParticleSystem.js（新建）
+功能要求：
+烟花发射：在指定位置生成爆炸粒子效果
+粒子类型：
+标准爆炸：球形扩散，多种颜色混合
+闪烁星形：星星形状扩散
+瀑布型：从高点向下坠落
+文字型：粒子组成文字形状
+物理模拟：粒子受重力影响，有生命周期（生成→膨胀→衰减→消失）
+性能优化：使用 GPU 粒子（Points + ShaderMaterial）或 InstancedMesh，禁止每帧创建新几何体
+对象池：粒子对象复用，避免 GC 压力
+API设计：
+fireworkSystem.launch(position, type, color, size, duration)fireworkSystem.launchText(position, text, color, fontSize)
+3. 烟花站台设施
+实现位置：src/attractions/FireworksDeck.js（新建）
+功能要求：
+独立的 IAttraction 设施
+玩家进入后站在观礼台上
+UI 面板提供：
+烟花颜色选择器
+烟花类型选择（标准/星形/瀑布/文字）
+文字输入框（输入文字后以粒子形式在天空显示）
+“发射”按钮
+可连续发射多枚烟花
+支持自动模式（定时自动放烟花）
+夜晚模式下效果最佳，白天也可用但效果减弱
+4. 时间控制台
+实现位置：嵌入 Lobby.js 或独立组件
+功能要求： - 大厅 UI 角落放置时间控制台按钮 - 点击展开面板：白天/黄昏/黑夜 三个按钮 - 显示当前时间模式 - 可选：自动循环开关 - 面板样式与整体 UI 风格统一
+5. 验收标准
+切换昼夜模式时光照平滑过渡，无闪烁
+烟花粒子效果流畅，不掉帧
+文字烟花清晰可读
+时间控制台响应迅速
+黑夜模式下霓虹灯效果明显
+6. 注意事项
+粒子系统性能是关键，务必使用对象池和 GPU 加速
+烟花爆炸效果不宜过于频繁，自动控制发射频率
+昼夜循环的自动模式周期不宜过短，避免用户不适
+
+第八部分：世纪钟与大厅装饰（第八条提示词）
+任务目标
+在大厅实现天津世纪钟地标建筑、大厅椅子坐下休息功能、迎宾NPC与动态人群，提升大厅的”人气”和真实感。
+具体指令
+1. 世纪钟设施
+实现位置：src/attractions/CenturyClock.js（新建）
+功能要求：
+造型参考：天津世纪钟——顶部为巨大钟面，下方为钟楼建筑主体
+钟面：
+使用 CanvasTexture 绘制钟面（白色背景+黑色刻度和数字）
+时针、分针、秒针使用 BoxGeometry，颜色深色金属
+指针运动读取系统真实时间：new Date()
+秒针每秒跳动一次（或平滑旋转）
+钟楼建筑：
+主体使用 BoxGeometry 或 CylinderGeometry
+顶部钟面使用 LatheGeometry 或 CylinderGeometry
+材质使用 MeshStandardMaterial，石材感（roughness 0.8~0.9）
+夜间效果：
+钟面内部发光（emissive 或 PointLight）
+钟楼顶部加 SpotLight 向下打光
+位置：放置在大厅显眼位置（如中央广场附近）
+2. 大厅椅子坐下休息
+实现位置：修改 Lobby.js
+功能要求：
+大厅中放置若干椅子/长凳（使用简单几何体拼搭）
+玩家走近椅子时出现交互提示（如”坐下休息”按钮）
+点击后：
+相机切换到椅子视角（模拟坐下的第一人称视角）
+相机高度降低（模拟坐下高度）
+显示”休息中…“提示，可点击”起身”退出
+坐下期间可自由环顾（OrbitControls 或鼠标拖动）
+起身后相机平滑回到站立高度
+实现要点： - 椅子使用 Raycaster 检测玩家距离 - 坐下状态用布尔值标记，update 中根据状态切换相机 - 坐下时相机 position.y 降低约 0.5~0.8 单位
+3. 迎宾NPC与动态人群
+实现位置：src/utils/NPCManager.js（新建）
+功能要求：
+NPC生成：使用胶囊体（CylinderGeometry + SphereGeometry）生成 8~12 个 NPC
+外观：
+身体：不同颜色的 CapsuleGeometry 或组合几何体
+头部：SphereGeometry
+使用 MeshBasicMaterial 或简单 MeshStandardMaterial（不受光照影响，性能更好）
+颜色随机化（不同衣服颜色）
+行走AI：
+每个 NPC 有随机目标点（大厅内的随机位置）
+使用简单的寻路：朝目标点移动，到达后随机选新目标点
+偶尔停下来”张望”（暂停移动 2~5 秒，期间头部/身体轻微旋转）
+行走速度随机化（0.5~1.5 单位/秒）
+性能优化：
+使用 InstancedMesh 渲染 NPC 身体和头部（减少 draw call）
+远离相机的 NPC 暂停动画更新
+碰撞避免：NPC 之间保持最小距离，避免重叠（简单排斥力）
+NPC行为状态机：
+WALKING → 朝目标点移动  → 到达目标 → IDLING（停留2~5秒）    → 随机选新目标 → WALKING
+4. 验收标准
+世纪钟指针显示正确的时间（时/分/秒）
+夜间世纪钟有发光效果
+椅子可交互，坐下后视角正确
+NPC 在大厅中自然走动，不会穿墙或重叠
+帧率不受 NPC 影响（10个NPC下仍保持60fps）
+5. 注意事项
+NPC 的行走路径应避免穿过建筑
+给 NPC 设置合适的碰撞体（Rapier Collider），与大厅地面碰撞
+椅子的交互提示距离不宜过远（3~5单位）
+
+第九部分：最终验收清单（第九条提示词）
+任务目标
+在完成以上所有优化后，进行全面的最终验收，确保项目质量达标。
+具体指令
+1. 功能验收清单
+逐项验证以下功能是否正常：
+序号
+验收项
+预期结果
+状态
+1
+打开浏览器进入大厅
+显示完整大厅场景，无报错
+
+2
+大厅OrbitControls
+可自由拖动旋转、缩放
+
+3
+进入跑酷设施
+正常进入，跑酷按钮可点击，可开始跑酷
+
+4
+退出跑酷回大厅
+正常返回大厅，大厅状态完整
+
+5
+进入跳一跳设施
+正常进入，可跳跃
+
+6
+退出跳一跳回大厅
+正常返回大厅
+
+7
+进入旋转木马
+显示木马选择界面
+
+8
+选择木马后
+第一人称视角，可360度环顾，跟随旋转和起伏
+
+9
+退出旋转木马
+正常返回大厅
+
+10
+进入海盗船
+显示座位选择界面
+
+11
+海盗船摆动
+第一人称视角，可环顾，有晃动反馈
+
+12
+退出海盗船
+正常返回大厅
+
+13
+昼夜切换
+白天/黄昏/黑夜平滑过渡
+
+14
+烟花发射
+可手动发射烟花，粒子效果正常
+
+15
+世纪钟
+指针显示正确时间，夜间发光
+
+16
+椅子坐下
+可交互，视角正确
+
+17
+NPC走动
+NPC在大厅中自然走动
+
+2. 性能验收清单
+序号
+验收项
+标准
+状态
+1
+大厅空闲帧率
+>= 55fps（中端设备）
+
+2
+进入设施后帧率
+>= 50fps
+
+3
+切换设施5次后内存
+几何体/纹理数量回落基线
+
+4
+控制台报错
+无红色报错
+
+5
+首次加载时间
+< 5秒
+
+6
+设施进入加载时间
+< 3秒
+
+3. 视觉验收清单
+序号
+验收项
+标准
+状态
+1
+材质质感
+物体有PBR材质感，非塑料感
+
+2
+阴影效果
+有柔和阴影
+
+3
+光照质量
+光照均匀，无发灰
+
+4
+地面细节
+有纹理，非纯色平面
+
+5
+整体风格
+统一协调，无突兀元素
+
+6
+去AI感
+画面接近真实游乐园
+
+4. 代码质量检查
+所有设施遵循 IAttraction 接口契约
+所有 dispose() 方法正确释放资源
+所有事件监听器在 dispose() 中正确解绑
+无 console.log 调试代码遗留（保留错误日志）
+代码注释清晰，关键逻辑有注释
+无未使用的变量和函数
+文件命名和目录结构清晰
+5. 已知问题记录
+记录本次验收中发现的已知问题和待办事项：
+问题描述
+严重程度
+建议修复方案
+状态
+（待填写）
+
+
+
+6. 最终交付说明
+输出《最终验收报告》，包含： 1. 本次所有修改

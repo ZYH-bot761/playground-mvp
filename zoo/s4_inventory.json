@@ -1,0 +1,594 @@
+{
+  "zoo_root": "zoo",
+  "zone_collections": {
+    "bird_zone": {
+      "count": 23,
+      "objects": [
+        "BIRD_01_Mesh",
+        "BIRD_01_Rig",
+        "BIRD_02_Mesh",
+        "BIRD_02_Rig",
+        "BIRD_03_Mesh",
+        "BIRD_03_Rig",
+        "BIRD_04_Mesh",
+        "BIRD_04_Rig",
+        "BIRD_05_Mesh",
+        "BIRD_05_Rig",
+        "BIRD_06_Mesh",
+        "BIRD_06_Rig",
+        "BIRD_07_Mesh",
+        "BIRD_07_Rig",
+        "BIRD_08_Mesh",
+        "BIRD_08_Rig",
+        "bird_zone_Fence",
+        "bird_zone_FlightPath_1",
+        "bird_zone_FlightPath_2",
+        "bird_zone_Ground",
+        "bird_zone_SignBoard",
+        "bird_zone_SignPosts",
+        "bird_zone_SignText"
+      ]
+    },
+    "reptile_zone": {
+      "count": 14,
+      "objects": [
+        "REPTILE_01_Mesh",
+        "REPTILE_01_Rig",
+        "REPTILE_02_Mesh",
+        "REPTILE_02_Rig",
+        "REPTILE_03_Mesh",
+        "REPTILE_03_Rig",
+        "REPTILE_04_Mesh",
+        "REPTILE_04_Rig",
+        "reptile_zone_Fence",
+        "reptile_zone_Ground",
+        "reptile_zone_Rocks",
+        "reptile_zone_SignBoard",
+        "reptile_zone_SignPosts",
+        "reptile_zone_SignText"
+      ]
+    },
+    "marine_zone": {
+      "count": 37,
+      "objects": [
+        "FISH_01_Mesh",
+        "FISH_01_Rig",
+        "FISH_02_Mesh",
+        "FISH_02_Rig",
+        "FISH_03_Mesh",
+        "FISH_03_Rig",
+        "FISH_04_Mesh",
+        "FISH_04_Rig",
+        "FISH_05_Mesh",
+        "FISH_05_Rig",
+        "FISH_06_Mesh",
+        "FISH_06_Rig",
+        "FISH_07_Mesh",
+        "FISH_07_Rig",
+        "FISH_08_Mesh",
+        "FISH_08_Rig",
+        "FISH_09_Mesh",
+        "FISH_09_Rig",
+        "FISH_10_Mesh",
+        "FISH_10_Rig",
+        "FISH_11_Mesh",
+        "FISH_11_Rig",
+        "FISH_12_Mesh",
+        "FISH_12_Rig",
+        "FISH_13_Mesh",
+        "FISH_13_Rig",
+        "FISH_14_Mesh",
+        "FISH_14_Rig",
+        "FISH_15_Mesh",
+        "FISH_15_Rig",
+        "marine_zone_Fence",
+        "marine_zone_Ground",
+        "marine_zone_SignBoard",
+        "marine_zone_SignPosts",
+        "marine_zone_SignText",
+        "marine_zone_WaterRim",
+        "marine_zone_WaterVolume"
+      ]
+    },
+    "mammal_zone": {
+      "count": 17,
+      "objects": [
+        "MAMMAL_01_Mesh",
+        "MAMMAL_01_Rig",
+        "MAMMAL_02_Mesh",
+        "MAMMAL_02_Rig",
+        "MAMMAL_03_Mesh",
+        "MAMMAL_03_Rig",
+        "MAMMAL_04_Mesh",
+        "MAMMAL_04_Rig",
+        "MAMMAL_05_Mesh",
+        "MAMMAL_05_Rig",
+        "mammal_zone_Fence",
+        "mammal_zone_Ground",
+        "mammal_zone_SignBoard",
+        "mammal_zone_SignPosts",
+        "mammal_zone_SignText",
+        "mammal_zone_TreeCanopies",
+        "mammal_zone_TreeTrunks"
+      ]
+    }
+  },
+  "playground_proxy": {
+    "collection": "playground_existing_proxy",
+    "count": 12,
+    "objects": [
+      "PG_Carousel",
+      "PG_CoasterSupports",
+      "PG_CoasterTrack",
+      "PG_EntranceGate",
+      "PG_FerrisWheelCabins",
+      "PG_FerrisWheelRing",
+      "PG_Fountain",
+      "PG_Ground",
+      "PG_PirateShip",
+      "PG_Plaza",
+      "PG_TrainCars",
+      "PG_TrainTrack"
+    ],
+    "note": "磁盘无 .blend 游乐场；依据网页项目设施清单重建的低模参照集合，未改动任何既有物体"
+  },
+  "presentation": {
+    "count": 2,
+    "objects": [
+      "ZooOverviewCam",
+      "ZooSun"
+    ]
+  },
+  "animal_assets": [
+    {
+      "name": "BIRD_01",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_01_Rig",
+      "mesh": "BIRD_01_Mesh",
+      "bone_count": 5,
+      "start": [
+        37.0,
+        9.68,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_02",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_02_Rig",
+      "mesh": "BIRD_02_Mesh",
+      "bone_count": 5,
+      "start": [
+        46.89,
+        15.79,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_03",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_03_Rig",
+      "mesh": "BIRD_03_Mesh",
+      "bone_count": 5,
+      "start": [
+        40.78,
+        21.9,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_04",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_04_Rig",
+      "mesh": "BIRD_04_Mesh",
+      "bone_count": 5,
+      "start": [
+        50.67,
+        12.01,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_05",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_05_Rig",
+      "mesh": "BIRD_05_Mesh",
+      "bone_count": 5,
+      "start": [
+        44.55,
+        18.13,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_06",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_06_Rig",
+      "mesh": "BIRD_06_Mesh",
+      "bone_count": 5,
+      "start": [
+        38.44,
+        8.24,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_07",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_07_Rig",
+      "mesh": "BIRD_07_Mesh",
+      "bone_count": 5,
+      "start": [
+        48.33,
+        14.35,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "BIRD_08",
+      "kind": "bird",
+      "zone": "bird_zone",
+      "rig": "BIRD_08_Rig",
+      "mesh": "BIRD_08_Mesh",
+      "bone_count": 5,
+      "start": [
+        42.22,
+        20.46,
+        6.5
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_01",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_01_Rig",
+      "mesh": "FISH_01_Mesh",
+      "bone_count": 5,
+      "start": [
+        35.0,
+        -18.86,
+        0.7
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_02",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_02_Rig",
+      "mesh": "FISH_02_Mesh",
+      "bone_count": 5,
+      "start": [
+        47.36,
+        -11.98,
+        2.44
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_03",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_03_Rig",
+      "mesh": "FISH_03_Mesh",
+      "bone_count": 5,
+      "start": [
+        39.72,
+        -5.11,
+        1.87
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_04",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_04_Rig",
+      "mesh": "FISH_04_Mesh",
+      "bone_count": 5,
+      "start": [
+        52.08,
+        -16.23,
+        1.31
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_05",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_05_Rig",
+      "mesh": "FISH_05_Mesh",
+      "bone_count": 5,
+      "start": [
+        44.44,
+        -9.36,
+        0.74
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_06",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_06_Rig",
+      "mesh": "FISH_06_Mesh",
+      "bone_count": 5,
+      "start": [
+        36.8,
+        -20.48,
+        2.48
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_07",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_07_Rig",
+      "mesh": "FISH_07_Mesh",
+      "bone_count": 5,
+      "start": [
+        49.16,
+        -13.61,
+        1.92
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_08",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_08_Rig",
+      "mesh": "FISH_08_Mesh",
+      "bone_count": 5,
+      "start": [
+        41.52,
+        -6.73,
+        1.35
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_09",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_09_Rig",
+      "mesh": "FISH_09_Mesh",
+      "bone_count": 5,
+      "start": [
+        53.89,
+        -17.86,
+        0.79
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_10",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_10_Rig",
+      "mesh": "FISH_10_Mesh",
+      "bone_count": 5,
+      "start": [
+        46.25,
+        -10.98,
+        2.53
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_11",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_11_Rig",
+      "mesh": "FISH_11_Mesh",
+      "bone_count": 5,
+      "start": [
+        38.61,
+        -22.11,
+        1.96
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_12",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_12_Rig",
+      "mesh": "FISH_12_Mesh",
+      "bone_count": 5,
+      "start": [
+        50.97,
+        -15.23,
+        1.4
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_13",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_13_Rig",
+      "mesh": "FISH_13_Mesh",
+      "bone_count": 5,
+      "start": [
+        43.33,
+        -8.36,
+        0.83
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_14",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_14_Rig",
+      "mesh": "FISH_14_Mesh",
+      "bone_count": 5,
+      "start": [
+        35.69,
+        -19.48,
+        2.57
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "FISH_15",
+      "kind": "fish",
+      "zone": "marine_zone",
+      "rig": "FISH_15_Rig",
+      "mesh": "FISH_15_Mesh",
+      "bone_count": 5,
+      "start": [
+        48.05,
+        -12.6,
+        2.01
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "REPTILE_01",
+      "kind": "reptile",
+      "zone": "reptile_zone",
+      "rig": "REPTILE_01_Rig",
+      "mesh": "REPTILE_01_Mesh",
+      "bone_count": 7,
+      "start": [
+        64.5,
+        8.6,
+        0.35
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "REPTILE_02",
+      "kind": "reptile",
+      "zone": "reptile_zone",
+      "rig": "REPTILE_02_Rig",
+      "mesh": "REPTILE_02_Mesh",
+      "bone_count": 7,
+      "start": [
+        77.48,
+        16.24,
+        0.35
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "REPTILE_03",
+      "kind": "reptile",
+      "zone": "reptile_zone",
+      "rig": "REPTILE_03_Rig",
+      "mesh": "REPTILE_03_Mesh",
+      "bone_count": 7,
+      "start": [
+        69.46,
+        23.88,
+        0.35
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "REPTILE_04",
+      "kind": "reptile",
+      "zone": "reptile_zone",
+      "rig": "REPTILE_04_Rig",
+      "mesh": "REPTILE_04_Mesh",
+      "bone_count": 7,
+      "start": [
+        82.44,
+        11.52,
+        0.35
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "MAMMAL_01",
+      "kind": "mammal",
+      "zone": "mammal_zone",
+      "rig": "MAMMAL_01_Rig",
+      "mesh": "MAMMAL_01_Mesh",
+      "bone_count": 7,
+      "start": [
+        64.5,
+        -19.4,
+        0.0
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "MAMMAL_02",
+      "kind": "mammal",
+      "zone": "mammal_zone",
+      "rig": "MAMMAL_02_Rig",
+      "mesh": "MAMMAL_02_Mesh",
+      "bone_count": 7,
+      "start": [
+        77.48,
+        -11.76,
+        0.0
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "MAMMAL_03",
+      "kind": "mammal",
+      "zone": "mammal_zone",
+      "rig": "MAMMAL_03_Rig",
+      "mesh": "MAMMAL_03_Mesh",
+      "bone_count": 7,
+      "start": [
+        69.46,
+        -4.12,
+        0.0
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "MAMMAL_04",
+      "kind": "mammal",
+      "zone": "mammal_zone",
+      "rig": "MAMMAL_04_Rig",
+      "mesh": "MAMMAL_04_Mesh",
+      "bone_count": 7,
+      "start": [
+        82.44,
+        -16.48,
+        0.0
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    },
+    {
+      "name": "MAMMAL_05",
+      "kind": "mammal",
+      "zone": "mammal_zone",
+      "rig": "MAMMAL_05_Rig",
+      "mesh": "MAMMAL_05_Mesh",
+      "bone_count": 7,
+      "start": [
+        74.41,
+        -8.84,
+        0.0
+      ],
+      "source": "本地程序化生成（Blender bpy 基础几何体 + Armature 骨骼 + 循环驱动）"
+    }
+  ],
+  "total_objects": 108,
+  "total_triangles": 11220
+}

@@ -1,0 +1,86 @@
+{
+  "playground_bounds": {
+    "xmin": -30.0,
+    "xmax": 30.0,
+    "ymin": -30.0,
+    "ymax": 30.0,
+    "zmin": -0.6499999761581421,
+    "zmax": 16.5
+  },
+  "playground_object_count": 12,
+  "zoo_root": "zoo",
+  "zones": {
+    "bird_zone": {
+      "center": [
+        45.0,
+        14.0
+      ],
+      "size": [
+        26.0,
+        24.0
+      ],
+      "bounds": {
+        "xmin": 32.0,
+        "xmax": 58.0,
+        "ymin": 2.0,
+        "ymax": 26.0
+      },
+      "color": "#70BFF2",
+      "label": "鸟类区 / BIRD ZONE"
+    },
+    "reptile_zone": {
+      "center": [
+        75.0,
+        14.0
+      ],
+      "size": [
+        26.0,
+        24.0
+      ],
+      "bounds": {
+        "xmin": 62.0,
+        "xmax": 88.0,
+        "ymin": 2.0,
+        "ymax": 26.0
+      },
+      "color": "#C29B57",
+      "label": "爬行区 / REPTILE ZONE"
+    },
+    "marine_zone": {
+      "center": [
+        45.0,
+        -14.0
+      ],
+      "size": [
+        26.0,
+        24.0
+      ],
+      "bounds": {
+        "xmin": 32.0,
+        "xmax": 58.0,
+        "ymin": -26.0,
+        "ymax": -2.0
+      },
+      "color": "#14408C",
+      "label": "海洋区 / MARINE ZONE"
+    },
+    "mammal_zone": {
+      "center": [
+        75.0,
+        -14.0
+      ],
+      "size": [
+        26.0,
+        24.0
+      ],
+      "bounds": {
+        "xmin": 62.0,
+        "xmax": 88.0,
+        "ymin": -26.0,
+        "ymax": -2.0
+      },
+      "color": "#4C9E47",
+      "label": "哺乳区 / MAMMAL ZONE"
+    }
+  }
+}

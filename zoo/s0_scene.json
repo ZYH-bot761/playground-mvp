@@ -1,0 +1,59 @@
+{
+  "blender_version": "5.3.0",
+  "scene_name": "Scene",
+  "blend_source": "none (no .blend file exists on this machine; factory startup scene)",
+  "existing_object_count": 3,
+  "existing_objects": [
+    {
+      "name": "Cube",
+      "type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "dimensions": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    {
+      "name": "Light",
+      "type": "LIGHT",
+      "location": [
+        4.076,
+        1.005,
+        5.904
+      ],
+      "dimensions": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Camera",
+      "type": "CAMERA",
+      "location": [
+        7.359,
+        -6.926,
+        4.958
+      ],
+      "dimensions": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "existing_bounds": {
+    "xmin": -1.0,
+    "xmax": 1.0,
+    "ymin": -1.0,
+    "ymax": 1.0,
+    "zmin": -1.0,
+    "zmax": 1.0
+  },
+  "note": "本工作空间的游乐场是 Three.js 网页项目，磁盘上没有任何 .blend 场景；Blender 会话内不存在游乐场物体，因此后续构建游乐场代理集合，且不改动任何既有物体。"
+}

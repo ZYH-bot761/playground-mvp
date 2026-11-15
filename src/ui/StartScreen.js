@@ -27,8 +27,10 @@ const DEFAULT_OPTIONS = Object.freeze({
   eyebrow: 'PLAYGROUND · 3D',
   title: '霓虹游乐场',
   subtitle: '白天是蓝天、摩天轮和风；入夜后霓虹一盏盏亮起来。走进去，随便玩点什么。',
-  buttonText: '点击进入游乐场',
-  hint: 'WASD / 方向键漫游 · 按住画面拖拽环顾 · 走近发光圆环按 E 进入',
+  buttonText: '进入游乐场',
+  // T02 已上线：大厅支持「鼠标自由探索」与「WASD / 方向键漫游」两种模式，
+  // 按 M 或左上角按钮切换；文案与实际实现保持一致，不提前承诺未实现的操作。
+  hint: '拖拽环顾 / WASD · 方向键自由漫游（M 切换）· 走近发光圆环进入小游戏',
   onStart: null,
   autoHide: true,
 });

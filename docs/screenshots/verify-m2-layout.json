@@ -1,0 +1,189 @@
+{
+  "at": "2026-11-15T09:04:24.450Z",
+  "passed": 7,
+  "total": 7,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 9 环均由本体门位派生（同 x / 正前方）",
+      "pass": true,
+      "detail": [
+        {
+          "key": "pumpkin-thrower",
+          "ok": true,
+          "body": [
+            -20,
+            -16
+          ],
+          "ring": [
+            -20,
+            -8
+          ],
+          "gap": 8
+        },
+        {
+          "key": "parkour-run",
+          "ok": true,
+          "body": [
+            13,
+            -16
+          ],
+          "ring": [
+            13,
+            -8
+          ],
+          "gap": 8
+        },
+        {
+          "key": "memory-match",
+          "ok": true,
+          "body": [
+            0,
+            -20
+          ],
+          "ring": [
+            0,
+            -13
+          ],
+          "gap": 7
+        },
+        {
+          "key": "jump-jump",
+          "ok": true,
+          "body": [
+            26,
+            -2
+          ],
+          "ring": [
+            26,
+            6
+          ],
+          "gap": 8
+        },
+        {
+          "key": "train-ride",
+          "ok": true,
+          "body": [
+            -26,
+            -2
+          ],
+          "ring": [
+            -26,
+            6
+          ],
+          "gap": 8
+        },
+        {
+          "key": "carousel",
+          "ok": true,
+          "body": [
+            9,
+            7.5
+          ],
+          "ring": [
+            9,
+            0.5
+          ],
+          "gap": 7
+        },
+        {
+          "key": "pirate-ship",
+          "ok": true,
+          "body": [
+            -7,
+            5
+          ],
+          "ring": [
+            -7,
+            -2
+          ],
+          "gap": 7
+        },
+        {
+          "key": "fireworks-deck",
+          "ok": true,
+          "body": [
+            22,
+            20
+          ],
+          "ring": [
+            22,
+            14
+          ],
+          "gap": 6
+        },
+        {
+          "key": "century-clock",
+          "ok": true,
+          "body": [
+            0,
+            -4
+          ],
+          "ring": [
+            0,
+            2
+          ],
+          "gap": 6
+        }
+      ]
+    },
+    {
+      "name": "B 触发环最小间距 ≥ 6.5m",
+      "pass": true,
+      "detail": {
+        "minDist": 8.062,
+        "pair": [
+          "pirate-ship",
+          "century-clock"
+        ]
+      }
+    },
+    {
+      "name": "C 南瓜摩天轮 ↔ 海盗船本体净距 ≥ 20m",
+      "pass": true,
+      "detail": {
+        "pumpkin": [
+          -20,
+          -16
+        ],
+        "pirate": [
+          -7,
+          5
+        ],
+        "gap": 24.7,
+        "oldGap": 12.65
+      }
+    },
+    {
+      "name": "D 引导线端点跟随派生 trigger",
+      "pass": true,
+      "detail": {
+        "guides": 9,
+        "radial": 7
+      }
+    },
+    {
+      "name": "E 建筑 AABB 无重叠",
+      "pass": true,
+      "detail": {
+        "boxes": 12,
+        "overlaps": 0,
+        "overlapPairs": []
+      }
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "俯瞰布局截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m2-layout.png",
+        "bytes": 1257249
+      }
+    }
+  ],
+  "errors": []
+}

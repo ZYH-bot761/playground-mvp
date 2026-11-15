@@ -1,0 +1,158 @@
+{
+  "module": "M6",
+  "at": "2026-11-12T05:43:58.077Z",
+  "port": 5173,
+  "passed": 8,
+  "total": 8,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "稳态后 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 66,
+          "textures": 33
+        },
+        "rounds": [
+          {
+            "geometries": 66,
+            "textures": 33
+          },
+          {
+            "geometries": 66,
+            "textures": 33
+          },
+          {
+            "geometries": 66,
+            "textures": 33
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "120 帧热路径零新建 GPU 资源",
+      "pass": true,
+      "detail": {
+        "before": {
+          "geometries": 66,
+          "textures": 33
+        },
+        "after": {
+          "geometries": 66,
+          "textures": 33
+        },
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "渲染量 ≤ 30 万面（双机位）",
+      "pass": true,
+      "detail": {
+        "overview": {
+          "calls": 1095,
+          "triangles": 296390
+        },
+        "standard": {
+          "calls": 1057,
+          "triangles": 284922
+        }
+      }
+    },
+    {
+      "name": "相对 M0 基线：新增面数 ≤ 5 万 / calls 增量 ≤ 60",
+      "pass": true,
+      "detail": {
+        "baseline": {
+          "note": "M0 容量基线，由 tests/verify-redline.mjs 在固定双机位实测后自举落盘；M1+ 用同一脚本同一机位做增量断言。数值是 renderer.info.render 的当前帧渲染量，受机位影响，不可与 verify-v4.mjs ⑬ 的不同机位数值直接相减。",
+          "at": "2026-11-12T12:05:00+08:00",
+          "overview": {
+            "camera": [
+              0,
+              30,
+              34
+            ],
+            "lookAt": [
+              0,
+              2,
+              0
+            ],
+            "calls": 1041,
+            "triangles": 294856
+          },
+          "standard": {
+            "camera": [
+              0,
+              9.4,
+              25
+            ],
+            "lookAt": [
+              0,
+              12.4,
+              0
+            ],
+            "calls": 1011,
+            "triangles": 283352
+          }
+        },
+        "measured": {
+          "overview": {
+            "calls": 1095,
+            "triangles": 296390
+          },
+          "standard": {
+            "calls": 1057,
+            "triangles": 284922
+          }
+        },
+        "delta": {
+          "overview": {
+            "triangles": 1534,
+            "calls": 54
+          },
+          "standard": {
+            "triangles": 1570,
+            "calls": 46
+          }
+        }
+      }
+    },
+    {
+      "name": "9 个触发环 + 动物园四区仍在",
+      "pass": true,
+      "detail": {
+        "rings": 9,
+        "zoo": true,
+        "zones": [
+          "Zoo/bird_zone",
+          "Zoo/reptile_zone",
+          "Zoo/marine_zone",
+          "Zoo/mammal_zone"
+        ],
+        "activeKey": "lobby"
+      }
+    },
+    {
+      "name": "多次 onExitAttraction 幂等",
+      "pass": true,
+      "detail": "已在 3 轮循环中未见异常"
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-M6.png",
+        "bytes": 1156280
+      }
+    }
+  ],
+  "errors": []
+}

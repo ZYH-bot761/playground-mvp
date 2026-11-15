@@ -1,0 +1,109 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户
+    participant M as main.js
+    participant SM as SceneManager
+    participant AM as AttractionManager
+    participant SC as SceneContext(v4)
+    participant LB as Lobby
+    participant FR as FacilityRuntime(v4)
+    participant FW as FerrisWheelView(v4)
+    participant NPC as NPCManager
+    participant DN as DayNightCycle
+
+    %% ========== 启动 / 预热（优化后）==========
+    rect rgb(235,245,255)
+    Note over U,DN: 阶段 A：极速冷启动（renderOnce 40→5~6 次；对照实测 3.2s/4.5s）
+    U->>M: 打开网站
+    M->>SM: 构造 renderer/composer（含 PMREM/Bloom）
+    M->>M: physicsManager.init() (Rapier wasm)
+    M->>DN: init(全局单例夜昼) + warmUp()
+    M->>NPC: init(scene, camera)
+    M->>AM: 仅 register 全部工厂（不 activate 预热，删原 :361-497）
+    M->>SM: renderOnce()（上传全局单例 → 计入基线）
+    M->>AM: activate(LOBBY)
+    AM->>LB: init(ctx) 一次性建大厅全部共享资源
+    LB->>SC: registerAnchor(各设施中心, Group)
+    LB->>NPC: setObstacles(_buildingBoxes)
+    M->>SM: renderOnce()（上传大厅；记录临时基线）
+    M->>M: bootReady=true；StartScreen 立即可点（不干等设施预热）
+    end
+
+    %% ========== 点击进入 ==========
+    rect rgb(240,255,240)
+    Note over U,FR: 阶段 B：点击即刻响应 + 稳态基线校准 + 后台设施预热
+    U->>M: 点击「进入游乐场」
+    M->>SM: startGameplayLoop() → rAF 立即启动
+    SM->>LB: update(dt) 每帧（常驻，不再被 dispose）
+    LB->>FR: update(dt) 驱动常驻动效
+    FR->>FR: 过山车小车 getPointAt(t) 挂轨前行
+    FR->>FR: 摩天轮/木马/海盗船外观缓慢动
+    SM->>DN: update(dt)
+    SM->>NPC: update(dt)
+    Note over M,SM: 第 3 帧：采样稳态 baseline（实测预热帧 tex=18 vs 稳态 27）
+    M->>M: baseline = readMemory()（稳态基线 B，logMemory 以此比对）
+    Note over FR,AM: 后台空闲：requestIdleCallback 分帧预热各设施 shader<br/>activate→renderOnce→deactivate（预热后计数回落基线，Δ0/0 不变）
+    FR->>AM: 逐个设施预热（不阻塞交互）
+    end
+
+    %% ========== 鼠标 / WASD 切换 ==========
+    rect rgb(255,248,230)
+    Note over U,LB: 阶段 C：控制模式切换（需求2）
+    U->>LB: 按 M 或点 HUD「鼠标/WASD」
+    alt 切到 WASD
+        LB->>LB: _controls.enabled=false（OrbitControls 停用）
+        LB->>LB: _wasp.enable() 接管相机（保存 orbit 机位）
+        LB->>LB: 每帧 WASDController.update(dt) 平移+鼠标环顾
+    else 切回鼠标
+        LB->>LB: _wasd.disable() 交还相机
+        LB->>LB: _controls.enabled=true，重设 target
+    end
+    end
+
+    %% ========== 进入摩天轮（一体化，不切场景）==========
+    rect rgb(245,235,255)
+    Note over U,FW: 阶段 D：进入设施 = 同一场景内换相机（需求5/10）
+    U->>LB: 点击摩天轮触发环
+    LB->>SC: getAnchor('pumpkin-wheel')
+    LB->>FR: activateRide('pumpkin-wheel')
+    FR->>FW: onRideStart()（懒加载，首次进入才 build）
+    FW->>SC: attach(propsRoot)：吊舱挂到世界根节点（不新建 scene）
+    FW->>FW: 从 _lobbyMemory 备份相机 → CameraRig.save()
+    FW->>SC: CameraRig.blendTo(吊舱机位, 0.8s)
+    loop 每帧（SceneManager 统一驱动，无独立 rAF）
+        SM->>FR: update(dt)
+        FR->>FW: update(dt) 吊舱随轮转动，相机跟随但保持水平
+        FW->>SC: 场景仍是同一个 scene：草坪/城堡门/世纪钟/NPC 全在视野
+    end
+    U->>FW: 点「离开吊舱」
+    FW->>SC: CameraRig.restore(0.8s) → 回到大厅机位
+    FW->>FR: deactivateRide('pumpkin-wheel')
+    FR->>FW: detach() 资源按归属释放（共享 geometry 不 dispose）
+    end
+
+    %% ========== 世纪钟背面镜像修复（需求4）==========
+    rect rgb(255,240,240)
+    Note over U,DN: 阶段 E：钟面双面朝向修正
+    DN->>DN: buildClockTower 建双面 disc
+    Note right of DN: 正面 rotY=0；背面 disc material.side=BackSide + rotation.y=π<br/>或双面各用独立 material.map（clone + flipX）<br/>三针背面组也镜像 rotation.y=π
+    U->>DN: 从背面观看
+    DN->>DN: 数字 12→3→6→9 顺时针、指针方向与正面一致
+    end
+
+    %% ========== 跳一跳一体化（需求12）==========
+    rect rgb(235,255,250)
+    Note over U,FR: 阶段 F：跳一跳复用大厅天空/地面/光照
+    U->>LB: 点击跳跳乐触发环
+    LB->>FR: activateRide('jump-jump')
+    FR->>FR: JumpJumpEmbedView.attach(host)
+    Note right of FR: 复用 scene.background/fog/Sky/方向光，<br/>仅在大厅一块空地铺方块池，不 _buildSky/_buildGround 独立天幕
+    FR->>SC: CameraRig.blendTo(跳跃机位)
+    end
+
+    %% ========== 资源验收（17/24 基线纪律）==========
+    rect rgb(250,250,235)
+    Note over M,AM: 阶段 G：Δ0/0 验收（来回切换）
+    U->>M: 触发 5 轮 进入→返回
+    M->>M: logMemory 对比 baseline
+    Note right of M: 一体化后大厅常驻，基线口径改为：<br/>大厅常驻基线（含共享设施外观）；<br/>进入设施额外资源在 detach 后必须归零
+    end

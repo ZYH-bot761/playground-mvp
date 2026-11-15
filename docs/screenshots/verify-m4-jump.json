@@ -1,0 +1,227 @@
+{
+  "at": "2026-11-15T09:05:57.890Z",
+  "passed": 9,
+  "total": 9,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 可稳定进入跳一跳",
+      "pass": true,
+      "detail": {
+        "activeKey": "lobby",
+        "embedded": true,
+        "view": true,
+        "score": 0,
+        "state": "charging",
+        "camera": [
+          0,
+          30,
+          34
+        ]
+      }
+    },
+    {
+      "name": "C 沿主路闭环 10 个落脚台",
+      "pass": true,
+      "detail": {
+        "pool": 10,
+        "offAxis": 0,
+        "pts": [
+          [
+            0,
+            12,
+            true
+          ],
+          [
+            0,
+            7,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            -3,
+            true
+          ],
+          [
+            0,
+            -8,
+            true
+          ],
+          [
+            0,
+            -12,
+            true
+          ],
+          [
+            0,
+            -8,
+            true
+          ],
+          [
+            0,
+            -3,
+            true
+          ],
+          [
+            0,
+            2,
+            true
+          ],
+          [
+            0,
+            7,
+            true
+          ]
+        ]
+      }
+    },
+    {
+      "name": "B 第一人称机位（相机在玩家头顶）",
+      "pass": true,
+      "detail": {
+        "anchor": {
+          "y": 3.95,
+          "x": 0,
+          "z": 12
+        },
+        "player": [
+          0,
+          2.6,
+          12
+        ]
+      }
+    },
+    {
+      "name": "D 自动连续跳跃使分数递增",
+      "pass": true,
+      "detail": {
+        "start": {
+          "score": 0,
+          "cur": 0,
+          "px": 0,
+          "pz": 12
+        },
+        "maxScore": 242,
+        "jumps": 35,
+        "final": 242,
+        "state": "jumping",
+        "current": 4,
+        "positions": [
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            -8.4
+          ],
+          [
+            0,
+            5.2
+          ],
+          [
+            0,
+            -3
+          ],
+          [
+            0,
+            -3
+          ],
+          [
+            0,
+            6.2
+          ]
+        ],
+        "moved": 22.092391304347828
+      }
+    },
+    {
+      "name": "E 落脚成功（非反复掉落）",
+      "pass": true,
+      "detail": {
+        "start": {
+          "score": 0,
+          "cur": 0,
+          "px": 0,
+          "pz": 12
+        },
+        "maxScore": 242,
+        "jumps": 35,
+        "final": 242,
+        "state": "jumping",
+        "current": 4,
+        "positions": [
+          [
+            0,
+            12
+          ],
+          [
+            0,
+            -8.4
+          ],
+          [
+            0,
+            5.2
+          ],
+          [
+            0,
+            -3
+          ],
+          [
+            0,
+            -3
+          ],
+          [
+            0,
+            6.2
+          ]
+        ],
+        "moved": 22.092391304347828
+      }
+    },
+    {
+      "name": "F 相机无 roll / FOV 已切第一人称",
+      "pass": true,
+      "detail": {
+        "up": [
+          0,
+          1,
+          0
+        ],
+        "fov": 72,
+        "pos": [
+          0,
+          5.71,
+          -9.65
+        ]
+      }
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "G 可正常返回大厅",
+      "pass": true,
+      "detail": {
+        "activeKey": "lobby",
+        "embedded": false
+      }
+    },
+    {
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m4-jump.png",
+        "bytes": 1132609
+      }
+    }
+  ],
+  "errors": []
+}

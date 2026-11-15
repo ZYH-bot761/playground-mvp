@@ -1,0 +1,6 @@
+{
+  "note": "M0 容量基线，由 tests/verify-redline.mjs 在固定双机位实测后自举落盘；M1+ 用同一脚本同一机位做增量断言。数值是 renderer.info.render 的当前帧渲染量，受机位影响，不可与 verify-v4.mjs ⑬ 的不同机位数值直接相减。",
+  "at": "2026-11-12T12:05:00+08:00",
+  "overview": { "camera": [0, 30, 34], "lookAt": [0, 2, 0], "calls": 1041, "triangles": 294856 },
+  "standard": { "camera": [0, 9.4, 25], "lookAt": [0, 12.4, 0], "calls": 1011, "triangles": 283352 }
+}

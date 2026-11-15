@@ -638,20 +638,20 @@ export class MemoryMatch extends IAttraction {
     }));
     const matBack = this._trackMaterial(new THREE.MeshStandardMaterial({
       color: 0xffffff, map: texBack, metalness: 0.25, roughness: 0.52,
-      emissive: 0x0a1028, emissiveIntensity: 0.6,
+      emissive: 0x0a1028, emissiveIntensity: 0.23,
     }));
     const matRuneGold = this._trackMaterial(new THREE.MeshStandardMaterial({
-      color: 0x2a2416, emissive: 0xffb651, emissiveIntensity: 1.5,
+      color: 0x2a2416, emissive: 0xffb651, emissiveIntensity: 0.57,
       metalness: 0, roughness: 0.65, toneMapped: true,
       transparent: true, opacity: 0.85, depthWrite: false,
     }));
     const matRuneViolet = this._trackMaterial(new THREE.MeshStandardMaterial({
-      color: 0x1d1630, emissive: 0x9a63f0, emissiveIntensity: 2.1,
+      color: 0x1d1630, emissive: 0x9a63f0, emissiveIntensity: 0.8,
       metalness: 0, roughness: 0.65, toneMapped: true,
       transparent: true, opacity: 0.8, depthWrite: false,
     }));
     const matHalo = this._trackMaterial(new THREE.MeshStandardMaterial({
-      color: 0x0a1030, emissive: 0x1b3a8a, emissiveIntensity: 1.1,
+      color: 0x0a1030, emissive: 0x1b3a8a, emissiveIntensity: 0.42,
       metalness: 0, roughness: 0.9,
       transparent: true, opacity: 0.26, side: THREE.DoubleSide,
       depthWrite: false, toneMapped: true,
@@ -662,7 +662,7 @@ export class MemoryMatch extends IAttraction {
     for (let i = 0; i < PAIR_COUNT; i += 1) {
       pairMaterials.push(this._trackMaterial(new THREE.MeshStandardMaterial({
         color: 0xffffff, map: frontTextures[i], metalness: 0.18, roughness: 0.54,
-        emissive: 0x141a34, emissiveIntensity: 0.55,
+        emissive: 0x141a34, emissiveIntensity: 0.21,
       })));
     }
     this._pairMaterials = pairMaterials;
@@ -917,7 +917,7 @@ export class MemoryMatch extends IAttraction {
     }
     for (const mat of this._pairMaterials) {
       mat.emissive.setHex(0x141a34);
-      mat.emissiveIntensity = 0.55;
+      mat.emissiveIntensity = 0.21;
     }
     this._renderHUD();
   }
@@ -1037,7 +1037,7 @@ export class MemoryMatch extends IAttraction {
       b.state = 'matched';
       const mat = this._pairMaterials[a.pairId];
       mat.emissive.setHex(0x8a6a12);
-      mat.emissiveIntensity = 1.5;
+      mat.emissiveIntensity = 0.57;
 
       this._score += SCORE_PER_PAIR;
       this._matchedPairs += 1;

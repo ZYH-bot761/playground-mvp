@@ -37,11 +37,20 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { detectQualityTier, QUALITY_PRESETS } from '../utils/QualityTier.js';
+import { PerfMonitor } from '../utils/PerfMonitor.js';
 
-/** 夜空底色（与雾色同色系，远处平滑融入） */
-const SKY_COLOR = 0x0a1226;
-const FOG_COLOR = 0x0a1226;
+/** 白天大气透视：线性雾（45m 内完全无雾，130m 处已基本融入雾色）。
+ *  衰减终点收在 130 而非 190：地面平面半径 110m，far=190 时远端只混合 45%，
+ *  绿地面与亮天空之间仍留一条硬边界（截图实测为浅色横带）。 */
+const SKY_COLOR = 0x8fc3e8;
+const FOG_COLOR = 0xa8b0b4;
+/** 手册 P5 要求 exposure=1.0；旧方案 0.38 的成像亮度由「光强/自发光/无lit 颜色
+ *  统一 ×0.38」承担（线性空间预缩放，ACES 输入不变 → 画面等价）。 */
+const EXPOSURE_COMP = 0.38;
 
 export class SceneManager {
   static _instance = null;
@@ -56,9 +65,10 @@ export class SceneManager {
     const height = window.innerHeight;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(SKY_COLOR);
-    // 夜间指数雾：与背景同色系，远端物体平滑隐入天色
-    this.scene.fog = new THREE.FogExp2(FOG_COLOR, 0.010);
+    // 背景/雾色在线性空间预乘 0.38：OutputPass 的 exposure=1.0 会把它抬回原亮度
+    this.scene.background = new THREE.Color(SKY_COLOR).multiplyScalar(EXPOSURE_COMP);
+    // 白天大气透视：薄雾，远处草坪与天空平滑衔接
+    this.scene.fog = new THREE.Fog(new THREE.Color(FOG_COLOR).multiplyScalar(EXPOSURE_COMP), 45, 130);
 
     this.camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 200);
     this.camera.position.set(0, 2.0, 7);
@@ -69,10 +79,20 @@ export class SceneManager {
     this.renderer.setSize(width, height);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    // 夜景基准曝光：ACES 会把 1.0 线性压到 ~0.8 显示亮度，0.9 让暗部保留细节
-    this.renderer.toneMappingExposure = 0.9;
+    // 手册 P5：exposure = 1.0。原 0.38 方案的亮度改由「光强/自发光 ×0.38」
+    // 承担（见下方灯光与 attractions 内 emissiveIntensity），成像亮度等价。
+    this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // 手册 P6 画质档位：移动端关 Bloom / 降阴影分辨率 / 降折射分辨率（见 QualityTier）。
+    // transmission 折射 pass 会整场景重渲：实测全分辨率把大厅从 82fps 打到 21fps，
+    // high 档取 0.5（1/4 像素）回升 70fps；水面小面积折射肉眼无差。
+    this.qualityTier = detectQualityTier();
+    this._qualityPreset = QUALITY_PRESETS[this.qualityTier];
+    this.renderer.transmissionResolutionScale = this._qualityPreset.transmissionScale;
+    // three r187 已移除 PCFSoftShadowMap：WebGLShadowMap 每次遇到该值都会
+    // 打警告并回退到 PCFShadowMap（见 three/src/renderers/webgl/WebGLShadowMap.js:99）。
+    // 直接使用 PCFShadowMap，行为一致且不再刷屏告警。
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // 后期合成的每个 pass 自己负责清屏，渲染器不再自动 clear
     this.renderer.autoClear = false;
     this.renderer.domElement.setAttribute('aria-label', '3D 游乐场画布');
@@ -85,62 +105,76 @@ export class SceneManager {
     const roomEnvironment = new RoomEnvironment();
     this.environmentTarget = this._pmremGenerator.fromScene(roomEnvironment, 0.04);
     this.scene.environment = this.environmentTarget.texture;
-    // RoomEnvironment 是按「室内白天」烘焙的，亮度远高于夜景预期；
-    // 直接作为 environment 会把 metalness=1 的材质整片反射成白墙。
-    // 压低到 0.3 只保留「金属有反射形状」的信息量，不再贡献主亮度。
-    this.scene.environmentIntensity = 0.3;
+    // 白天环境反射：RoomEnvironment 本身就是室内白天光照；×0.38 抵消 exposure=1.0
+    this.scene.environmentIntensity = 1.1 * EXPOSURE_COMP;
     roomEnvironment.dispose();
     this._pmremGenerator.dispose();
     this._pmremGenerator = null;
 
-    /* ---------- 灯光：一主光（方向光，投影）+ 辅助（半球光 + 极弱环境光） ----------
-     * 夜景合成：主光 0.6（冷白，模拟月光/场地顶灯）+ 半球光 0.5（上冷下暖的反差）
-     * + 环境光 0.16（只抬死黑，不参与照明）。三者相加才是画面亮度来源，
-     * 任何一项上调都必须先扣掉另一项，否则叠乘后整体过曝。
+    /* ---------- 灯光：日光主光（方向光，投影）+ 天空半球光 + 微弱环境光 ----------
+     * 手册 P5：exposure=1.0、HemisphereLight 0.3~0.5。旧方案（exposure 0.38，
+     * 主光 1.8 / 半球 0.5 / 环境 0.18）的等效光强 ×0.38 后半球只有 0.19，
+     * 低于手册下限 → 半球取 0.3，主光相应从 0.684 扣到 0.58 补回亮度差。
      */
-    this.ambientLight = new THREE.AmbientLight(0xbfd4ff, 0.16);
+    this.ambientLight = new THREE.AmbientLight(0xffe9d0, 0.07);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x9fc4ff, 0x1b2a1c, 0.5);
+    // groundColor 改深：原草绿 0x6b8f45 会从下方把树冠反照成薄荷色；
+    // 换成深绿棕后只保留极弱地面反光，配合 Lobby 压低 instanceColor 明度得到浓绿。
+    this.hemisphereLight = new THREE.HemisphereLight(0xbfe3ff, 0x24331c, 0.3);
     this.hemisphereLight.position.set(0, 12, 0);
 
-    this.directionalLight = new THREE.DirectionalLight(0xdce8ff, 0.6);
+    this.directionalLight = new THREE.DirectionalLight(0xfff4e0, 0.58);
     this.directionalLight.position.set(22, 32, 18);
     this.directionalLight.castShadow = true;
-    this.directionalLight.shadow.mapSize.set(1024, 1024);
-    this.directionalLight.shadow.bias = -0.0005;
+    this.directionalLight.shadow.mapSize.set(2048, 2048);
+    // 手册 P5 阴影参数：near 0.5 / far 100 / 视锥 ±30 / bias -0.001
+    this.directionalLight.shadow.bias = -0.001;
     this.directionalLight.shadow.normalBias = 0.02;
     const shadowCamera = this.directionalLight.shadow.camera;
-    shadowCamera.left = -45;
-    shadowCamera.right = 45;
-    shadowCamera.top = 45;
-    shadowCamera.bottom = -45;
-    shadowCamera.near = 1;
-    shadowCamera.far = 110;
+    shadowCamera.left = -30;
+    shadowCamera.right = 30;
+    shadowCamera.top = 30;
+    shadowCamera.bottom = -30;
+    shadowCamera.near = 0.5;
+    shadowCamera.far = 100;
     shadowCamera.updateProjectionMatrix();
 
     this.scene.add(this.ambientLight, this.hemisphereLight, this.directionalLight);
 
-    /* ---------- 后期：EffectComposer + Bloom + OutputPass ----------
-     * Bloom：threshold 0.6 只让真正的高亮/自发光（霓虹灯管、金币高光）泛光；
-     *        radius 0.3 收紧光晕半径避免糊成一片；strength 0.6 做轻微辉光。
-     *        原 0.85/0.4/1.2 配合「无色调映射 + 浅色金属 albedo」会让整屏都
-     *        过阈 → 整屏泛白。
-     * OutputPass 必须放在最后：它负责 ACES 色调映射 + sRGB 编码（见文件头说明）。
+    /* ---------- 后期：EffectComposer + Bloom + OutputPass + ColorGrade ----------
+     * Bloom：白天阈值必须抬高（0.88），只让太阳高光/金属反光泛光；
+     *        否则白云和浅色建筑会整片糊成雾。strength 0.25 / radius 0.4。
+     * OutputPass 负责 ACES 色调映射 + sRGB 编码，必须在其之前。
+     * ColorGradePass 放在 OutputPass 之后，在显示空间做饱和/对比微调。
      */
     // autoClear=false 已在构造初期设置（PMREMGenerator 内部会自行临时接管并还原，互不影响）
     this.composer = new EffectComposer(this.renderer);
     this.renderPass = new RenderPass(this.scene, this.camera);
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
-      0.6, // strength
-      0.3, // radius
-      0.6 // threshold
+      0.06, // strength（白天天空很亮，过强会整屏泛白雾）
+      0.35, // radius
+      1.4 // threshold（草地是大面积中亮度，阈值再抬一档，不让它进 Bloom）
     );
     this.outputPass = new OutputPass();
+    /* 【六项升级·阶段五】补齐后处理链：EffectComposer 已有 RenderPass +
+     * UnrealBloomPass(轻微光晕 0.06) + OutputPass，这里新增 FXAAPass 抗锯齿。
+     * 顺序与 three 官方 webgl_postprocessing_fxaa 一致（FXAA 在 OutputPass 之前），
+     * ShaderPass 复用 Pass 的模块级共享全屏三角形，不新增 geometry / texture。 */
+    this.fxaaPass = new ShaderPass(FXAAShader);
+    const pr = this.renderer.getPixelRatio();
+    this.fxaaPass.material.uniforms.resolution.value.set(1 / (width * pr), 1 / (height * pr));
     this.composer.addPass(this.renderPass);
     this.composer.addPass(this.bloomPass);
+    this.composer.addPass(this.fxaaPass);
     this.composer.addPass(this.outputPass);
     this.composer.setSize(width, height);
+
+    // 档位落地：像素比上限 / Bloom 开关 / 阴影分辨率（手册 P6 移动端简化效果）
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._qualityPreset.pixelRatioCap));
+    this.bloomPass.enabled = this._qualityPreset.bloom;
+    this.directionalLight.shadow.mapSize.set(this._qualityPreset.shadowMapSize, this._qualityPreset.shadowMapSize);
+    console.info(`[SceneManager] 画质档位=${this.qualityTier} | bloom=${this.bloomPass.enabled} | shadow=${this._qualityPreset.shadowMapSize} | pixelRatioCap=${this._qualityPreset.pixelRatioCap}`);
 
     this._deps = { physics: null, attractions: null };
 
@@ -155,6 +189,7 @@ export class SceneManager {
     this._paused = false;
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
+    this._perf = PerfMonitor.maybeCreate(this.renderer);
   }
 
   /**
@@ -186,9 +221,14 @@ export class SceneManager {
     const height = window.innerHeight;
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._qualityPreset.pixelRatioCap));
     this.renderer.setSize(width, height);
     this.composer?.setSize(width, height);
+    // FXAA 需要按实际像素尺寸更新 resolution，否则高 DPI 下抗锯齿强度漂移
+    if (this.fxaaPass) {
+      const pr = this.renderer.getPixelRatio();
+      this.fxaaPass.material.uniforms.resolution.value.set(1 / (width * pr), 1 / (height * pr));
+    }
   }
 
   /**
@@ -229,6 +269,7 @@ export class SceneManager {
       // ③ 渲染：EffectComposer（RenderPass + UnrealBloomPass + OutputPass），替代 renderer.render()
       if (this.composer) this.composer.render();
       else this.renderer.render(this.scene, this.camera);
+      this._perf?.sample(timestamp);
     };
 
     this._rafId = requestAnimationFrame(loop);
@@ -243,6 +284,8 @@ export class SceneManager {
   dispose() {
     this.stop();
     window.removeEventListener('resize', this._onResize);
+    this._perf?.dispose();
+    this._perf = null;
 
     // ① 后期：先释放各 pass 自有的 RenderTarget / 材质，再释放组合器缓冲
     try {

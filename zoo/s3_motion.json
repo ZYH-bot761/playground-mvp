@@ -1,0 +1,140 @@
+{
+  "frame_range": [
+    1,
+    241
+  ],
+  "birds": {
+    "count": 8,
+    "driver_count": 8,
+    "curves": [
+      "bird_zone_FlightPath_1",
+      "bird_zone_FlightPath_2"
+    ],
+    "note": "closed 3D poly curves with z-bob; Follow Path offset_factor driven by f (floored modulo)"
+  },
+  "fish": {
+    "count": 15,
+    "rules": [
+      "separation",
+      "alignment",
+      "cohesion",
+      "water_clamp"
+    ],
+    "bounds": {
+      "xmin": 35.0,
+      "xmax": 55.0,
+      "ymin": -23.0,
+      "ymax": -5.0,
+      "zmin": 0.7,
+      "zmax": 3.0
+    },
+    "cycle_fcurves": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6
+    ]
+  },
+  "reptiles": {
+    "kind": "reptile",
+    "count": 4,
+    "cycles": [
+      6,
+      6,
+      6,
+      6
+    ],
+    "bounds": {
+      "xmin": 64.5,
+      "xmax": 85.5,
+      "ymin": 4.0,
+      "ymax": 24.0,
+      "zmin": 0.3,
+      "zmax": 0.4
+    },
+    "obstacles": [
+      [
+        [
+          69.0,
+          9.0
+        ],
+        2.0
+      ],
+      [
+        [
+          80.0,
+          18.0
+        ],
+        2.3
+      ],
+      [
+        [
+          77.0,
+          7.0
+        ],
+        1.7
+      ]
+    ]
+  },
+  "mammals": {
+    "kind": "mammal",
+    "count": 5,
+    "cycles": [
+      6,
+      6,
+      6,
+      6,
+      6
+    ],
+    "bounds": {
+      "xmin": 64.5,
+      "xmax": 85.5,
+      "ymin": -24.0,
+      "ymax": -4.0,
+      "zmin": 0.0,
+      "zmax": 0.1
+    },
+    "obstacles": [
+      [
+        [
+          67.0,
+          -22.0
+        ],
+        2.0
+      ],
+      [
+        [
+          83.0,
+          -22.0
+        ],
+        2.0
+      ],
+      [
+        [
+          67.0,
+          -6.0
+        ],
+        2.0
+      ],
+      [
+        [
+          83.0,
+          -6.0
+        ],
+        2.0
+      ]
+    ]
+  },
+  "total_scene_tris": 11220
+}

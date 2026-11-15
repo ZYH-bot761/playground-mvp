@@ -1,0 +1,217 @@
+{
+  "at": "2026-11-12T03:56:34.036Z",
+  "port": 5173,
+  "passed": 14,
+  "total": 14,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "动物园根节点挂在 Lobby 场景",
+      "pass": true,
+      "detail": "Zoo/root"
+    },
+    {
+      "name": "四区 Collection 齐全",
+      "pass": true,
+      "detail": [
+        "Zoo/bird_zone",
+        "Zoo/reptile_zone",
+        "Zoo/marine_zone",
+        "Zoo/mammal_zone"
+      ]
+    },
+    {
+      "name": "动物数量 8/4/15/5",
+      "pass": true,
+      "detail": {
+        "bird": 8,
+        "reptile": 4,
+        "fish": 15,
+        "mammal": 5
+      }
+    },
+    {
+      "name": "围栏 / 标牌 / 水体 / 入口拱门",
+      "pass": true,
+      "detail": {
+        "fence": [
+          [
+            "Zoo/fence-posts",
+            152
+          ],
+          [
+            "Zoo/fence-rails",
+            32
+          ]
+        ],
+        "signs": 6,
+        "water": true,
+        "arch": true
+      }
+    },
+    {
+      "name": "HUD 动物园按钮存在",
+      "pass": true,
+      "detail": true
+    },
+    {
+      "name": "既有 9 个触发环未被污染",
+      "pass": true,
+      "detail": 9
+    },
+    {
+      "name": "默认机位截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-01-default-view.png",
+        "bytes": 1188306
+      }
+    },
+    {
+      "name": "四类动物在 3s 内均发生位移",
+      "pass": true,
+      "detail": {
+        "before": {
+          "bird": [
+            54.1676,
+            6.074,
+            14.5873
+          ],
+          "fish": [
+            44.5702,
+            2.6626,
+            -20.0336
+          ],
+          "reptile": [
+            71.9211,
+            1.4491,
+            7.8616
+          ],
+          "mammal": [
+            71.1102,
+            1.4491,
+            -18.8849
+          ]
+        },
+        "after": {
+          "bird": [
+            47.0687,
+            4.534,
+            20.8207
+          ],
+          "fish": [
+            43.7018,
+            2.1604,
+            -20.4244
+          ],
+          "reptile": [
+            73.8113,
+            1.4339,
+            12.4332
+          ],
+          "mammal": [
+            74.0171,
+            1.4339,
+            -17.1353
+          ]
+        },
+        "moved": [
+          "bird",
+          "fish",
+          "reptile",
+          "mammal"
+        ]
+      }
+    },
+    {
+      "name": "15 条鱼始终在水体内",
+      "pass": true,
+      "detail": {
+        "bad": 0,
+        "min": [
+          -7.36,
+          1.05,
+          -8.78
+        ],
+        "max": [
+          8.35,
+          2.11,
+          8.43
+        ]
+      }
+    },
+    {
+      "name": "一键直达动物园俯瞰机位",
+      "pass": true,
+      "detail": {
+        "cam": [
+          60,
+          32,
+          36
+        ],
+        "tgt": [
+          60,
+          2,
+          0
+        ],
+        "btn": "🏰 返回中央广场"
+      }
+    },
+    {
+      "name": "动物园俯瞰截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-02-zoo-overview.png",
+        "bytes": 774281
+      }
+    },
+    {
+      "name": "全场景 ≤30 万三角面",
+      "pass": true,
+      "detail": {
+        "calls": 527,
+        "triangles": 231384
+      }
+    },
+    {
+      "name": "稳态后 5 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 63,
+          "textures": 33
+        },
+        "rounds": [
+          {
+            "geometries": 63,
+            "textures": 33
+          },
+          {
+            "geometries": 63,
+            "textures": 33
+          },
+          {
+            "geometries": 63,
+            "textures": 33
+          },
+          {
+            "geometries": 63,
+            "textures": 33
+          },
+          {
+            "geometries": 63,
+            "textures": 33
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "errors": []
+}

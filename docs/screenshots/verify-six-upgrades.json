@@ -1,0 +1,305 @@
+{
+  "module": "six-upgrades",
+  "at": "2026-11-15T09:46:09.096Z",
+  "passed": 20,
+  "total": 20,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "① 三个新依赖写入 package.json",
+      "pass": true,
+      "detail": {
+        "three-player-controller": "^0.6.3",
+        "three-mesh-bvh": "^0.9.9",
+        "lil-gui": "^0.21.0"
+      }
+    },
+    {
+      "name": "① Three.js 版本兼容（>=0.159）",
+      "pass": true,
+      "detail": {
+        "three": "0.187.0",
+        "controller": "^0.6.3"
+      }
+    },
+    {
+      "name": "① 依赖运行时已引入（CollisionWorld / BVH / lil-gui）",
+      "pass": true,
+      "detail": {
+        "hasMovement": true,
+        "hasOptimizer": true,
+        "hasLabels": true,
+        "hasPanel": true,
+        "collisionWorld": true,
+        "bvh": false
+      }
+    },
+    {
+      "name": "② 默认地面模式 + F 键互斥切换（ground ↔ flight）",
+      "pass": true,
+      "detail": {
+        "initial": {
+          "mode": "ground",
+          "engaged": false,
+          "y": 30
+        },
+        "afterF1": {
+          "mode": "flight",
+          "engaged": true,
+          "hud": "飞行漫游"
+        },
+        "flightUp": 46,
+        "flightDown": 8,
+        "afterF2": {
+          "mode": "ground",
+          "hud": "地面行走"
+        },
+        "blendStart": {
+          "blend": 0,
+          "y": 38
+        },
+        "ground": {
+          "mode": "ground",
+          "y": 1.7,
+          "blend": 1
+        },
+        "walk": {
+          "moved": 7,
+          "y": 1.7
+        },
+        "pushOut": {
+          "inside": false
+        },
+        "bvhGraze": {
+          "hit": true,
+          "x": -9.1,
+          "wallX": -8.6,
+          "pushedOutside": true
+        },
+        "stats": {
+          "bvhRebuilds": 1,
+          "bvhTriangles": 120,
+          "registeredColliders": 12,
+          "bvhPushOuts": 1
+        },
+        "mutex": true
+      }
+    },
+    {
+      "name": "② 地面模式：WASD 贴地移动 + 相机锁定 1.7m + 禁用垂直位移",
+      "pass": true,
+      "detail": {
+        "ground": {
+          "mode": "ground",
+          "y": 1.7,
+          "blend": 1
+        },
+        "walk": {
+          "moved": 7,
+          "y": 1.7
+        }
+      }
+    },
+    {
+      "name": "② 飞行模式：Space 上升 / Q 下降，关闭地面碰撞约束",
+      "pass": true,
+      "detail": {
+        "flightUp": 46,
+        "flightDown": 8
+      }
+    },
+    {
+      "name": "② BVH 高性能碰撞防穿模（MeshBVH + CollisionWorld + 三角形级擦墙推出）",
+      "pass": true,
+      "detail": {
+        "stats": {
+          "bvhRebuilds": 1,
+          "bvhTriangles": 120,
+          "registeredColliders": 12,
+          "bvhPushOuts": 1
+        },
+        "pushOut": {
+          "inside": false
+        },
+        "bvhGraze": {
+          "hit": true,
+          "x": -9.1,
+          "wallX": -8.6,
+          "pushedOutside": true
+        }
+      }
+    },
+    {
+      "name": "② HUD 模式指示器 + 切换时相机高度平滑过渡",
+      "pass": true,
+      "detail": {
+        "hud1": "飞行漫游",
+        "hud2": "地面行走",
+        "blend": {
+          "blend": 0,
+          "y": 38
+        },
+        "ground": {
+          "mode": "ground",
+          "y": 1.7,
+          "blend": 1
+        }
+      }
+    },
+    {
+      "name": "③ LOD 禁用自动降级，视野内始终高模（远景方块消除）",
+      "pass": true,
+      "detail": {
+        "lods": 7,
+        "pinned": 2,
+        "meshes": 581,
+        "meshWithBounds": 581,
+        "mipmapTextures": 17,
+        "badTextures": 0,
+        "stats": {
+          "lodsPinned": 7,
+          "boundsFixed": 124,
+          "mipmapsApplied": 17,
+          "anisotropy": 16,
+          "meshesScanned": 581,
+          "forceNoCullMeshes": 0,
+          "rescans": 1
+        },
+        "districtLodPinned": true,
+        "forceNoCullMeshes": 581,
+        "allOff": true,
+        "restored": true
+      }
+    },
+    {
+      "name": "③ 纹理 Mipmap / 各向异性设置正确",
+      "pass": true,
+      "detail": {
+        "mipmapTextures": 17,
+        "badTextures": 0,
+        "anisotropy": 16
+      }
+    },
+    {
+      "name": "③ 全 Mesh 包围体精确修正 + 强制关闭 frustumCulled 能力",
+      "pass": true,
+      "detail": {
+        "meshes": 581,
+        "meshWithBounds": 581,
+        "forceNoCullMeshes": 581,
+        "allOff": true,
+        "restored": true
+      }
+    },
+    {
+      "name": "④ 农作物随机旋转 / 缩放 / 色差（消除木棍感，仍为 InstancedMesh）",
+      "pass": true,
+      "detail": {
+        "cropTypes": 14,
+        "cropInstances": 504,
+        "randomDistinct": 4,
+        "colored": true
+      }
+    },
+    {
+      "name": "④ 城堡程序化重构（塔楼 + 城墙 + 城垛 + 屋顶，合并几何）",
+      "pass": true,
+      "detail": {
+        "castleBodyTris": 1144,
+        "castleWallsTris": 480
+      }
+    },
+    {
+      "name": "④ 沥青马路 + 车道标线 + 城堡区抬高地形",
+      "pass": true,
+      "detail": {
+        "structureCount": 36,
+        "roadMarkings": 24,
+        "plateauY": 1.1,
+        "castleDetailY": 2.2
+      }
+    },
+    {
+      "name": "⑤ 后处理链 EffectComposer + UnrealBloomPass(轻微光晕) + FXAAPass",
+      "pass": true,
+      "detail": {
+        "passes": [
+          "RenderPass",
+          "UnrealBloomPass",
+          "ShaderPass",
+          "OutputPass"
+        ],
+        "bloomStrength": 0.06
+      }
+    },
+    {
+      "name": "⑤ 三区 Sprite 文字标签（城堡屋 / 农家乐 / 动物园，始终面向相机）",
+      "pass": true,
+      "detail": [
+        {
+          "name": "DistrictLabels/castle",
+          "text": "城堡屋"
+        },
+        {
+          "name": "DistrictLabels/farm",
+          "text": "农家乐"
+        },
+        {
+          "name": "DistrictLabels/zoo",
+          "text": "动物园"
+        }
+      ]
+    },
+    {
+      "name": "⑤ 「游乐场」招牌下移 Y 轴 + 前移避免遮挡",
+      "pass": true,
+      "detail": {
+        "signY": 13.792066805845511,
+        "signZ": 1.02
+      }
+    },
+    {
+      "name": "⑤ 半透明毛玻璃 UI + lil-gui 调试面板",
+      "pass": true,
+      "detail": {
+        "glass": "blur(18px) saturate(1.5)",
+        "gui": true
+      }
+    },
+    {
+      "name": "⑥ 资源台账稳态 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 67,
+          "textures": 36
+        },
+        "rounds": [
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "⑥ 0 pageerror / console.error + 六项总览截图",
+      "pass": true,
+      "detail": {
+        "errors": [],
+        "shotBytes": 600227
+      }
+    }
+  ],
+  "errors": []
+}

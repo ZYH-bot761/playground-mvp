@@ -1,0 +1,132 @@
+{
+  "exportMethod": "canvas.toDataURL() @ preserveDrawingBuffer:true",
+  "rootCause": "CylinderGeometry 端盖 UV + rotation.x=π/2 使贴图从两面看都整体顺时针偏转90°（非镜像）；setUvRotation(0) 复现缺陷态 9上/12右/3下/6左，+π/2 归位为 12上/3右/6下/9左",
+  "fix": "faceTex/glowTex center(0.5,0.5)+rotation=π/2；背面独立材质 faceMatBack(track登记)；setNight 双材质同步；指针正反同角度不取反；disc 加 name",
+  "visual": {
+    "beforeDefect": "v4-t05-td-01/02（9上/12右 错乱，toDataURL真实像素）",
+    "afterFix": "v4-t05-td-03/04（12上/3右 正像，与缺陷态仅差UV rotation 90°）",
+    "facilityDay": "v4-t05-td-05/06",
+    "facilityNight": "v4-t05-td-07/08（pureWhiteRatio=0 不过曝）",
+    "lobbyFacade": "v4-t05-td-09/10（scale0.62+rot.y=-0.42，正像）"
+  },
+  "allToDataUrlBytes": [
+    245717,
+    239355,
+    247109,
+    240889,
+    247109,
+    240889,
+    232661,
+    195792,
+    214580,
+    207467
+  ],
+  "allPureWhiteRatio": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "oldPageScreenshotNotWhite": [
+    {
+      "file": "v4-t05-01-front-day.png",
+      "avgLum": 111.79,
+      "isWhiteScreen": false
+    },
+    {
+      "file": "v4-t05-02-back-day.png",
+      "avgLum": 106.14,
+      "isWhiteScreen": false
+    },
+    {
+      "file": "v4-t05-03-front-night.png",
+      "avgLum": 24.7,
+      "isWhiteScreen": false
+    },
+    {
+      "file": "v4-t05-04-back-night.png",
+      "avgLum": 21.67,
+      "isWhiteScreen": false
+    },
+    {
+      "file": "v4-t05-05-lobby-facade-front.png",
+      "avgLum": 110.14,
+      "isWhiteScreen": false
+    },
+    {
+      "file": "v4-t05-06-lobby-facade-back.png",
+      "avgLum": 106.58,
+      "isWhiteScreen": false
+    }
+  ],
+  "hands": {
+    "date": "Wed Nov 11 2026 10:08:36 GMT+0800 (China Standard Time)",
+    "expected": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "backZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontErr": [
+      0,
+      0,
+      0
+    ],
+    "backErr": [
+      0,
+      0,
+      0
+    ],
+    "frontEqualsBack": true
+  },
+  "faceInfo": [
+    {
+      "name": "CenturyClock/dial-front",
+      "z": 0.17,
+      "matUuid": "775e9918-dad9-4980-9ea7-3c2c953b8aa8",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    },
+    {
+      "name": "CenturyClock/dial-back",
+      "z": -0.17,
+      "matUuid": "eb872023-b019-4dc9-a3e0-7f9ccd4725bb",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    }
+  ],
+  "reg": {
+    "geo": 7,
+    "mat": 7,
+    "tex": 4
+  },
+  "memAfterDispose": {
+    "geometries": 0,
+    "textures": 1
+  },
+  "errors": []
+}

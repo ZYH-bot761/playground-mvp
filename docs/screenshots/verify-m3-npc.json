@@ -1,0 +1,101 @@
+{
+  "at": "2026-11-15T09:05:10.226Z",
+  "passed": 7,
+  "total": 7,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 导航图已构建",
+      "pass": true,
+      "detail": {
+        "stats": {
+          "nodes": 354,
+          "edges": 1130,
+          "rebuilds": 2,
+          "radius": 31
+        },
+        "renderMeshCount": 1,
+        "nodes": 354,
+        "withPath": 8
+      }
+    },
+    {
+      "name": "B 900 帧内 NPC 全程 0 帧陷进障碍",
+      "pass": true,
+      "detail": {
+        "blockedFrames": 0,
+        "firstBlock": null,
+        "maxBlocked": 0,
+        "moved": 120.58,
+        "navStats": {
+          "nodes": 354,
+          "edges": 1130,
+          "rebuilds": 2,
+          "radius": 31
+        },
+        "withPath": 6
+      }
+    },
+    {
+      "name": "C NPC 持续走动（累计位移 > 5m）",
+      "pass": true,
+      "detail": {
+        "blockedFrames": 0,
+        "firstBlock": null,
+        "maxBlocked": 0,
+        "moved": 120.58,
+        "navStats": {
+          "nodes": 354,
+          "edges": 1130,
+          "rebuilds": 2,
+          "radius": 31
+        },
+        "withPath": 6
+      }
+    },
+    {
+      "name": "D 当前路径段两端点合法",
+      "pass": true,
+      "detail": {
+        "checked": 5,
+        "bad": 0
+      }
+    },
+    {
+      "name": "E 强制卡进建筑后能自动脱困",
+      "pass": true,
+      "detail": {
+        "injected": true,
+        "escaped": true,
+        "at": [
+          -7.2,
+          12
+        ],
+        "box": {
+          "minX": -8.6,
+          "maxX": -4.4,
+          "minZ": 12.8,
+          "maxZ": 17.2,
+          "key": "gate-left"
+        }
+      }
+    },
+    {
+      "name": "F 仍为 1 draw call / 0 报错",
+      "pass": true,
+      "detail": {
+        "renderMeshCount": 1,
+        "errors": []
+      }
+    },
+    {
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m3-npc.png",
+        "bytes": 1253595
+      }
+    }
+  ],
+  "errors": []
+}

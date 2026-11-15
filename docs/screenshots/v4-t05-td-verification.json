@@ -1,0 +1,354 @@
+{
+  "url": "http://localhost:5175/tmpverify/index.html",
+  "errors": [],
+  "exportMethod": "canvas.toDataURL() @ preserveDrawingBuffer:true",
+  "bootOk": true,
+  "reg": {
+    "geo": 7,
+    "mat": 7,
+    "tex": 4
+  },
+  "memAfterUpload": {
+    "geometries": 2,
+    "textures": 1
+  },
+  "faceInfo": [
+    {
+      "name": "CenturyClock/dial-front",
+      "z": 0.17,
+      "matUuid": "775e9918-dad9-4980-9ea7-3c2c953b8aa8",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    },
+    {
+      "name": "CenturyClock/dial-back",
+      "z": -0.17,
+      "matUuid": "eb872023-b019-4dc9-a3e0-7f9ccd4725bb",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.05
+    }
+  ],
+  "beforeDefectFront": {
+    "tmp": "D:/playground-mvp/.tmp-t05/02-before-defect-front.png",
+    "bytes": 245717,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 143.5,
+      "minLum": 0,
+      "maxLum": 175.3,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0316
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-02-before-defect-front.png"
+  },
+  "beforeDefectBack": {
+    "tmp": "D:/playground-mvp/.tmp-t05/03-before-defect-back.png",
+    "bytes": 239355,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 117.28,
+      "minLum": 0,
+      "maxLum": 208,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0488
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-03-before-defect-back.png"
+  },
+  "afterFixFront": {
+    "tmp": "D:/playground-mvp/.tmp-t05/04-after-fix-front.png",
+    "bytes": 247109,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 143.98,
+      "minLum": 0,
+      "maxLum": 175.3,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0316
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-04-after-fix-front.png"
+  },
+  "afterFixBack": {
+    "tmp": "D:/playground-mvp/.tmp-t05/05-after-fix-back.png",
+    "bytes": 240889,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 117.74,
+      "minLum": 0,
+      "maxLum": 208,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0488
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-05-after-fix-back.png"
+  },
+  "facilityFrontDay": {
+    "tmp": "D:/playground-mvp/.tmp-t05/06-facility-front-day.png",
+    "bytes": 247109,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 143.98,
+      "minLum": 0,
+      "maxLum": 175.3,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0316
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-06-facility-front-day.png"
+  },
+  "facilityBackDay": {
+    "tmp": "D:/playground-mvp/.tmp-t05/07-facility-back-day.png",
+    "bytes": 240889,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 117.74,
+      "minLum": 0,
+      "maxLum": 208,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0488
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-07-facility-back-day.png"
+  },
+  "facilityFrontNight": {
+    "tmp": "D:/playground-mvp/.tmp-t05/08-facility-front-night.png",
+    "bytes": 232661,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 60.07,
+      "minLum": 0,
+      "maxLum": 163.3,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0574
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-08-facility-front-night.png"
+  },
+  "nightFaceInfo": [
+    {
+      "name": "CenturyClock/dial-front",
+      "z": 0.17,
+      "matUuid": "775e9918-dad9-4980-9ea7-3c2c953b8aa8",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.85
+    },
+    {
+      "name": "CenturyClock/dial-back",
+      "z": -0.17,
+      "matUuid": "eb872023-b019-4dc9-a3e0-7f9ccd4725bb",
+      "mapRot": 1.570796,
+      "mapCenter": [
+        0.5,
+        0.5
+      ],
+      "emapRot": 1.570796,
+      "mapColorSpace": "srgb",
+      "mapAniso": 4,
+      "emissiveIntensity": 0.85
+    }
+  ],
+  "facilityBackNight": {
+    "tmp": "D:/playground-mvp/.tmp-t05/09-facility-back-night.png",
+    "bytes": 195792,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 44.84,
+      "minLum": 0,
+      "maxLum": 152.6,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.072
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-09-facility-back-night.png"
+  },
+  "lobbyFront": {
+    "tmp": "D:/playground-mvp/.tmp-t05/10-lobby-facade-front.png",
+    "bytes": 214580,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 130.85,
+      "minLum": 0,
+      "maxLum": 167.3,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0336
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-10-lobby-facade-front.png"
+  },
+  "lobbyBack": {
+    "tmp": "D:/playground-mvp/.tmp-t05/11-lobby-facade-back.png",
+    "bytes": 207467,
+    "analysis": {
+      "region": [
+        0.34,
+        0.66,
+        0.22,
+        0.54
+      ],
+      "samples": 92224,
+      "avgLum": 114.18,
+      "minLum": 0,
+      "maxLum": 182.6,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0629
+    },
+    "archived": "D:/playground-mvp/docs/screenshots/v4-t05-11-lobby-facade-back.png"
+  },
+  "hands": {
+    "date": "Wed Nov 11 2026 10:08:36 GMT+0800 (China Standard Time)",
+    "expected": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "backZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontErr": [
+      0,
+      0,
+      0
+    ],
+    "backErr": [
+      0,
+      0,
+      0
+    ],
+    "frontEqualsBack": true
+  },
+  "memAfterDispose": {
+    "geometries": 0,
+    "textures": 1
+  },
+  "oldPageScreenshotCheck": [
+    {
+      "file": "v4-t05-01-front-day.png",
+      "bytes": 164546,
+      "avgLum": 111.79,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0848,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    },
+    {
+      "file": "v4-t05-02-back-day.png",
+      "bytes": 159879,
+      "avgLum": 106.14,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0888,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    },
+    {
+      "file": "v4-t05-03-front-night.png",
+      "bytes": 147420,
+      "avgLum": 24.7,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.117,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    },
+    {
+      "file": "v4-t05-04-back-night.png",
+      "bytes": 129639,
+      "avgLum": 21.67,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.1212,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    },
+    {
+      "file": "v4-t05-05-lobby-facade-front.png",
+      "bytes": 142299,
+      "avgLum": 110.14,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.0837,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    },
+    {
+      "file": "v4-t05-06-lobby-facade-back.png",
+      "bytes": 137384,
+      "avgLum": 106.58,
+      "pureWhiteRatio": 0,
+      "pureBlackRatio": 0.098,
+      "isWhiteScreen": false,
+      "isBlackScreen": false
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "module": "M7",
+  "at": "2026-11-15T09:35:09.989Z",
+  "passed": 8,
+  "total": 8,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 四宫格中心/外框/不重叠",
+      "pass": true,
+      "detail": {
+        "center": {
+          "x": 30,
+          "z": 30
+        },
+        "outer": {
+          "minX": -30,
+          "maxX": 90,
+          "minZ": -30,
+          "maxZ": 90,
+          "size": 120
+        },
+        "minPair": 60,
+        "quads": {
+          "amusement": {
+            "cx": 0,
+            "cz": 0,
+            "content": "existing"
+          },
+          "zoo": {
+            "cx": 60,
+            "cz": 0,
+            "content": "existing"
+          },
+          "castle": {
+            "cx": 0,
+            "cz": 60,
+            "content": "placeholder"
+          },
+          "farm": {
+            "cx": 60,
+            "cz": 60,
+            "content": "placeholder"
+          }
+        }
+      }
+    },
+    {
+      "name": "B 结构完整（单 InstancedMesh / 平面 / 28 片）",
+      "pass": true,
+      "detail": {
+        "exists": true,
+        "isInstanced": true,
+        "count": 36,
+        "usesPlane": true
+      }
+    },
+    {
+      "name": "C 北侧两区 LOD（2 层 + 占位内容）",
+      "pass": true,
+      "detail": {
+        "castle": {
+          "exists": true,
+          "levels": 2,
+          "detailChildren": 6,
+          "silhouetteChildren": 1,
+          "lodDistance": 100
+        },
+        "farm": {
+          "exists": true,
+          "levels": 2,
+          "detailChildren": 15,
+          "silhouetteChildren": 1,
+          "lodDistance": 100
+        }
+      }
+    },
+    {
+      "name": "D 区域级 LOD 按距离切换",
+      "pass": true,
+      "detail": {
+        "far": {
+          "castle": 1,
+          "farm": 1
+        },
+        "nearCastle": {
+          "castle": 0,
+          "farm": 0
+        },
+        "nearFarm": {
+          "castle": 0,
+          "farm": 0
+        }
+      }
+    },
+    {
+      "name": "E 既有零改动（9 环 / 4 区 / AABB）",
+      "pass": true,
+      "detail": {
+        "rings": 9,
+        "zooZones": 4,
+        "boxes": 14
+      }
+    },
+    {
+      "name": "F 预算（俯瞰≤30万面 / 新区增量≤1000面·≤3calls）",
+      "pass": true,
+      "detail": {
+        "budget": {
+          "overview": {
+            "calls": 1197,
+            "triangles": 298526
+          },
+          "standard": {
+            "calls": 1059,
+            "triangles": 285066
+          },
+          "view": {
+            "calls": 916,
+            "triangles": 273076
+          },
+          "hidden": {
+            "overview": {
+              "calls": 1195,
+              "triangles": 298382
+            },
+            "standard": {
+              "calls": 1057,
+              "triangles": 284922
+            }
+          }
+        },
+        "selfD": {
+          "overview": {
+            "calls": 2,
+            "triangles": 144
+          },
+          "standard": {
+            "calls": 2,
+            "triangles": 144
+          }
+        }
+      }
+    },
+    {
+      "name": "G 稳态 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 67,
+          "textures": 36
+        },
+        "rounds": [
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "H 0 报错 + 截图有效",
+      "pass": true,
+      "detail": {
+        "errors": [],
+        "shotBytes": 604016
+      }
+    }
+  ],
+  "errors": []
+}

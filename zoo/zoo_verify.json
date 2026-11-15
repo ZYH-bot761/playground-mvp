@@ -1,0 +1,240 @@
+{
+  "blend": "D:\\playground-mvp\\zoo\\playground_zoo.blend",
+  "blender": "5.3.0",
+  "checks": {
+    "blend_loaded": {
+      "pass_": true,
+      "detail": {
+        "filepath": "D:\\playground-mvp\\zoo\\playground_zoo.blend",
+        "size_bytes": 624001
+      }
+    },
+    "preview_exists": {
+      "pass_": true,
+      "detail": {
+        "path": "D:\\playground-mvp\\zoo\\zoo_preview.png",
+        "size_bytes": 1220921
+      }
+    },
+    "zoo_collections": {
+      "pass_": true,
+      "detail": {
+        "children": [
+          "bird_zone",
+          "mammal_zone",
+          "marine_zone",
+          "reptile_zone"
+        ],
+        "expected": [
+          "bird_zone",
+          "mammal_zone",
+          "marine_zone",
+          "reptile_zone"
+        ]
+      }
+    },
+    "zones_non_overlap": {
+      "pass_": true,
+      "detail": {
+        "overlaps": []
+      }
+    },
+    "zoo_adjacent_to_playground": {
+      "pass_": true,
+      "detail": {
+        "playground_xmax": 30.0,
+        "zone_xmins": {
+          "bird_zone": 32.0,
+          "reptile_zone": 62.0,
+          "marine_zone": 32.0,
+          "mammal_zone": 62.0
+        }
+      }
+    },
+    "zone_fixtures": {
+      "pass_": true,
+      "detail": {
+        "bird_zone": {
+          "ground": true,
+          "fence": true,
+          "board": true,
+          "text": true
+        },
+        "reptile_zone": {
+          "ground": true,
+          "fence": true,
+          "board": true,
+          "text": true
+        },
+        "marine_zone": {
+          "ground": true,
+          "fence": true,
+          "board": true,
+          "text": true
+        },
+        "mammal_zone": {
+          "ground": true,
+          "fence": true,
+          "board": true,
+          "text": true
+        }
+      }
+    },
+    "water_volume": {
+      "pass_": true,
+      "detail": null
+    },
+    "animal_counts": {
+      "pass_": true,
+      "detail": {
+        "by_zone": {
+          "bird_zone": 8,
+          "marine_zone": 15,
+          "reptile_zone": 4,
+          "mammal_zone": 5
+        },
+        "total": 32
+      }
+    },
+    "armatures_and_drivers": {
+      "pass_": true,
+      "detail": {
+        "armature_ok": 32,
+        "driver_ok": 32
+      }
+    },
+    "triangle_budget": {
+      "pass_": true,
+      "detail": {
+        "total_triangles": 11220,
+        "limit": 200000
+      }
+    },
+    "motion_moves_and_loops": {
+      "pass_": true,
+      "detail": {
+        "BIRD_01_Rig": {
+          "frame1": [
+            54.989,
+            14.205,
+            7.368
+          ],
+          "frame60": [
+            45.0,
+            22.0,
+            5.0
+          ],
+          "move_distance": 12.89,
+          "loop_error": 0.0
+        },
+        "FISH_01_Rig": {
+          "frame1": [
+            44.052,
+            -7.58,
+            1.65
+          ],
+          "frame60": [
+            43.528,
+            -11.19,
+            1.852
+          ],
+          "move_distance": 3.654,
+          "loop_error": 0.0
+        },
+        "REPTILE_01_Rig": {
+          "frame1": [
+            71.718,
+            17.423,
+            0.3
+          ],
+          "frame60": [
+            70.82,
+            15.094,
+            0.285
+          ],
+          "move_distance": 2.496,
+          "loop_error": 0.0
+        },
+        "MAMMAL_01_Rig": {
+          "frame1": [
+            79.171,
+            -17.789,
+            0.0
+          ],
+          "frame60": [
+            73.856,
+            -15.579,
+            -0.036
+          ],
+          "move_distance": 5.756,
+          "loop_error": 0.0
+        }
+      }
+    },
+    "cycles_modifiers": {
+      "pass_": true,
+      "detail": {
+        "fcurves_with_cycles": 144
+      }
+    },
+    "fish_inside_water": {
+      "pass_": true,
+      "detail": {
+        "out_of_bounds_samples": 0,
+        "observed_min": [
+          36.09,
+          -22.21,
+          1.11
+        ],
+        "observed_max": [
+          53.94,
+          -5.72,
+          2.5
+        ],
+        "water_bounds": [
+          35.0,
+          55.0,
+          -23.0,
+          -5.0,
+          0.7,
+          3.0
+        ]
+      }
+    },
+    "birds_in_flight_envelope": {
+      "pass_": true,
+      "detail": {
+        "out_of_envelope_samples": 0
+      }
+    },
+    "existing_objects_untouched": {
+      "pass_": true,
+      "detail": {
+        "present": [
+          "Cube",
+          "Camera",
+          "Light"
+        ],
+        "hidden_render": [
+          true,
+          true,
+          true
+        ]
+      }
+    },
+    "camera_and_engine": {
+      "pass_": true,
+      "detail": {
+        "camera": "ZooOverviewCam",
+        "engine": "CYCLES",
+        "resolution": [
+          1400,
+          800
+        ]
+      }
+    }
+  },
+  "passed": 16,
+  "total": 16,
+  "all_pass": true
+}

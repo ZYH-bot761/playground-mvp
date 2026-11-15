@@ -1,0 +1,91 @@
+{
+  "module": "M9",
+  "at": "2026-11-15T09:45:02.293Z",
+  "passed": 6,
+  "total": 6,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 农场结构（detail ≥15 子对象）",
+      "pass": true,
+      "detail": {
+        "childCount": 15,
+        "structMerged": true,
+        "structTris": 128,
+        "cropCount": 14,
+        "instTotal": 504
+      }
+    },
+    {
+      "name": "B 几何形态（合并+顶点色结构 / 14 作物实例网格）",
+      "pass": true,
+      "detail": {
+        "childCount": 15,
+        "structMerged": true,
+        "structTris": 128,
+        "cropCount": 14,
+        "instTotal": 504
+      }
+    },
+    {
+      "name": "C 作物合理（14 类型 / 实例 300-900）",
+      "pass": true,
+      "detail": {
+        "childCount": 15,
+        "structMerged": true,
+        "structTris": 128,
+        "cropCount": 14,
+        "instTotal": 504
+      }
+    },
+    {
+      "name": "E 稳态 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 67,
+          "textures": 36
+        },
+        "rounds": [
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          },
+          {
+            "geometries": 67,
+            "textures": 36
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "D 预算（俯瞰≤30万面 / 农场隔离≤1.5万面·≤20calls）",
+      "pass": true,
+      "detail": {
+        "top": {
+          "calls": 916,
+          "triangles": 273076
+        },
+        "farmOnly": {
+          "calls": 16,
+          "triangles": 6332
+        }
+      }
+    },
+    {
+      "name": "F 0 报错 + 农场近景截图有效",
+      "pass": true,
+      "detail": {
+        "errors": [],
+        "shotBytes": 677618
+      }
+    }
+  ],
+  "errors": []
+}

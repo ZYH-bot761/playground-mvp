@@ -32,10 +32,17 @@ export class InteractionManager {
     this._scene = null;
     this._attractions = null;
     this._initialized = false;
+    /**
+     * 射线拾取白名单。为空时自动收敛到「当前激活项目的 root」，
+     * 【绝不再对 scene.children 做全场景遍历】——大厅含上千个实例与植被，
+     * 全场景递归拾取会在每次点击时产生可观的 CPU 峰值。
+     * 项目可通过 setPickables() 进一步收窄。
+     */
+    this._pickables = [];
 
     // 用箭头函数固定 this，便于 add/removeEventListener 成对解绑
     this._onClick = (event) => {
-      if (!this._renderer || !this._camera || !this._scene) return;
+      if (!this._renderer || !this._camera) return;
 
       const rect = this._renderer.domElement.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
@@ -45,7 +52,15 @@ export class InteractionManager {
       this._pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       this._raycaster.setFromCamera(this._pointer, this._camera);
-      const intersections = this._raycaster.intersectObjects(this._scene.children, true);
+      // 白名单优先；未注册时只射线检测当前激活项目自己的根节点。
+      // AttractionManager 保证任意时刻最多一个 active，因此不会命中已卸载项目。
+      const activeRoot = this._attractions?.active?.root;
+      const targets = this._pickables.length > 0
+        ? this._pickables
+        : (activeRoot ? [activeRoot] : []);
+      const intersections = targets.length > 0
+        ? this._raycaster.intersectObjects(targets, true)
+        : [];
       const first = intersections.length > 0 ? intersections[0] : null;
 
       /** hitInfo：交给项目的最小交互契约 */
@@ -65,6 +80,20 @@ export class InteractionManager {
         this._attractions.onInteract(hitInfo);
       }
     };
+  }
+
+  /**
+   * 注册更精确的拾取白名单（可选）。传入空数组即恢复默认「当前项目 root」。
+   * @param {THREE.Object3D[]} list
+   */
+  setPickables(list) {
+    this._pickables = Array.isArray(list) ? list : [];
+    return this;
+  }
+
+  clearPickables() {
+    this._pickables = [];
+    return this;
   }
 
   /**
@@ -91,6 +120,7 @@ export class InteractionManager {
     }
     this._initialized = false;
     this._attractions = null;
+    this._pickables = [];
   }
 }
 

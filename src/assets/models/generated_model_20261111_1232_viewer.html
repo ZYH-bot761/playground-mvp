@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>buddy-multimodal-generation 文生3D 实测 · 游客群像</title>
+  <!-- model-viewer 从 CDN 加载；若离线，poster 会保留下方本地预览图 -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 24px;
+      font-family: system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+      color: #1d2733;
+      background: radial-gradient(120% 90% at 50% 0%, #f4f8fd 0%, #dbe6f2 100%);
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .sub { margin: 0 0 18px; font-size: 13px; color: #5b6b80; }
+    .stage {
+      display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px;
+      align-items: start;
+    }
+    model-viewer {
+      width: 100%; height: 560px; border-radius: 18px;
+      background: linear-gradient(180deg, #eaf2fb, #cbd9e8);
+      box-shadow: 0 12px 40px rgba(24, 46, 78, .16);
+      --poster-color: transparent;
+    }
+    .panel {
+      background: #fff; border-radius: 18px; padding: 18px 20px;
+      box-shadow: 0 12px 40px rgba(24, 46, 78, .10);
+    }
+    .panel h2 { margin: 0 0 10px; font-size: 15px; }
+    .row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #eef2f7; }
+    .row:last-child { border-bottom: 0; }
+    .row b { color: #2c6cb0; font-weight: 700; }
+    .note { margin-top: 14px; padding: 12px; border-radius: 10px; background: #fff5e6; font-size: 12px; line-height: 1.7; color: #7a5324; }
+    .fallback { width: 100%; border-radius: 14px; display: block; }
+    @media (max-width: 800px) { .stage { grid-template-columns: 1fr; } model-viewer { height: 420px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>buddy-multimodal-generation · 文生3D 实测结果</h1>
+    <p class="sub">提示词：「低模童话风格的游乐园游客人物，7头身，圆润可爱但不幼稚，穿彩色休闲外套，微笑，站姿」 · 参数：LowPoly / model 3.0 / face-count 20000 / PBR</p>
+    <div class="stage">
+      <model-viewer
+        src="./visitor-ai.glb"
+        poster="./visitor-ai-preview.png"
+        alt="AI 生成的游乐园游客群像 3D 模型"
+        camera-controls
+        auto-rotate
+        rotation-per-second="18deg"
+        shadow-intensity="1"
+        exposure="1.0"
+        environment-image="neutral"
+        camera-orbit="35deg 75deg 6m"
+        min-camera-orbit="auto auto 2m"
+        max-camera-orbit="auto auto 14m"
+        loading="lazy">
+      </model-viewer>
+      <aside class="panel">
+        <h2>实测规格（来自 GLB 二进制解析）</h2>
+        <div class="row"><span>文件大小</span><b>32.07 MB</b></div>
+        <div class="row"><span>三角面</span><b>18,305</b></div>
+        <div class="row"><span>顶点</span><b>15,268</b></div>
+        <div class="row"><span>Mesh / 材质</span><b>1 / 1</b></div>
+        <div class="row"><span>贴图</span><b>3（全部内嵌）</b></div>
+        <div class="row"><span>骨骼 / 蒙皮</span><b>0 / 无</b></div>
+        <div class="row"><span>动画</span><b>0</b></div>
+        <div class="row"><span>扩展</span><b>KHR_materials_specular</b></div>
+        <div class="row"><span>生成器</span><b>Blender glTF I/O 4.0.43</b></div>
+        <div class="note">
+          <b>诚实评估：</b>技能可用、云端任务成功完成（job 1511945610516774912，状态 DONE），
+          但产出的并不是「单个 7 头身写实游客」，而是 <b>7 个 Q 版儿童抱团的群像</b>，
+          头身约 3~4 头身，风格偏玩具手办；四足/单模尺寸与既有低模场景不统一，
+          且 32 MB / 无骨骼 / 无动画。因此<b>未接入大厅 NPC</b>（会击穿 ≤2 draw call 与首屏体积）。
+          大厅实际使用程序化 7.3 头身关节化人物。
+        </div>
+        <p style="font-size:12px;color:#7b8798;margin:14px 0 6px">若 CDN 不可用，下方为本地预览图：</p>
+        <img class="fallback" src="./visitor-ai-preview.png" alt="本地预览图">
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

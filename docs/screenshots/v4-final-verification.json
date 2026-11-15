@@ -1,0 +1,1898 @@
+{
+  "schema": "v4-final-verification/1.0",
+  "startedAt": "2026-11-15T09:46:59.895Z",
+  "finishedAt": "2026-11-15T09:54:06.509Z",
+  "port": 5173,
+  "url": "http://localhost:5173/",
+  "environment": {
+    "headless": true,
+    "browser": "Edge + SwiftShader",
+    "captureMode": "主路径 canvas.toDataURL()（addInitScript 临时开 preserveDrawingBuffer，不改 core）",
+    "note": "headless SwiftShader 的 rAF 被严重节流（1.5s 墙钟仅推进 0.012s 模拟时间），状态机类检查用受控 dt 驱动；启动耗时超过 1.5s 属软渲染开销，真机需复测",
+    "moduleStatePolicy": "一律走 window.__playground 真实单例，不用裸路径 import(/src/...)（避免 HMR 双单例假象）"
+  },
+  "items": [
+    {
+      "id": "①",
+      "title": "启动性能与首帧",
+      "status": "PASS",
+      "detail": "boot=12610ms 点击→可玩=693ms renderOnce=27",
+      "metrics": {
+        "bootMs": 12610,
+        "clickToPlayMs": 693,
+        "renderOnce": 27,
+        "pixelStats": {
+          "w": 320,
+          "h": 200,
+          "pureWhiteRatio": 0,
+          "nonWhiteRatio": 1,
+          "skyRatio": 0.11391,
+          "orangeRatio": 0.03734,
+          "darkRatio": 0.07697,
+          "meanLuma": 107.49
+        }
+      },
+      "subchecks": [
+        {
+          "name": "boot 就绪",
+          "status": "PASS",
+          "detail": "bootReady=true",
+          "metrics": {
+            "bootMs": 12610,
+            "pageT0": 27
+          },
+          "optional": false
+        },
+        {
+          "name": "点击→可玩",
+          "status": "PASS",
+          "detail": "loopStarted=true",
+          "metrics": {
+            "clickToPlayMs": 693
+          },
+          "optional": false
+        },
+        {
+          "name": "稳态基线校准",
+          "status": "PASS",
+          "detail": "baseline={\"geometries\":46,\"textures\":36}",
+          "metrics": {
+            "backgroundPrewarmDone": true
+          },
+          "optional": false
+        },
+        {
+          "name": "启动期 renderOnce 计数（route 注入）",
+          "status": "PASS",
+          "detail": "启动期 renderOnce=27 次（时间戳 1240,1515,2643,18416,19669,19791,22792,27281,27442,34889,36741,36849,39801,42972,43117,46118,50146,50235,53160,57310,57440,60464,64460,64566,71941,73767,73873ms）",
+          "metrics": {
+            "calls": 27,
+            "routeInjected": true
+          },
+          "optional": true
+        },
+        {
+          "name": "启动耗时（软渲染参考，不计入判定）",
+          "status": "SKIP",
+          "detail": "boot=12610ms；headless SwiftShader 软渲染开销，真机需复测（可选子项，不影响整项）",
+          "metrics": {
+            "bootMs": 12610,
+            "note": "点击→可玩 clickToPlayMs 才是产品指标；软渲染墙钟耗时不代表真机"
+          },
+          "optional": true
+        },
+        {
+          "name": "单例身份未被 HMR 替换",
+          "status": "PASS",
+          "detail": "window.__playground 与启动期记录一致=true",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "启动帧非空白",
+          "status": "PASS",
+          "detail": "PNG=1743175B nonWhiteRatio=1",
+          "metrics": {
+            "w": 320,
+            "h": 200,
+            "pureWhiteRatio": 0,
+            "nonWhiteRatio": 1,
+            "skyRatio": 0.11391,
+            "orangeRatio": 0.03734,
+            "darkRatio": 0.07697,
+            "meanLuma": 107.49
+          },
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-01-lobby-boot.png",
+          "bytes": 1743175,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "9a07117469e9585d312db3b960aafb3b3047976b6c2d77b980ba991f6af2472a",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0476
+          }
+        }
+      ],
+      "at": "2026-11-15T09:48:26.275Z"
+    },
+    {
+      "id": "②",
+      "title": "WASD / 鼠标切换",
+      "status": "PASS",
+      "detail": "切换=orbit→wasd→orbit 位移=7.2m 跳变=0m",
+      "metrics": {
+        "toggle": {
+          "before": "orbit",
+          "after": "wasd",
+          "back": "orbit",
+          "label": "⌨ WASD 第一人称 · M 切回鼠标",
+          "blendActive": false
+        },
+        "move": {
+          "p0": {
+            "x": 0,
+            "z": 30
+          },
+          "p1": {
+            "x": 0,
+            "y": 1.6,
+            "z": 22.799999999999983
+          },
+          "moved": 7.200000000000017,
+          "pen0": 0,
+          "pen1": 0,
+          "eyeY": 1.6,
+          "jump": 0,
+          "boxes": 14
+        }
+      },
+      "subchecks": [
+        {
+          "name": "M 键切换 orbit→wasd→orbit",
+          "status": "PASS",
+          "detail": "before=orbit after=wasd back=orbit",
+          "metrics": {
+            "before": "orbit",
+            "after": "wasd",
+            "back": "orbit",
+            "label": "⌨ WASD 第一人称 · M 切回鼠标",
+            "blendActive": false
+          },
+          "optional": false
+        },
+        {
+          "name": "WASD 走动",
+          "status": "PASS",
+          "detail": "位移=7.2m",
+          "metrics": {
+            "p0": {
+              "x": 0,
+              "z": 30
+            },
+            "p1": {
+              "x": 0,
+              "y": 1.6,
+              "z": 22.799999999999983
+            },
+            "moved": 7.200000000000017,
+            "pen0": 0,
+            "pen1": 0,
+            "eyeY": 1.6,
+            "jump": 0,
+            "boxes": 14
+          },
+          "optional": false
+        },
+        {
+          "name": "WASD 不穿 AABB",
+          "status": "PASS",
+          "detail": "穿墙数=0 障碍=14",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "切回 orbit 机位不跳变",
+          "status": "PASS",
+          "detail": "位置跳变=0m",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "按钮文案同步",
+          "status": "PASS",
+          "detail": "⌨ WASD 第一人称 · M 切回鼠标",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-02-wasd.png",
+          "bytes": 1676119,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "4b252de820996dbb3517d71edd9aaf115a172190ac073ca01c00b6d0a0618199",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.9762,
+            "pureWhiteRatio": 0.0177,
+            "darkRatio": 0.0301
+          }
+        }
+      ],
+      "at": "2026-11-15T09:48:30.346Z"
+    },
+    {
+      "id": "③",
+      "title": "人物建模与人群",
+      "status": "PASS",
+      "detail": "draw=1 NPC=10 minDist=2.74 穿墙=0 面/人=2478",
+      "metrics": {
+        "npc": {
+          "count": 10,
+          "greeters": 2,
+          "states": [
+            1,
+            0,
+            3,
+            2
+          ],
+          "minDist": 2.74,
+          "inBox": 0,
+          "obstacles": 12,
+          "wavePeak": 1,
+          "renderMeshCount": 1,
+          "trisPerNpc": 2478,
+          "instanceColor": false
+        },
+        "calls": 1,
+        "players": {
+          "jump-jump": {
+            "name": "JumpJumpEmbedView/player",
+            "source": "embedded",
+            "rig": true,
+            "head": true,
+            "limbs": true,
+            "joints": true
+          },
+          "parkour-run": {
+            "name": "parkour-player",
+            "source": "independent",
+            "rig": true,
+            "head": true,
+            "limbs": true,
+            "joints": true
+          }
+        }
+      },
+      "subchecks": [
+        {
+          "name": "NPC 1 draw call",
+          "status": "PASS",
+          "detail": "calls=1 InstancedMesh=1",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "10 NPC / 4 态 / 2 迎宾",
+          "status": "PASS",
+          "detail": "count=10 greeters=2 states=1,0,3,2 wavePeak=1",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "minDist≥0.5",
+          "status": "PASS",
+          "detail": "minDist=2.74",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "穿墙=0",
+          "status": "PASS",
+          "detail": "穿墙=0 障碍=12",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "JumpJump 玩家模型",
+          "status": "PASS",
+          "detail": "{\"name\":\"JumpJumpEmbedView/player\",\"source\":\"embedded\",\"rig\":true,\"head\":true,\"limbs\":true,\"joints\":true}",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "ParkourRun 玩家模型",
+          "status": "PASS",
+          "detail": "{\"name\":\"parkour-player\",\"source\":\"independent\",\"rig\":true,\"head\":true,\"limbs\":true,\"joints\":true}",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-03-npc-closeup.png",
+          "bytes": 137669,
+          "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
+          "sha256": "383289813379b0500558f8db8ce5ad13a3d858ce66e6f7e36cde2a4edb56f96a",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1200,
+              700
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0543
+          }
+        }
+      ],
+      "at": "2026-11-15T09:48:43.309Z"
+    },
+    {
+      "id": "④",
+      "title": "世纪钟钟面与夜间",
+      "status": "PASS",
+      "detail": "三针误差=0 夜间pureWhite=0 正背方位=true/true",
+      "metrics": {
+        "inv": {
+          "uvFront": 1.570796,
+          "uvBack": 1.570796,
+          "mapsDistinct": true,
+          "backMirror": 3.141593,
+          "hasFrontDisc": true,
+          "hasBackDisc": true,
+          "expect": [
+            -1.832596,
+            -3.141593,
+            0
+          ],
+          "front": [
+            -1.832596,
+            -3.141593,
+            0
+          ],
+          "back": [
+            -1.832596,
+            -3.141593,
+            0
+          ],
+          "maxHandError": 0
+        },
+        "faces": {
+          "front": {
+            "3": {
+              "dark": 48,
+              "ratio": 0.08
+            },
+            "6": {
+              "dark": 147,
+              "ratio": 0.245
+            },
+            "9": {
+              "dark": 58,
+              "ratio": 0.097
+            },
+            "12": {
+              "dark": 61,
+              "ratio": 0.102
+            },
+            "radiusPx": 69.8
+          },
+          "back": {
+            "3": {
+              "dark": 79,
+              "ratio": 0.132
+            },
+            "6": {
+              "dark": 158,
+              "ratio": 0.263
+            },
+            "9": {
+              "dark": 78,
+              "ratio": 0.13
+            },
+            "12": {
+              "dark": 118,
+              "ratio": 0.197
+            },
+            "radiusPx": 69.8
+          }
+        },
+        "nightPx": {
+          "w": 480,
+          "h": 300,
+          "pureWhiteRatio": 0,
+          "nonWhiteRatio": 0.99386,
+          "skyRatio": 0.02017,
+          "orangeRatio": 0,
+          "darkRatio": 0.8776,
+          "meanLuma": 24.93
+        }
+      },
+      "subchecks": [
+        {
+          "name": "正/背 UV 校正 + 独立背面材质",
+          "status": "PASS",
+          "detail": "uvFront=1.570796 uvBack=1.570796 mapsDistinct=true",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "背面指针组水平镜像",
+          "status": "PASS",
+          "detail": "rotation.y=3.141593",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "三针误差 0",
+          "status": "PASS",
+          "detail": "固定 15:30:00 expect=-1.832596,-3.141593,0 front=-1.832596,-3.141593,0 back=-1.832596,-3.141593,0 maxErr=0",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "正面 12上3右6下9左",
+          "status": "PASS",
+          "detail": "{\"3\":{\"dark\":48,\"ratio\":0.08},\"6\":{\"dark\":147,\"ratio\":0.245},\"9\":{\"dark\":58,\"ratio\":0.097},\"12\":{\"dark\":61,\"ratio\":0.102},\"radiusPx\":69.8}",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "背面 12上3右6下9左",
+          "status": "PASS",
+          "detail": "{\"3\":{\"dark\":79,\"ratio\":0.132},\"6\":{\"dark\":158,\"ratio\":0.263},\"9\":{\"dark\":78,\"ratio\":0.13},\"12\":{\"dark\":118,\"ratio\":0.197},\"radiusPx\":69.8}",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "夜间不过曝 pureWhiteRatio≈0",
+          "status": "PASS",
+          "detail": "pureWhiteRatio=0",
+          "metrics": {
+            "w": 480,
+            "h": 300,
+            "pureWhiteRatio": 0,
+            "nonWhiteRatio": 0.99386,
+            "skyRatio": 0.02017,
+            "orangeRatio": 0,
+            "darkRatio": 0.8776,
+            "meanLuma": 24.93
+          },
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-04-clock-front.png",
+          "bytes": 401348,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "8be84d9a8889e1a732d6abfe450f8b6b305abaaef57cb914f9ea1efac33cb7dd",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0623
+          }
+        },
+        {
+          "file": "v4-final-04-clock-back.png",
+          "bytes": 452871,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "306984b26977ff31d703f537cac6d274a9a0db2886e48fb0bb67aafa9698e92b",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0453
+          }
+        },
+        {
+          "file": "v4-final-04-clock-night.png",
+          "bytes": 141616,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "78ab2581b4136fbf436f9add1a27faa91cf463cc70d27edbb5032aba6c3a0f6f",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0086
+          }
+        }
+      ],
+      "at": "2026-11-15T09:48:49.939Z"
+    },
+    {
+      "id": "⑤",
+      "title": "摩天轮嵌入同一大厅",
+      "status": "PASS",
+      "detail": "embedded=ferris-wheel angle=0.4183659999999999→0.5613659999999996 cabin=0",
+      "metrics": {
+        "before": {
+          "lobbyInScene": true,
+          "activeKey": "lobby",
+          "sharedWheel": true
+        },
+        "a1": {
+          "lobbyInScene": true,
+          "activeKey": "lobby",
+          "embeddedActive": true,
+          "embeddedKey": "ferris-wheel",
+          "angle": 0.4183659999999999,
+          "cabinIndex": 0,
+          "usesSharedWheel": true,
+          "cameraUpY": 1,
+          "cameraRoll": 0,
+          "hasBasketUI": false
+        },
+        "a2": {
+          "angle": 0.5613659999999996,
+          "cameraUpY": 1,
+          "cameraRoll": 0
+        }
+      },
+      "subchecks": [
+        {
+          "name": "同一大厅（Lobby 根节点在 scene）",
+          "status": "PASS",
+          "detail": "before=true during=true sharedWheel=true",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "activeKey===\"lobby\"",
+          "status": "PASS",
+          "detail": "activeKey=lobby",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "复用大厅轮盘（零重建）",
+          "status": "PASS",
+          "detail": "usesSharedWheel=true",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "座舱水平（相机不 roll）",
+          "status": "PASS",
+          "detail": "upY=1 roll=0/0（<0.01rad≈0.57° 视为水平）",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "轮盘在转",
+          "status": "PASS",
+          "detail": "angle=0.4183659999999999→0.5613659999999996",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "无投篮/金币 UI",
+          "status": "PASS",
+          "detail": "hasBasketUI=false",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-05-ferris-embedded.png",
+          "bytes": 1140225,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "d6bb1ba115c2f5476bfa8055defe79f2729b41b7036982fe933e50f8a0c47ed2",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.8154,
+            "pureWhiteRatio": 0.0007,
+            "darkRatio": 0.0051
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:00.873Z"
+    },
+    {
+      "id": "⑥",
+      "title": "建筑比例与小车贴轨",
+      "status": "PASS",
+      "detail": "{\"carCount\":3,\"maxGap\":0,\"trackLength\":192.11,\"advanced\":0.023809523809523725}",
+      "metrics": {
+        "cap": {
+          "hasPirateFacade": true,
+          "pirateScale": [
+            1.25,
+            1.35,
+            1.25
+          ],
+          "hasCoasterRuntime": true,
+          "hasCoasterCurve": true
+        },
+        "track": {
+          "carCount": 3,
+          "maxGap": 0,
+          "trackLength": 192.11,
+          "advanced": 0.023809523809523725
+        }
+      },
+      "subchecks": [
+        {
+          "name": "海盗船放大",
+          "status": "PASS",
+          "detail": "facade scale=1.25,1.35,1.25（T09 未实现则 SKIP）",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "小车全程贴轨无悬空",
+          "status": "PASS",
+          "detail": "{\"carCount\":3,\"maxGap\":0,\"trackLength\":192.11,\"advanced\":0.023809523809523725}（运行时未暴露测量接口则 SKIP）",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "小车沿轨推进",
+          "status": "PASS",
+          "detail": "Δt=0.023809523809523725",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-06-coaster-track.png",
+          "bytes": 1149205,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "8b6d013f49e9c7d5a4d392103ca693eb768ef5cad7edcf6c0a9931fb47a3ae75",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.8139,
+            "pureWhiteRatio": 0.0002,
+            "darkRatio": 0.007
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:04.541Z"
+    },
+    {
+      "id": "⑦",
+      "title": "触发环分散",
+      "status": "PASS",
+      "detail": "9环 minDist=8.062m 告警=0",
+      "metrics": {
+        "rings": {
+          "count": 9,
+          "minDist": 8.062,
+          "pair": [
+            [
+              -7,
+              -2
+            ],
+            [
+              0,
+              2
+            ]
+          ],
+          "ringRadius": 2.4,
+          "names": [
+            "Lobby/trigger-ring-pumpkin-thrower",
+            "Lobby/trigger-ring-parkour-run",
+            "Lobby/trigger-ring-memory-match",
+            "Lobby/trigger-ring-jump-jump",
+            "Lobby/trigger-ring-train-ride",
+            "Lobby/trigger-ring-carousel",
+            "Lobby/trigger-ring-pirate-ship",
+            "Lobby/trigger-ring-fireworks-deck",
+            "Lobby/trigger-ring-century-clock"
+          ]
+        },
+        "warnings": []
+      },
+      "subchecks": [
+        {
+          "name": "9 个触发环",
+          "status": "PASS",
+          "detail": "count=9",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "最小间距≥6.5m",
+          "status": "PASS",
+          "detail": "minDist=8.062 pair=[[-7,-2],[0,2]]",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "代码自检 0 告警",
+          "status": "PASS",
+          "detail": "告警数=0",
+          "metrics": [],
+          "optional": false
+        },
+        {
+          "name": "俯瞰无交叠",
+          "status": "PASS",
+          "detail": "minDist=8.062 > 2×ringRadius=4.8",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-07-triggers-topdown.png",
+          "bytes": 1350112,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "df6b298f5fcb4f7def9f770103d65e44cdeca79044a4a8119cfde2cadbe6ec4b",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0131
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:09.155Z"
+    },
+    {
+      "id": "⑧",
+      "title": "城堡大门（拱门/双塔/城垛）",
+      "status": "PASS",
+      "detail": "{\"present\":true,\"hasArch\":true,\"towers\":8,\"crenels\":1,\"children\":42,\"sample\":[\"Lobby/gate\",\"Lobby/gate-pillar--1\",\"Lobby/gate-orb--1\",\"Lobby/gate-strip--1\",\"Lobby/gate-pillar-1\",\"Lobby/gate-orb-1\",\"Lobby/gate-strip-1\",\"Lobby/gate-beam\",\"Lobby/gate-beam-glow-top\",\"Lobby/gate-beam-glow-bottom\",\"Lobby/gate-sign-front\",\"Lobby/gate-sign-back\"]}",
+      "metrics": {
+        "present": true,
+        "hasArch": true,
+        "towers": 8,
+        "crenels": 1,
+        "children": 42,
+        "sample": [
+          "Lobby/gate",
+          "Lobby/gate-pillar--1",
+          "Lobby/gate-orb--1",
+          "Lobby/gate-strip--1",
+          "Lobby/gate-pillar-1",
+          "Lobby/gate-orb-1",
+          "Lobby/gate-strip-1",
+          "Lobby/gate-beam",
+          "Lobby/gate-beam-glow-top",
+          "Lobby/gate-beam-glow-bottom",
+          "Lobby/gate-sign-front",
+          "Lobby/gate-sign-back"
+        ]
+      },
+      "subchecks": [
+        {
+          "name": "拱门",
+          "status": "PASS",
+          "detail": "hasArch=true",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "双塔",
+          "status": "PASS",
+          "detail": "towers=8",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "城垛",
+          "status": "PASS",
+          "detail": "crenels=1",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-08-castle-gate.png",
+          "bytes": 1367506,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "70f61d7bb6f3deab78dbb79077281993571a91e41ab22ca9659b294fcd18fb75",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.9322,
+            "pureWhiteRatio": 0.0332,
+            "darkRatio": 0.0064
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:13.155Z"
+    },
+    {
+      "id": "⑨",
+      "title": "文字清晰度 / 无橙色马赛克",
+      "status": "PASS",
+      "detail": "edgeDensity=0.08602 orange=0/0.01901",
+      "metrics": {
+        "atlas": {
+          "size": [
+            2048,
+            2048
+          ],
+          "labels": 10,
+          "alphaRatio": 0.10517,
+          "darkGlyphPixels": 184288,
+          "orangeRatio": 0,
+          "opaquePairs": 109105,
+          "edgeDensity": 0.08602
+        },
+        "pixelStats": {
+          "w": 480,
+          "h": 300,
+          "pureWhiteRatio": 0.00008,
+          "nonWhiteRatio": 0.89336,
+          "skyRatio": 0.21714,
+          "orangeRatio": 0.01901,
+          "darkRatio": 0.04769,
+          "meanLuma": 152.22
+        }
+      },
+      "subchecks": [
+        {
+          "name": "atlas 存在且 2048²",
+          "status": "PASS",
+          "detail": "size=2048,2048",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "字形非糊团（边缘密度）",
+          "status": "PASS",
+          "detail": "edgeDensity=0.08602",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "无橙色马赛克",
+          "status": "PASS",
+          "detail": "atlasOrange=0 sceneOrange=0.01901（场景暖色/木质允许 <0.12，马赛克主要看 atlas 通道）",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "场景文字贴图有效",
+          "status": "PASS",
+          "detail": "nonWhiteRatio=0.89336",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-09-text-atlas.png",
+          "bytes": 2013413,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "5af92d95539e12fce7da979a4a437445b1da93ab2103c61265c1f709b73b8187",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.1358
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:20.595Z"
+    },
+    {
+      "id": "⑩",
+      "title": "场景一体化（嵌入态大厅常驻）",
+      "status": "PASS",
+      "detail": "embedded=ferris-wheel activeKey=lobby lobbyInScene=true sky=0.34253",
+      "metrics": {
+        "key": "ferris-wheel",
+        "during": {
+          "lobbyInScene": true,
+          "lobbyParentIsScene": true,
+          "activeKey": "lobby",
+          "embeddedActive": true,
+          "embeddedKey": "ferris-wheel",
+          "anchored": false
+        },
+        "pixelStats": {
+          "w": 480,
+          "h": 300,
+          "pureWhiteRatio": 0.00506,
+          "nonWhiteRatio": 0.77874,
+          "skyRatio": 0.34253,
+          "orangeRatio": 0.00211,
+          "darkRatio": 0.0063,
+          "meanLuma": 187.22
+        }
+      },
+      "subchecks": [
+        {
+          "name": "Lobby 根节点仍在 scene",
+          "status": "PASS",
+          "detail": "{\"lobbyInScene\":true,\"lobbyParentIsScene\":true,\"activeKey\":\"lobby\",\"embeddedActive\":true,\"embeddedKey\":\"ferris-wheel\",\"anchored\":false}",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "activeKey===\"lobby\"",
+          "status": "PASS",
+          "detail": "activeKey=lobby",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "facilityRuntime 嵌入态生效",
+          "status": "PASS",
+          "detail": "embeddedKey=ferris-wheel",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "抬头可见天空/其它建筑",
+          "status": "PASS",
+          "detail": "skyRatio=0.34253",
+          "metrics": {
+            "w": 480,
+            "h": 300,
+            "pureWhiteRatio": 0.00506,
+            "nonWhiteRatio": 0.77874,
+            "skyRatio": 0.34253,
+            "orangeRatio": 0.00211,
+            "darkRatio": 0.0063,
+            "meanLuma": 187.22
+          },
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-10-embedded-unified.png",
+          "bytes": 1129824,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "77aecd68f954578cad862eb1926b517441d445935db1088f06c17265e92f29eb",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.7984,
+            "pureWhiteRatio": 0.0001,
+            "darkRatio": 0.0061
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:27.544Z"
+    },
+    {
+      "id": "⑪",
+      "title": "常驻动效（木马/海盗船/小车/小火车）",
+      "status": "PASS",
+      "detail": "carousel=true pirate=true train=true coaster=true",
+      "metrics": {
+        "cap": {
+          "carousel": true,
+          "pirate": true,
+          "coaster": true,
+          "train": false
+        },
+        "anim": {
+          "a": {
+            "carousel": 2.526370000000001,
+            "pirate": 0.40069990688193663,
+            "train": -0.4436340378193523,
+            "wheel": 0.9383659999999988
+          },
+          "b": {
+            "carousel": 2.8763700000000023,
+            "pirate": -0.7184037040003146,
+            "train": -1.0132052872683965,
+            "wheel": 1.068365999999998
+          },
+          "carousel": true,
+          "pirate": true,
+          "train": true,
+          "wheel": true
+        },
+        "carAnim": {
+          "advanced": 0.023809523809523725,
+          "carCount": 3
+        }
+      },
+      "subchecks": [
+        {
+          "name": "旋转木马常驻转动",
+          "status": "PASS",
+          "detail": "rotation.y=2.526370000000001→2.8763700000000023",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "海盗船常驻摆动",
+          "status": "PASS",
+          "detail": "rotation.z=0.40069990688193663→-0.7184037040003146",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "小火车常驻循环",
+          "status": "PASS",
+          "detail": "position.z=-0.4436340378193523→-1.0132052872683965",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "过山车小车沿轨循环",
+          "status": "PASS",
+          "detail": "{\"advanced\":0.023809523809523725,\"carCount\":3}（待 T08 挂轨则 SKIP）",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-11-ambient-animation.png",
+          "bytes": 1214647,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "d66718aa6fc2cc54758f7a7b2fc7a91b583f1f80fd78c3d41d531a952cd58ed8",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.7979,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0206
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:31.407Z"
+    },
+    {
+      "id": "⑫",
+      "title": "跳一跳嵌入（背景是大厅）",
+      "status": "PASS",
+      "detail": "{\"lobbyInScene\":true,\"activeKey\":\"lobby\",\"independentSky\":false,\"independentGround\":false,\"blockCount\":3}",
+      "metrics": {
+        "during": {
+          "lobbyInScene": true,
+          "activeKey": "lobby",
+          "independentSky": false,
+          "independentGround": false,
+          "blockCount": 3
+        }
+      },
+      "subchecks": [
+        {
+          "name": "背景是大厅（无独立天幕/地砖）",
+          "status": "PASS",
+          "detail": "{\"lobbyInScene\":true,\"activeKey\":\"lobby\",\"independentSky\":false,\"independentGround\":false,\"blockCount\":3}",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "方块池挂在大厅场景",
+          "status": "PASS",
+          "detail": "blockCount=3",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-12-jumpjump-embedded.png",
+          "bytes": 1463356,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "b7717f745fd66dada01ab1acd32a56380406e39cd2470f79cb2056dcb363b78c",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 0.9677,
+            "pureWhiteRatio": 0.0099,
+            "darkRatio": 0.1301
+          }
+        }
+      ],
+      "at": "2026-11-15T09:49:36.603Z"
+    },
+    {
+      "id": "⑬",
+      "title": "全量回归（5轮 Δ0/0 + 预算 + 0 报错）",
+      "status": "PASS",
+      "detail": "Δgeo=0 Δtex=0 (steady 73geo/36tex, 惰性 +27) calls=690 tris=267316 err=0/0",
+      "metrics": {
+        "baseline": {
+          "geometries": 46,
+          "textures": 36
+        },
+        "steady": {
+          "geometries": 73,
+          "textures": 36
+        },
+        "lazyDelta": {
+          "geo": 27,
+          "tex": 0
+        },
+        "rounds": [
+          {
+            "round": 1,
+            "geometries": 73,
+            "textures": 36
+          },
+          {
+            "round": 2,
+            "geometries": 73,
+            "textures": 36
+          },
+          {
+            "round": 3,
+            "geometries": 73,
+            "textures": 36
+          },
+          {
+            "round": 4,
+            "geometries": 73,
+            "textures": 36
+          },
+          {
+            "round": 5,
+            "geometries": 73,
+            "textures": 36
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0,
+        "budget": {
+          "calls": 690,
+          "triangles": 267316
+        }
+      },
+      "subchecks": [
+        {
+          "name": "惰性资源一次性上传（信息项，非泄漏）",
+          "status": "SKIP",
+          "detail": "首次激活全部设施一次性 +27 geo / +0 tex；之后 5 轮完全持平即证明无泄漏",
+          "metrics": {
+            "geo": 27,
+            "tex": 0
+          },
+          "optional": true
+        },
+        {
+          "name": "5轮 Δgeo=0（稳态基线）",
+          "status": "PASS",
+          "detail": "Δgeo=0 steady=73 final=73",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "5轮 Δtex=0（稳态基线）",
+          "status": "PASS",
+          "detail": "Δtex=0 steady=36 final=36",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "全场景 ≤30万三角面",
+          "status": "PASS",
+          "detail": "triangles=267316",
+          "metrics": {},
+          "optional": false
+        },
+        {
+          "name": "0 pageerror",
+          "status": "PASS",
+          "detail": "count=0",
+          "metrics": [],
+          "optional": false
+        },
+        {
+          "name": "0 console.error",
+          "status": "PASS",
+          "detail": "count=0",
+          "metrics": [],
+          "optional": false
+        },
+        {
+          "name": "0 404 / 请求失败",
+          "status": "PASS",
+          "detail": "404=0 failed=0",
+          "metrics": [],
+          "optional": false
+        },
+        {
+          "name": "末帧非空白",
+          "status": "PASS",
+          "detail": "PNG=2154798B",
+          "metrics": {},
+          "optional": false
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "v4-final-13-final-lobby.png",
+          "bytes": 2154798,
+          "method": "main-canvas:renderOnce+toDataURL",
+          "sha256": "b46dc56d7fef5e942b4f60b11df6caf770d514f7eb66df12c450f77b6e06dbf1",
+          "duplicateOfPrev": false,
+          "pixelStats": {
+            "sampled": [
+              160,
+              100
+            ],
+            "source": [
+              1280,
+              800
+            ],
+            "nonWhiteRatio": 1,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.154
+          }
+        }
+      ],
+      "at": "2026-11-15T09:54:06.509Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "v4-final-01-lobby-boot.png",
+      "bytes": 1743175,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:24.527Z"
+    },
+    {
+      "file": "v4-final-02-wasd.png",
+      "bytes": 1676119,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:30.345Z"
+    },
+    {
+      "file": "v4-final-03-jumpjump-player.png",
+      "bytes": 1887101,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:34.940Z"
+    },
+    {
+      "file": "v4-final-03-parkour-player.png",
+      "bytes": 359793,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:38.048Z"
+    },
+    {
+      "file": "v4-final-03-npc-closeup.png",
+      "bytes": 137669,
+      "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
+      "at": "2026-11-15T09:48:43.309Z"
+    },
+    {
+      "file": "v4-final-04-clock-front.png",
+      "bytes": 401348,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:47.772Z"
+    },
+    {
+      "file": "v4-final-04-clock-back.png",
+      "bytes": 452871,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:48.930Z"
+    },
+    {
+      "file": "v4-final-04-clock-night.png",
+      "bytes": 141616,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:48:49.939Z"
+    },
+    {
+      "file": "v4-final-05-ferris-embedded.png",
+      "bytes": 1140225,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:00.873Z"
+    },
+    {
+      "file": "v4-final-06-coaster-track.png",
+      "bytes": 1149205,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:04.541Z"
+    },
+    {
+      "file": "v4-final-07-triggers-topdown.png",
+      "bytes": 1350112,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:09.153Z"
+    },
+    {
+      "file": "v4-final-08-castle-gate.png",
+      "bytes": 1367506,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:13.153Z"
+    },
+    {
+      "file": "v4-final-09-text-atlas.png",
+      "bytes": 2013413,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:20.595Z"
+    },
+    {
+      "file": "v4-final-10-embedded-unified.png",
+      "bytes": 1129824,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:27.544Z"
+    },
+    {
+      "file": "v4-final-11-ambient-animation.png",
+      "bytes": 1214647,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:31.407Z"
+    },
+    {
+      "file": "v4-final-12-jumpjump-embedded.png",
+      "bytes": 1463356,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:49:36.603Z"
+    },
+    {
+      "file": "v4-final-13-final-lobby.png",
+      "bytes": 2154798,
+      "method": "main-canvas:renderOnce+toDataURL",
+      "at": "2026-11-15T09:54:06.509Z"
+    }
+  ],
+  "screenshotIntegrity": [
+    {
+      "file": "v4-final-01-lobby-boot.png",
+      "bytes": 1743175,
+      "sha256": "9a07117469e9585d312db3b960aafb3b3047976b6c2d77b980ba991f6af2472a",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0476
+      },
+      "at": "2026-11-15T09:48:24.527Z"
+    },
+    {
+      "file": "v4-final-02-wasd.png",
+      "bytes": 1676119,
+      "sha256": "4b252de820996dbb3517d71edd9aaf115a172190ac073ca01c00b6d0a0618199",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.9762,
+        "pureWhiteRatio": 0.0177,
+        "darkRatio": 0.0301
+      },
+      "at": "2026-11-15T09:48:30.345Z"
+    },
+    {
+      "file": "v4-final-03-jumpjump-player.png",
+      "bytes": 1887101,
+      "sha256": "05f01d50bfad2c9843b1e7caae17287da49985e9b0716c0873d2226f0afbd5af",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.1082
+      },
+      "at": "2026-11-15T09:48:34.940Z"
+    },
+    {
+      "file": "v4-final-03-parkour-player.png",
+      "bytes": 359793,
+      "sha256": "6460d64d17dada18cb111b14eb5b2e2418576f2b32bd9eedbc5f20d840bb4a13",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.4953
+      },
+      "at": "2026-11-15T09:48:38.048Z"
+    },
+    {
+      "file": "v4-final-03-npc-closeup.png",
+      "bytes": 137669,
+      "sha256": "383289813379b0500558f8db8ce5ad13a3d858ce66e6f7e36cde2a4edb56f96a",
+      "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1200,
+          700
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0543
+      },
+      "at": "2026-11-15T09:48:43.309Z"
+    },
+    {
+      "file": "v4-final-04-clock-front.png",
+      "bytes": 401348,
+      "sha256": "8be84d9a8889e1a732d6abfe450f8b6b305abaaef57cb914f9ea1efac33cb7dd",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0623
+      },
+      "at": "2026-11-15T09:48:47.772Z"
+    },
+    {
+      "file": "v4-final-04-clock-back.png",
+      "bytes": 452871,
+      "sha256": "306984b26977ff31d703f537cac6d274a9a0db2886e48fb0bb67aafa9698e92b",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0453
+      },
+      "at": "2026-11-15T09:48:48.930Z"
+    },
+    {
+      "file": "v4-final-04-clock-night.png",
+      "bytes": 141616,
+      "sha256": "78ab2581b4136fbf436f9add1a27faa91cf463cc70d27edbb5032aba6c3a0f6f",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0086
+      },
+      "at": "2026-11-15T09:48:49.939Z"
+    },
+    {
+      "file": "v4-final-05-ferris-embedded.png",
+      "bytes": 1140225,
+      "sha256": "d6bb1ba115c2f5476bfa8055defe79f2729b41b7036982fe933e50f8a0c47ed2",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.8154,
+        "pureWhiteRatio": 0.0007,
+        "darkRatio": 0.0051
+      },
+      "at": "2026-11-15T09:49:00.873Z"
+    },
+    {
+      "file": "v4-final-06-coaster-track.png",
+      "bytes": 1149205,
+      "sha256": "8b6d013f49e9c7d5a4d392103ca693eb768ef5cad7edcf6c0a9931fb47a3ae75",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.8139,
+        "pureWhiteRatio": 0.0002,
+        "darkRatio": 0.007
+      },
+      "at": "2026-11-15T09:49:04.541Z"
+    },
+    {
+      "file": "v4-final-07-triggers-topdown.png",
+      "bytes": 1350112,
+      "sha256": "df6b298f5fcb4f7def9f770103d65e44cdeca79044a4a8119cfde2cadbe6ec4b",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0131
+      },
+      "at": "2026-11-15T09:49:09.153Z"
+    },
+    {
+      "file": "v4-final-08-castle-gate.png",
+      "bytes": 1367506,
+      "sha256": "70f61d7bb6f3deab78dbb79077281993571a91e41ab22ca9659b294fcd18fb75",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.9322,
+        "pureWhiteRatio": 0.0332,
+        "darkRatio": 0.0064
+      },
+      "at": "2026-11-15T09:49:13.153Z"
+    },
+    {
+      "file": "v4-final-09-text-atlas.png",
+      "bytes": 2013413,
+      "sha256": "5af92d95539e12fce7da979a4a437445b1da93ab2103c61265c1f709b73b8187",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.1358
+      },
+      "at": "2026-11-15T09:49:20.595Z"
+    },
+    {
+      "file": "v4-final-10-embedded-unified.png",
+      "bytes": 1129824,
+      "sha256": "77aecd68f954578cad862eb1926b517441d445935db1088f06c17265e92f29eb",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.7984,
+        "pureWhiteRatio": 0.0001,
+        "darkRatio": 0.0061
+      },
+      "at": "2026-11-15T09:49:27.544Z"
+    },
+    {
+      "file": "v4-final-11-ambient-animation.png",
+      "bytes": 1214647,
+      "sha256": "d66718aa6fc2cc54758f7a7b2fc7a91b583f1f80fd78c3d41d531a952cd58ed8",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.7979,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0206
+      },
+      "at": "2026-11-15T09:49:31.407Z"
+    },
+    {
+      "file": "v4-final-12-jumpjump-embedded.png",
+      "bytes": 1463356,
+      "sha256": "b7717f745fd66dada01ab1acd32a56380406e39cd2470f79cb2056dcb363b78c",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.9677,
+        "pureWhiteRatio": 0.0099,
+        "darkRatio": 0.1301
+      },
+      "at": "2026-11-15T09:49:36.603Z"
+    },
+    {
+      "file": "v4-final-13-final-lobby.png",
+      "bytes": 2154798,
+      "sha256": "b46dc56d7fef5e942b4f60b11df6caf770d514f7eb66df12c450f77b6e06dbf1",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.154
+      },
+      "at": "2026-11-15T09:54:06.509Z"
+    }
+  ],
+  "warnings": [],
+  "errors": {
+    "pageerror": [],
+    "consoleError": [],
+    "consoleWarning": [],
+    "badResponse": [],
+    "failedRequest": []
+  },
+  "fatal": null,
+  "summary": {
+    "PASS": 13,
+    "FAIL": 0,
+    "SKIP": 0,
+    "total": 13
+  },
+  "checklist": [
+    {
+      "id": "①",
+      "title": "启动性能与首帧",
+      "status": "PASS"
+    },
+    {
+      "id": "②",
+      "title": "WASD / 鼠标切换",
+      "status": "PASS"
+    },
+    {
+      "id": "③",
+      "title": "人物建模与人群",
+      "status": "PASS"
+    },
+    {
+      "id": "④",
+      "title": "世纪钟钟面与夜间",
+      "status": "PASS"
+    },
+    {
+      "id": "⑤",
+      "title": "摩天轮嵌入同一大厅",
+      "status": "PASS"
+    },
+    {
+      "id": "⑥",
+      "title": "建筑比例与小车贴轨",
+      "status": "PASS"
+    },
+    {
+      "id": "⑦",
+      "title": "触发环分散",
+      "status": "PASS"
+    },
+    {
+      "id": "⑧",
+      "title": "城堡大门（拱门/双塔/城垛）",
+      "status": "PASS"
+    },
+    {
+      "id": "⑨",
+      "title": "文字清晰度 / 无橙色马赛克",
+      "status": "PASS"
+    },
+    {
+      "id": "⑩",
+      "title": "场景一体化（嵌入态大厅常驻）",
+      "status": "PASS"
+    },
+    {
+      "id": "⑪",
+      "title": "常驻动效（木马/海盗船/小车/小火车）",
+      "status": "PASS"
+    },
+    {
+      "id": "⑫",
+      "title": "跳一跳嵌入（背景是大厅）",
+      "status": "PASS"
+    },
+    {
+      "id": "⑬",
+      "title": "全量回归（5轮 Δ0/0 + 预算 + 0 报错）",
+      "status": "PASS"
+    }
+  ]
+}

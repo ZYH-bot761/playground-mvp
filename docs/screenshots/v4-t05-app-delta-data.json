@@ -1,0 +1,78 @@
+{
+  "url": "http://localhost:5175/",
+  "errors": [],
+  "objectObjectHits": [],
+  "bootOk": true,
+  "lobbyFrontShot": "D:/playground-mvp/.tmp-t05/final-lobby-front.png",
+  "lobbyBackShot": "D:/playground-mvp/.tmp-t05/final-lobby-back.png",
+  "activeCtor": "zC",
+  "facilityFrontShot": "D:/playground-mvp/.tmp-t05/final-front.png",
+  "facilityBackShot": "D:/playground-mvp/.tmp-t05/final-back.png",
+  "nightShot": "D:/playground-mvp/.tmp-t05/final-night.png",
+  "nightAnalysis": {
+    "samples": 75768,
+    "avgLuminance": 0,
+    "minLuminance": 0,
+    "maxLuminance": 0,
+    "pureWhiteRatio": 0,
+    "nearWhiteRatio": 0
+  },
+  "hands": {
+    "testDate": "Wed Nov 11 2026 10:08:36 GMT+0800 (China Standard Time)",
+    "expected": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "backZ": [
+      -5.3058009261,
+      -0.9014625587,
+      -3.8222710619
+    ],
+    "frontErr": [
+      0,
+      0,
+      0
+    ],
+    "backErr": [
+      0,
+      0,
+      0
+    ],
+    "frontEqualsBack": true,
+    "pass": true
+  },
+  "memory": {
+    "baseline": {
+      "geometries": 31,
+      "textures": 29
+    },
+    "before": {
+      "geometries": 15,
+      "textures": 20
+    },
+    "during": {
+      "geometries": 15,
+      "textures": 20
+    },
+    "after": {
+      "geometries": 31,
+      "textures": 29
+    },
+    "deltaFromBefore": {
+      "geometries": 16,
+      "textures": 9
+    },
+    "deltaFromBaseline": {
+      "geometries": 0,
+      "textures": 0
+    },
+    "pass": false
+  },
+  "domObjectObject": false
+}
