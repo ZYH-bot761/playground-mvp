@@ -254,6 +254,8 @@ canvas {
 
 @media (max-width: 700px) {
   .pg-mode-hud__key, .pg-mode-hud__hint { display: none; }
+  /* 触屏已有左侧摇杆；F/飞行面板在手机上无可执行键位，隐藏以免压住摇杆。 */
+  .pg-mode-hud { display: none; }
   .pg-gui.lil-gui { display: none; }
 }
 

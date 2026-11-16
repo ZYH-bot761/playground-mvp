@@ -1,0 +1,277 @@
+{
+  "phase": 4,
+  "generatedAt": "2026-11-16T06:42:00.151Z",
+  "pass": 15,
+  "total": 15,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 皇堡大门：拱/四塔/尖顶/纹章/垛口齐全",
+      "ok": true,
+      "detail": {
+        "exists": true,
+        "children": 17,
+        "signWorld": [
+          0,
+          14.05,
+          16.8
+        ],
+        "signVisible": true,
+        "blockers": [],
+        "emblem": true,
+        "towers": 4,
+        "spires": 3,
+        "crenels": 1
+      }
+    },
+    {
+      "name": "B 游乐场招牌可见且正面无遮挡",
+      "ok": true,
+      "detail": {
+        "sign": [
+          0,
+          14.05,
+          16.8
+        ],
+        "blockers": []
+      }
+    },
+    {
+      "name": "C 开始页毛玻璃 + 统一字体 + 按钮过渡",
+      "ok": true,
+      "detail": {
+        "font": "\"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", \"Segoe UI\", sans-serif",
+        "backdrop": "blur(20px) saturate(1.45)",
+        "radius": "26px",
+        "btnTransition": "transform 0.18s, box-shadow 0.18s, filter 0.18s"
+      }
+    },
+    {
+      "name": "D 入园门景渲染预算",
+      "ok": true,
+      "detail": {
+        "day": {
+          "calls": 1170,
+          "triangles": 239204
+        }
+      }
+    },
+    {
+      "name": "E 大厅 WASD 行走",
+      "ok": true,
+      "detail": {
+        "beforeLobby": [
+          0,
+          9.400000000000004,
+          24.999999999999996
+        ],
+        "afterLobby": [
+          0,
+          9.400000000000004,
+          23.499999999999975
+        ],
+        "moved": 1.5,
+        "keys": [
+          "KeyW"
+        ]
+      }
+    },
+    {
+      "name": "F 跳舞厅 WASD + 毛玻璃 HUD",
+      "ok": true,
+      "detail": {
+        "moved": 1.25,
+        "keyDown": true,
+        "hud": {
+          "font": "\"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", \"Segoe UI\", sans-serif",
+          "backdrop": "blur(16px) saturate(1.4)",
+          "shadow": "rgba(0, 0, 0, 0.48) 0px 1px 3px"
+        }
+      }
+    },
+    {
+      "name": "G 暂停菜单毛玻璃 / 字体 / 悬停过渡",
+      "ok": true,
+      "detail": {
+        "open": true,
+        "backdrop": "blur(20px) saturate(1.45)",
+        "font": "\"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", \"Segoe UI\", sans-serif",
+        "btnTransition": "transform 0.16s cubic-bezier(0.2, 0.7, 0.3, 1), filter 0.16s, background-color 0.18s, border-color 0.18s, box-shadow 0.18s, color 0.18s"
+      }
+    },
+    {
+      "name": "H 五区连续巡游 ≤300k 三角形",
+      "ok": true,
+      "detail": {
+        "maxCalls": 1199,
+        "maxTris": 246478,
+        "zones": [
+          "大厅",
+          "动物园",
+          "跳舞厅",
+          "城堡",
+          "农场"
+        ]
+      }
+    },
+    {
+      "name": "I 5 轮热路径 Δgeo/Δtex = 0/0",
+      "ok": true,
+      "detail": {
+        "steady": {
+          "geometries": 74,
+          "textures": 42
+        },
+        "rounds": [
+          {
+            "geometries": 74,
+            "textures": 42
+          },
+          {
+            "geometries": 74,
+            "textures": 42
+          },
+          {
+            "geometries": 74,
+            "textures": 42
+          },
+          {
+            "geometries": 74,
+            "textures": 42
+          },
+          {
+            "geometries": 74,
+            "textures": 42
+          }
+        ],
+        "deltas": [
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "J 首包体积健康（主 JS < 700KB / gzip < 250KB）",
+      "ok": true,
+      "detail": {
+        "main": "index-FwvaSwT3.js",
+        "kb": 534.2,
+        "gzipKb": 165.2,
+        "cssKb": 5.4,
+        "chunks": 8
+      }
+    },
+    {
+      "name": "K 手机虚拟摇杆默认可见",
+      "ok": true,
+      "detail": {
+        "hidden": "false",
+        "display": "block",
+        "opacity": "1",
+        "rect": {
+          "x": 12,
+          "y": 714,
+          "width": 116,
+          "height": 116,
+          "top": 714,
+          "right": 128,
+          "bottom": 830,
+          "left": 12
+        }
+      }
+    },
+    {
+      "name": "L 手机摇杆驱动大厅相机",
+      "ok": true,
+      "detail": {
+        "beforeJoy": [
+          0,
+          30,
+          34
+        ],
+        "afterJoy": [
+          1.7551304347826062,
+          30,
+          34
+        ],
+        "moved": 1.755
+      }
+    },
+    {
+      "name": "M 跳舞厅内摇杆可见且可用",
+      "ok": true,
+      "detail": {
+        "state": {
+          "hidden": "false",
+          "display": "block"
+        },
+        "moved": 1.25
+      }
+    },
+    {
+      "name": "N 农场/玉米地摇杆可用",
+      "ok": true,
+      "detail": {
+        "state": {
+          "hidden": "false",
+          "display": "block",
+          "mode": "orbit"
+        },
+        "beforeFarmJoy": [
+          46.09248507996967,
+          4.421193271614216,
+          73.90751492003034
+        ],
+        "afterFarmJoy": [
+          46.83033563425131,
+          4.421193271614218,
+          73.16966436574873
+        ],
+        "moved": 1.043
+      }
+    },
+    {
+      "name": "O 触屏拖拽不触发设施 / 轻点仍可进入",
+      "ok": true,
+      "detail": {
+        "dragClicks": 0,
+        "tapClicks": 1,
+        "maxDist": 0
+      }
+    }
+  ],
+  "errors": [],
+  "bundle": {
+    "main": "index-FwvaSwT3.js",
+    "kb": 534.2,
+    "gzipKb": 165.2,
+    "cssKb": 5.4,
+    "chunks": 8
+  },
+  "screenshots": [
+    "phase4-dance-hud.png",
+    "phase4-gate-day.png",
+    "phase4-mobile-corn.png",
+    "phase4-mobile-dance.png",
+    "phase4-pause-menu.png",
+    "phase4-start-screen.png"
+  ]
+}

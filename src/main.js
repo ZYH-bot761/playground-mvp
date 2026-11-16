@@ -65,6 +65,7 @@
  */
 
 import './style.css';
+import './utils/helpers/ui-theme.js';
 import sceneManager from './core/scene-manager.js';
 import physicsManager from './core/physics-manager.js';
 import interactionManager from './core/interaction-manager.js';
@@ -77,12 +78,13 @@ import sceneContext from './core/scene-context.js';
 import facilityRuntime from './core/facility-runtime.js';
 import { DemoEmbedView, DEMO_EMBED_KEY } from './components/embedded-views/demo-embed-view.js';
 import { FerrisWheelEmbedView, FERRIS_WHEEL_KEY } from './components/embedded-views/ferris-wheel-embed-view.js';
-import { JumpJumpEmbedView, JUMP_JUMP_KEY } from './components/embedded-views/jump-jump-embed-view.js';
+import { CarouselEmbedView } from './components/embedded-views/carousel-embed-view.js';
+import { PirateShipEmbedView } from './components/embedded-views/pirate-ship-embed-view.js';
 import { DummyAttraction } from './scenes/attractions/dummy-attraction.js';
 import { PumpkinThrower } from './scenes/attractions/pumpkin-thrower.js';
 import { ParkourRun } from './scenes/attractions/parkour-run.js';
 import { MemoryMatch } from './scenes/attractions/memory-match.js';
-import { JumpJump } from './scenes/attractions/jump-jump.js';
+import { DanceHall } from './scenes/attractions/dance-hall.js';
 import { TrainRide } from './scenes/attractions/train-ride.js';
 import { Carousel } from './scenes/attractions/carousel.js';
 import { PirateShip } from './scenes/attractions/pirate-ship.js';
@@ -106,8 +108,8 @@ const PUMPKIN_KEY = 'pumpkin-thrower';
 const PARKOUR_KEY = 'parkour-run';
 /** M5b 项目：记忆类「记忆翻牌」（大厅「魔法牌屋」可进入） */
 const MEMORY_KEY = 'memory-match';
-/** M7 项目（v3 模块2）：复刻「跳一跳」（大厅「跳跳乐」可进入） */
-const JUMP_KEY = 'jump-jump';
+/** 【阶段二·模块 1】观赏类「跳舞厅」（大厅「跳舞厅」可进入，取代旧跳一跳） */
+const DANCE_KEY = 'dance-hall';
 /** M8 项目：观景类「高空环游」（大厅「小火车站台」可进入） */
 const TRAIN_KEY = 'train-ride';
 /** M9 项目：观赏类「旋转木马」 */
@@ -131,7 +133,10 @@ const ACTIVE_KEY = LOBBY_KEY;
 const EMBEDDED_KEYS = new Set([
   DEMO_EMBED_KEY,
   FERRIS_WHEEL_KEY,
-  JUMP_JUMP_KEY,
+  // 【阶段二·模块 2】木马 / 海盗船升级为嵌入视图：Lobby 常驻不卸载，
+  // 进入时只切相机机位，背景天然保留大厅建筑与草坪（取代旧的独立接管）。
+  CAROUSEL_KEY,
+  PIRATE_KEY,
   // 【T04b】legacy 触发环 key 也登记为「嵌入态」： FACILITIES[0] 仍发
   // 'pumpkin-thrower'，实际进入由 TRIGGER_KEY_ALIASES 归一化到 FERRIS_WHEEL_KEY。
   // 登记此 key 的关键目的：让 ④⑤ 后台预热队列对它真正跳过，绝不再构建旧
@@ -157,7 +162,7 @@ const PROJECT_NAMES = Object.freeze({
   [PUMPKIN_KEY]: '南瓜投手',
   [PARKOUR_KEY]: '极限跑酷',
   [MEMORY_KEY]: '记忆翻牌',
-  [JUMP_KEY]: '跳一跳',
+  [DANCE_KEY]: '跳舞厅',
   [TRAIN_KEY]: '高空环游',
   [CAROUSEL_KEY]: '旋转木马',
   [PIRATE_KEY]: '海盗船',
@@ -274,6 +279,13 @@ function syncGlobalContext(key) {
  */
 const prewarmedKeys = new Set();
 
+/**
+ * 需要物理世界（ctx.world / ctx.RAPIER）的设施 key。【懒加载 M8】
+ * Rapier chunk 只在这些设施激活前才拉取；其余设施/大厅激活完全不触碰物理。
+ * @type {Set<string>}
+ */
+const PHYSICS_KEYS = new Set(['dummy', 'pumpkin-thrower']);
+
 /** 后台分帧预热队列是否全部完成（供 window.__playground 与验收脚本读取） */
 let backgroundPrewarmDone = false;
 /** 稳态基线是否已校准（循环第 3 帧后） */
@@ -293,6 +305,16 @@ let prewarmInFlight = false;
 function prewarmFacility(key) {
   if (!attractionManager.keys.includes(key)) {
     console.warn(`[基座] prewarm: 未注册的项目「${key}」`);
+    return false;
+  }
+  if (PHYSICS_KEYS.has(key) && (!physicsManager.isReady || !baseCtx.world)) {
+    // 【懒加载 M8】物理设施预热需要 ctx.world：触发后台初始化，本次跳过。
+    // 后台队列不会登记未成功的 key；rapier 就绪后可再次 prewarm。
+    // 【阶段二修复】isReady 与 syncPhysicsContext 回填 world 之间有一个微任务
+    // 窗口（verify ⑬ 连发预热实测踩中）：仅判 isReady 会让 dummy 在 world 回填
+    // 前进入 activate 并抛「缺少 Rapier 世界」。补 world 判据封死该窗口。
+    console.info(`[基座] prewarm("${key}")：物理世界懒加载中，本次跳过`);
+    physicsManager.init().then(() => syncPhysicsContext()).catch(() => {});
     return false;
   }
   if (EMBEDDED_KEYS.has(key)) {
@@ -372,8 +394,10 @@ function scheduleIdle(task) {
  * 若某设施预热抛错会被跳过，不影响队列继续推进。
  */
 const BACKGROUND_PREWARM_KEYS = Object.freeze([
-  CAROUSEL_KEY, PIRATE_KEY, JUMP_KEY, TRAIN_KEY, CLOCK_KEY,
+  DANCE_KEY, TRAIN_KEY, CLOCK_KEY,
   FIREWORKS_KEY, MEMORY_KEY, PARKOUR_KEY, PUMPKIN_KEY, DUMMY_KEY,
+  // 【阶段二·模块 2】CAROUSEL_KEY / PIRATE_KEY 已登记 EMBEDDED_KEYS，
+  // prewarmFacility 会在嵌入分支直接跳过，不再列进队列。
 ]);
 
 /**
@@ -568,6 +592,8 @@ async function bootstrap() {
     getContext: () => ({
       activeKey: attractionManager.activeKey,
       embedded: !!facilityRuntime.isEmbeddedActive,
+      // Lobby 内部相机过渡（动物园一键飞行）期间，F 接管与相机仲裁互斥
+      busy: !!attractionManager.active?._zooFly,
     }),
   }).attach().buildHUD();
   renderOptimizer.configure({
@@ -594,21 +620,34 @@ async function bootstrap() {
       '它包含在基线中，不是泄漏。'
   );
 
-  /* ---------- ② Rapier 异步初始化（全工程唯一 await init()） ---------- */
-  await physicsManager.init();
+  /* ---------- ② Rapier 懒加载（M8：启动零物理成本）----------
+   * 首包不含 Rapier，且启动【不触发】其下载：只有 dummy / pumpkin-thrower
+   * （PHYSICS_KEYS）真正激活前——onEnterAttraction 门控或 prewarmFacility
+   * 预热——才会拉取专属 chunk 并构建 World。baseCtx 的 world/RAPIER 先置
+   * null，由 syncPhysicsContext() 在就绪后回填同一对象（attractionManager
+   * 持有的就是这份引用，activate 展开时即拿到真值）。 */
 
   /* ---------- ③ 装配：共享上下文 + M5a 双向切换回调 ---------- */
+  /** 物理世界就绪后回填 baseCtx（函数声明在 bootstrap 作用域内提升，prewarm 可提前引用） */
+  function syncPhysicsContext() {
+    baseCtx.RAPIER = physicsManager.RAPIER;
+    baseCtx.world = physicsManager.world;
+  }
+
   const baseCtx = {
     scene: sceneManager.scene,
     camera: sceneManager.camera,
     renderer: sceneManager.renderer,
-    RAPIER: physicsManager.RAPIER,
-    world: physicsManager.world,
+    /** 【懒加载 M8】先置 null，physicsManager.init() 完成后由 syncPhysicsContext 回填 */
+    RAPIER: null,
+    world: null,
     physics: physicsManager,
     ui: uiManager,
     interaction: interactionManager,
     /** 供项目查询基座暂停闸门；定时器回调据此避免在冻结期改动物理世界 */
     isPaused: () => sceneManager.paused,
+    /** 嵌入设施态查询（供大厅移动端摇杆在设施接管相机时自动收起） */
+    isEmbedded: () => facilityRuntime.isEmbeddedActive,
 
     /**
      * 【v4 T03】大厅 → 设施，按 isEmbedded 分流：
@@ -617,7 +656,7 @@ async function bootstrap() {
      *  - 独立设施（跑酷 / 记忆翻牌等玩法类）：走原 AttractionManager 路径，
      *    activate() 内部会先 deactivate Lobby，dispose 并把 orbit 机位写入 _lobbyMemory。
      */
-    onEnterAttraction: (key) => {
+    onEnterAttraction: async (key) => {
       // 【T04b】Lobby 触发环兼容：pumpkin-thrower → ferris-wheel（嵌入摩天轮）
       const resolvedKey = TRIGGER_KEY_ALIASES[key] ?? key;
       const isEmbedded = EMBEDDED_KEYS.has(resolvedKey);
@@ -639,6 +678,17 @@ async function bootstrap() {
         // 否则 embedded activeView 会残留并被 frameDriver 继续驱动。
         if (facilityRuntime.isEmbeddedActive) {
           facilityRuntime.deactivate();
+        }
+        // 【懒加载 M8】物理设施进入前确保 world 就绪（首次会现场拉取 Rapier chunk）；
+        // world 判据与 prewarmFacility 同款（防 isReady/world 回填竞态）
+        if (PHYSICS_KEYS.has(resolvedKey) && (!physicsManager.isReady || !baseCtx.world)) {
+          try {
+            await physicsManager.init();
+            syncPhysicsContext();
+          } catch (err) {
+            console.error(`[基座] 进入「${projectName(resolvedKey)}」失败：物理世界初始化异常`, err);
+            return;
+          }
         }
         attractionManager.activate(resolvedKey);
         prewarmedKeys.add(resolvedKey);
@@ -709,7 +759,12 @@ async function bootstrap() {
   dayNightCycle.warmUp();    // 临时点亮全部天体 → 一次性上传所有几何（不可删，否则夜间星空首帧缺失）
   sceneManager.renderOnce(); // 上传全局单例资源 → 计入基线
   dayNightCycle.applyImmediate(); // 复原正常可见性（此后每帧 update 接管）
-  window.addEventListener('resize', () => fireworkSystem.resize());
+  // 【修复】具名监听：页面卸载/热重载时可解绑（匿名监听无法 removeEventListener）
+  const onWindowResize = () => fireworkSystem.resize();
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('pagehide', () => {
+    window.removeEventListener('resize', onWindowResize);
+  }, { once: true });
 
   /* 全局单例 + FacilityRuntime 每帧驱动：SceneManager 循环只调 attractions.update(dt)。
    * 用包装对象把四者串起来，零 core 改动；仍在 SceneManager 的暂停闸门内，
@@ -738,7 +793,7 @@ async function bootstrap() {
   attractionManager.register(PUMPKIN_KEY, () => new PumpkinThrower());
   attractionManager.register(PARKOUR_KEY, () => new ParkourRun());
   attractionManager.register(MEMORY_KEY, () => new MemoryMatch());
-  attractionManager.register(JUMP_KEY, () => new JumpJump());
+  attractionManager.register(DANCE_KEY, () => new DanceHall());
   attractionManager.register(TRAIN_KEY, () => new TrainRide());
   attractionManager.register(CAROUSEL_KEY, () => new Carousel());
   attractionManager.register(PIRATE_KEY, () => new PirateShip());
@@ -758,10 +813,13 @@ async function bootstrap() {
   });
   facilityRuntime.register(DEMO_EMBED_KEY, () => new DemoEmbedView());
   facilityRuntime.register(FERRIS_WHEEL_KEY, () => new FerrisWheelEmbedView());
-  facilityRuntime.register(JUMP_JUMP_KEY, () => new JumpJumpEmbedView());
-  dayNightCycle.registerEmbeddedContext(JUMP_JUMP_KEY);
+  /* 【阶段二·模块 2】木马 / 海盗船嵌入视图（大厅背景无缝保留） */
+  facilityRuntime.register(CAROUSEL_KEY, () => new CarouselEmbedView());
+  facilityRuntime.register(PIRATE_KEY, () => new PirateShipEmbedView());
   dayNightCycle.registerEmbeddedContext(DEMO_EMBED_KEY);
   dayNightCycle.registerEmbeddedContext(FERRIS_WHEEL_KEY);
+  dayNightCycle.registerEmbeddedContext(CAROUSEL_KEY);
+  dayNightCycle.registerEmbeddedContext(PIRATE_KEY);
 
   /* ---------- ④ 预热阶段整体容错：任一步失败都不连累大厅加载 ----------
    * 【v4 T01 收官】除 Lobby + 全局单例外，10 个设施已改为懒激活，且 Lobby
@@ -931,7 +989,8 @@ async function bootstrap() {
     get lobbyWarmupPeak() { return null; },
     get parkourWarmupPeak() { return null; },
     get memoryWarmupPeak() { return null; },
-    get jumpWarmupPeak() { return null; },
+    get jumpWarmupPeak() { return null; }, // 兼容旧验收脚本（跳一跳已由跳舞厅取代）
+    get danceWarmupPeak() { return null; },
     get trainWarmupPeak() { return null; },
     get carouselWarmupPeak() { return null; },
     get pirateWarmupPeak() { return null; },

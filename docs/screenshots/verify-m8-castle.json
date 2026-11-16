@@ -1,36 +1,38 @@
 {
   "module": "M8",
-  "at": "2026-11-15T09:38:45.329Z",
+  "at": "2026-11-16T06:04:16.624Z",
   "passed": 6,
   "total": 6,
   "allPass": true,
   "checks": [
     {
-      "name": "A 城堡结构（detail 含 5 子对象）",
+      "name": "A 城堡结构（detail 含 8 子对象）",
       "pass": true,
       "detail": {
-        "childCount": 6,
+        "childCount": 8,
         "names": [
           "Districts/castle/body",
           "Districts/castle/walls",
           "Districts/castle/roof",
-          "Districts/castle/finials",
+          "Districts/castle/gate",
           "Districts/castle/windows",
-          "Districts/castle/gate"
+          "Districts/castle/finials",
+          "Districts/castle/flags",
+          "Districts/castle/lights"
         ],
         "body": {
           "isMerged": true,
           "hasColor": true,
-          "tris": 1144
+          "tris": 1096
         },
         "roof": {
           "isMerged": true,
           "hasColor": true,
-          "tris": 126
+          "tris": 142
         },
         "wins": {
           "isInstanced": true,
-          "count": 108
+          "count": 148
         },
         "fins": {
           "isInstanced": true,
@@ -43,28 +45,30 @@
       "name": "B 几何形态（合并+顶点色 / 实例窗与宝珠）",
       "pass": true,
       "detail": {
-        "childCount": 6,
+        "childCount": 8,
         "names": [
           "Districts/castle/body",
           "Districts/castle/walls",
           "Districts/castle/roof",
-          "Districts/castle/finials",
+          "Districts/castle/gate",
           "Districts/castle/windows",
-          "Districts/castle/gate"
+          "Districts/castle/finials",
+          "Districts/castle/flags",
+          "Districts/castle/lights"
         ],
         "body": {
           "isMerged": true,
           "hasColor": true,
-          "tris": 1144
+          "tris": 1096
         },
         "roof": {
           "isMerged": true,
           "hasColor": true,
-          "tris": 126
+          "tris": 142
         },
         "wins": {
           "isInstanced": true,
-          "count": 108
+          "count": 148
         },
         "fins": {
           "isInstanced": true,
@@ -74,11 +78,11 @@
       }
     },
     {
-      "name": "C 体量合理（body 500-4000 面 / 窗 60-200）",
+      "name": "C 体量合理（body 500-4000 面 / 窗 60-220）",
       "pass": true,
       "detail": {
-        "bodyTris": 1144,
-        "winCount": 108,
+        "bodyTris": 1096,
+        "winCount": 148,
         "finCount": 9
       }
     },
@@ -87,21 +91,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 74,
+          "textures": 41
         },
         "rounds": [
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           }
         ],
         "dGeo": 0,
@@ -109,16 +113,16 @@
       }
     },
     {
-      "name": "D 预算（俯瞰≤30万面 / 城堡增量≤1.5万面·≤15calls）",
+      "name": "D 预算（俯瞰≤30万面 / 城堡增量≤1.2万面·≤20calls）",
       "pass": true,
       "detail": {
         "top": {
-          "calls": 916,
-          "triangles": 273076
+          "calls": 855,
+          "triangles": 197866
         },
         "self": {
-          "calls": 12,
-          "triangles": 7556
+          "calls": 0,
+          "triangles": 0
         }
       }
     },
@@ -127,7 +131,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 620637
+        "shotBytes": 805401
       }
     }
   ],

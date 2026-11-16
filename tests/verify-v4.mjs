@@ -41,8 +41,10 @@ const EDGE = process.env.EDGE_PATH || 'C:/Program Files (x86)/Microsoft/Edge/App
 const HEADLESS = process.env.HEADED !== '1';
 
 // 需要循环切换的设施 key（排除大厅与预热桩）
+// 【阶段二】jump-jump 退役 → dance-hall 独立设施；carousel/pirate-ship 改嵌入视图
+// （嵌入视图由 FacilityRuntime 分流，仍可进 RIG_KEYS 做来回口径，activate 走 onEnterAttraction）
 const RIG_KEYS = [
-  'carousel', 'pumpkin-thrower', 'parkour-run', 'jump-jump',
+  'carousel', 'pumpkin-thrower', 'parkour-run', 'dance-hall',
   'pirate-ship', 'memory-match', 'train-ride', 'fireworks-deck', 'century-clock',
 ];
 
@@ -642,25 +644,33 @@ try {
     return c;
   });
   // 玩家模型
+  // 【阶段二】jump-jump 退役：跑酷仍查 _playerMesh 骨架；跳舞厅改为室内
+  // 第一人称（无玩家模型）→ 改查 WASD 控制器挂载与 3 个表演者 rig。
   const players = {};
-  for (const key of ['jump-jump', 'parkour-run']) {
+  for (const key of ['dance-hall', 'parkour-run']) {
     await page.evaluate((k) => window.__playground.onEnterAttraction(k), key);
     await page.waitForTimeout(250);
-    // 【v4 T08】jump-jump 已改为嵌入式视图：玩家不在 attractionManager.active._playerMesh，
-    // 而在 facilityRuntime.activeView._player（buildCharacter 返回的 group.userData.rig）。
-    // 按当前架构分流读取，rig/head/四肢/关节的校验强度不变，不放水。
     players[key] = await page.evaluate((k) => {
       const pg = window.__playground;
-      const isEmbedded = (pg.EMBEDDED_KEYS?.has?.(k) === true) || k === 'jump-jump';
-      const host = isEmbedded ? pg.facilityRuntime?.activeView : pg.attractionManager.active;
-      const mesh = isEmbedded ? host?._player : host?._playerMesh;
+      if (k === 'dance-hall') {
+        const host = pg.attractionManager.active;
+        const rigs = Array.isArray(host?._performers)
+          ? host._performers.map((p) => !!p?.group?.userData?.rig)
+          : [];
+        return { name: host?.group?.name || 'DanceHall', source: 'independent-fp',
+          rig: host?._wasd != null && rigs.length === 3 && rigs.every(Boolean),
+          head: rigs.length === 3, limbs: rigs.length === 3, joints: rigs.length === 3,
+          performers: rigs.length };
+      }
+      const host = pg.attractionManager.active;
+      const mesh = host?._playerMesh;
       const rig = mesh?.userData?.rig;
-      return { name: mesh?.name || null, source: isEmbedded ? 'embedded' : 'independent',
+      return { name: mesh?.name || null, source: 'independent',
         rig: !!rig, head: !!rig?.head,
         limbs: !!(rig?.armL && rig?.armR && rig?.legL && rig?.legR),
         joints: !!(rig?.elbowL && rig?.kneeL && rig?.elbowR && rig?.kneeR) };
     }, key);
-    if (key === 'jump-jump') await capture('03-jumpjump-player');
+    if (key === 'dance-hall') await capture('03-dancehall-performers');
     else await capture('03-parkour-player');
     await ensureLobby();
   }
@@ -708,7 +718,7 @@ try {
       `count=${npc.count} greeters=${npc.greeters} states=${npc.states.join(',')} wavePeak=${npc.wavePeak}`),
     sub('minDist≥0.5', npc.minDist >= 0.5 ? S.PASS : S.FAIL, `minDist=${npc.minDist}`),
     sub('穿墙=0', npc.inBox === 0 ? S.PASS : S.FAIL, `穿墙=${npc.inBox} 障碍=${npc.obstacles}`),
-    sub('JumpJump 玩家模型', players['jump-jump'].rig && players['jump-jump'].limbs ? S.PASS : S.FAIL, JSON.stringify(players['jump-jump'])),
+    sub('DanceHall 表演者骨架 ×3', players['dance-hall'].rig ? S.PASS : S.FAIL, JSON.stringify(players['dance-hall'])),
     sub('ParkourRun 玩家模型', players['parkour-run'].rig && players['parkour-run'].joints ? S.PASS : S.FAIL, JSON.stringify(players['parkour-run'])),
   ];
   pushItem('③', '人物建模与人群', decide(checks),
@@ -1230,41 +1240,44 @@ try {
   pushItem('⑪', '常驻动效（木马/海盗船/小车/小火车）', S.FAIL, String(err));
 }
 
-/* ------------------------------ ⑫ 跳一跳嵌入 ------------------------------ */
+/* --------------------- ⑫ 嵌入视图（木马/海盗船，背景=大厅） --------------------- */
 try {
   const cap = await page.evaluate(() => {
     const pg = window.__playground;
     const keys = [...(pg.EMBEDDED_KEYS || [])];
-    return { keys, hasJump: keys.includes('jump-jump') && !!pg.facilityRuntime?.has?.('jump-jump') };
+    return { keys, hasEmbed: keys.includes('carousel') && keys.includes('pirate-ship') };
   });
-  if (!cap.hasJump) {
-    pushItem('⑫', '跳一跳嵌入（背景是大厅）', S.SKIP, '待 T08 接入：jump-jump 尚未登记为 embedded key', cap);
+  if (!cap.hasEmbed) {
+    pushItem('⑫', '嵌入视图（背景是大厅）', S.SKIP, 'carousel / pirate-ship 未登记为 embedded key', cap);
   } else {
-    await page.evaluate(() => window.__playground.onEnterAttraction('jump-jump'));
-    await drive(20, 0.05);
-    const during = await page.evaluate(() => {
-      const pg = window.__playground;
-      const scene = pg.sceneManager.scene;
-      const blocks = [];
-      scene.traverse((o) => { if (/jump.*block|block.*jump|JumpJump/i.test(o.name)) blocks.push(o.name); });
-      return {
-        lobbyInScene: !!scene.getObjectByName('Lobby'),
-        activeKey: pg.attractionManager.activeKey,
-        independentSky: !!scene.getObjectByName('JumpJump/sky'),
-        independentGround: !!scene.getObjectByName('JumpJump/ground'),
-        blockCount: blocks.length,
-      };
-    });
-    const shot = await capture('12-jumpjump-embedded');
+    const during = {};
+    for (const key of ['carousel', 'pirate-ship']) {
+      await page.evaluate((k) => window.__playground.onEnterAttraction(k), key);
+      await drive(20, 0.05);
+      during[key] = await page.evaluate((k) => {
+        const pg = window.__playground;
+        const scene = pg.sceneManager.scene;
+        return {
+          lobbyInScene: !!scene.getObjectByName('Lobby'),
+          activeKey: pg.attractionManager.activeKey,
+          embedKey: pg.facilityRuntime?.activeKey,
+          facade: !!scene.getObjectByName(`Lobby/facade-${k}-spin`)
+            || !!scene.getObjectByName(`Lobby/facade-${k}-pivot`),
+        };
+      }, key);
+    }
+    const shot = await capture('12-embedded-views');
+    const okAll = ['carousel', 'pirate-ship'].every((k) =>
+      during[k].lobbyInScene && during[k].activeKey === 'lobby'
+      && during[k].embedKey === k && during[k].facade);
     const checks = [
-      sub('背景是大厅（无独立天幕/地砖）', during.lobbyInScene && !during.independentSky && !during.independentGround ? S.PASS : S.FAIL, JSON.stringify(during)),
-      sub('方块池挂在大厅场景', during.blockCount > 0 ? S.PASS : S.FAIL, `blockCount=${during.blockCount}`),
+      sub('背景是大厅（Lobby 常驻 + activeKey=lobby + 立面在场景）', okAll ? S.PASS : S.FAIL, JSON.stringify(during)),
     ];
-    pushItem('⑫', '跳一跳嵌入（背景是大厅）', decide(checks), JSON.stringify(during), { during }, checks, [shot]);
+    pushItem('⑫', '嵌入视图（背景是大厅）', decide(checks), JSON.stringify(during), { during }, checks, [shot]);
     await ensureLobby();
   }
 } catch (err) {
-  pushItem('⑫', '跳一跳嵌入（背景是大厅）', S.FAIL, String(err));
+  pushItem('⑫', '嵌入视图（背景是大厅）', S.FAIL, String(err));
 }
 
 /* ------------------------------ ⑬ 全量回归 ------------------------------ */

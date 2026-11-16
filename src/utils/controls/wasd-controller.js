@@ -9,7 +9,8 @@
  *     两者永不同时响应同一次拖拽（互斥由 Lobby._inputMode 仲裁）。
  *   - 碰撞复用 Lobby._buildingBoxes（AABB，2D 圆-矩形，玩家半径 0.5m）。
  *     noBlock:true（可穿行门廊 / 帐篷）按 Lobby 既有语义跳过。
- *   - 边界 ±30m clamp，速度 6m/s，Shift 1.8×加速。
+ *   - 边界 ±110m clamp（M8 后与 MovementMode/草坪半径对齐，可步行到城堡/农场区），
+ *     速度 6m/s，Shift 1.8×加速。
  *
  * 【生命周期】attach() / dispose() 成对绑定 window+canvas 监听；clearInput()
  * 在失焦时清空按键，避免"切走窗口回来还在走"。所有监听都由本类自己回收，
@@ -18,6 +19,7 @@
  */
 
 import * as THREE from 'three';
+import { VirtualJoystick } from '../../components/virtual-joystick.js';
 
 /** 站立眼高（与 Lobby 提示文案一致） */
 export const WASD_EYE_HEIGHT = 1.6;
@@ -27,8 +29,8 @@ export const WASD_WALK_SPEED = 6;
 export const WASD_SPRINT_MULTIPLIER = 1.8;
 /** 玩家碰撞半径（m）；_buildingBoxes 本身已按 AABB_PAD=1 外扩 */
 export const WASD_PLAYER_RADIUS = 0.5;
-/** 大厅水平边界（m） */
-export const WASD_WORLD_BOUND = 30;
+/** 大厅水平边界（m）——与 MovementMode.WORLD_BOUND、草坪半径 110 统一口径 */
+export const WASD_WORLD_BOUND = 110;
 
 const LOOK_SENSITIVITY = 0.0026;
 const PITCH_LIMIT = 1.45; // ≈83°，不翻过头顶
@@ -65,10 +67,15 @@ export function horizontalForward(q) {
  *   domElement: HTMLElement,
  *   getObstacles: () => Array<{minX:number,maxX:number,minZ:number,maxZ:number,noBlock?:boolean}>,
  *   isEnabled: () => boolean,
+ *   isJoystickEnabled?: () => boolean,
+ *   joystick?: boolean,
  * }} options 全部必填；getObstacles/isEnabled 每帧读取，天然跟随 Lobby 重建
  */
 export class WASDController {
-  constructor({ camera = null, domElement = null, getObstacles = () => [], isEnabled = () => false } = {}) {
+  constructor({
+    camera = null, domElement = null, getObstacles = () => [], isEnabled = () => false,
+    isJoystickEnabled = null, joystick = true, joystickForce = false,
+  } = {}) {
     /** @type {THREE.Camera|null} */
     this.camera = camera;
     /** @type {HTMLElement|null} */
@@ -77,6 +84,8 @@ export class WASDController {
     this.getObstacles = getObstacles;
     /** @type {() => boolean} */
     this.isEnabled = isEnabled;
+    /** 摇杆显隐与 orbit/wasd 两种相机模式解耦；默认跟随 isEnabled */
+    this.isJoystickEnabled = typeof isJoystickEnabled === 'function' ? isJoystickEnabled : null;
 
     // 朝向状态（相机四元数由本类按 YXZ 顺序写回，无 roll）
     this.yaw = 0;
@@ -91,6 +100,17 @@ export class WASDController {
     this._lastY = 0;
     this._attached = false;
     this._disposed = false;
+
+    // ---- 虚拟摇杆（移动端）：轴向直接叠加到键盘输入 ----
+    this._virtualX = 0;
+    this._virtualY = 0;
+    this._joystick = joystick === false ? null : new VirtualJoystick({
+      force: joystickForce === true,
+      onChange: (x, y) => {
+        this._virtualX = x;
+        this._virtualY = y;
+      },
+    });
 
     // ---- 稳定回调引用，attach / dispose 成对解绑 ----
     this._onKeyDown = (event) => {
@@ -145,6 +165,7 @@ export class WASDController {
       window.addEventListener('pointercancel', this._onPointerCancel);
     }
     this._attached = true;
+    this._joystick?.attach();
     return this;
   }
 
@@ -166,6 +187,8 @@ export class WASDController {
       this._attached = false;
     }
     this.clearInput();
+    this._joystick?.dispose();
+    this._joystick = null;
     this.camera = null;
     this.domElement = null;
   }
@@ -174,6 +197,23 @@ export class WASDController {
   clearInput() {
     this._keys.clear();
     this._dragging = false;
+    this._virtualX = 0;
+    this._virtualY = 0;
+    this._joystick?.reset();
+  }
+
+  /** 直接写入归一化轴（测试 / 外部辅助输入共用；x 右正、y 前正） */
+  setVirtualInput(x = 0, y = 0) {
+    this._virtualX = Number.isFinite(x) ? THREE.MathUtils.clamp(x, -1, 1) : 0;
+    this._virtualY = Number.isFinite(y) ? THREE.MathUtils.clamp(y, -1, 1) : 0;
+    return this;
+  }
+
+  /** 每帧刷新摇杆显隐：由场景业务状态决定，组件内部再做同值去重 */
+  refreshJoystick() {
+    const allowed = this.isJoystickEnabled ? this.isJoystickEnabled() : this.isEnabled();
+    this._joystick?.setVisible(allowed && !this._disposed);
+    return this;
   }
 
   /**
@@ -245,6 +285,7 @@ export class WASDController {
    * @returns {boolean} 是否真的发生了平移
    */
   update(dt = 0) {
+    this.refreshJoystick();
     if (!this.isEnabled() || !this.camera) return false;
     if (!Number.isFinite(dt) || dt <= 0) return false;
     const cam = this.camera;
@@ -259,15 +300,20 @@ export class WASDController {
     if (this._keys.has('KeyS') || this._keys.has('ArrowDown')) forward -= 1;
     if (this._keys.has('KeyD') || this._keys.has('ArrowRight')) right += 1;
     if (this._keys.has('KeyA') || this._keys.has('ArrowLeft')) right -= 1;
+    // 摇杆轴向叠加（模拟量：推杆距离决定速度）
+    forward += this._virtualY;
+    right += this._virtualX;
     if (forward === 0 && right === 0) return false;
 
-    // 斜向归一化，避免对角线加速
-    const len = Math.hypot(forward, right) || 1;
+    // 斜向归一化，避免对角线加速；纯摇杆输入保留模拟量
+    const rawLen = Math.hypot(forward, right);
+    const analog = this._keys.size === 0 ? Math.min(1, rawLen) : 1;
+    const len = rawLen || 1;
     forward /= len;
     right /= len;
     const sprint = this._keys.has('ShiftLeft') || this._keys.has('ShiftRight')
       ? WASD_SPRINT_MULTIPLIER : 1;
-    const step = WASD_WALK_SPEED * sprint * dt;
+    const step = WASD_WALK_SPEED * sprint * analog * dt;
 
     // yaw=0 时相机朝 -Z；right 为 forward 绕 Y 轴 -90° 的结果
     const sin = Math.sin(this.yaw);
@@ -300,23 +346,27 @@ export class WASDController {
    */
   panOrbit(dt, camera, controls, keys) {
     const cam = camera || this.camera;
-    if (!cam || !controls?.target || !keys || keys.size === 0) return false;
+    if (!cam || !controls?.target) return false;
     if (!Number.isFinite(dt) || dt <= 0) return false;
 
     let forward = 0;
     let right = 0;
-    if (keys.has('KeyW') || keys.has('ArrowUp')) forward += 1;
-    if (keys.has('KeyS') || keys.has('ArrowDown')) forward -= 1;
-    if (keys.has('KeyD') || keys.has('ArrowRight')) right += 1;
-    if (keys.has('KeyA') || keys.has('ArrowLeft')) right -= 1;
+    if (keys?.has('KeyW') || keys?.has('ArrowUp')) forward += 1;
+    if (keys?.has('KeyS') || keys?.has('ArrowDown')) forward -= 1;
+    if (keys?.has('KeyD') || keys?.has('ArrowRight')) right += 1;
+    if (keys?.has('KeyA') || keys?.has('ArrowLeft')) right -= 1;
+    forward += this._virtualY;
+    right += this._virtualX;
     if (forward === 0 && right === 0) return false;
 
-    const len = Math.hypot(forward, right) || 1;
+    const rawLen = Math.hypot(forward, right);
+    const analog = !keys || keys.size === 0 ? Math.min(1, rawLen) : 1;
+    const len = rawLen || 1;
     forward /= len;
     right /= len;
-    const sprint = keys.has('ShiftLeft') || keys.has('ShiftRight')
+    const sprint = keys?.has('ShiftLeft') || keys?.has('ShiftRight')
       ? WASD_SPRINT_MULTIPLIER : 1;
-    const step = WASD_WALK_SPEED * sprint * dt;
+    const step = WASD_WALK_SPEED * sprint * analog * dt;
 
     // 水平朝向 = 相机 forward 的 XZ 投影；right = (-fz, 0, fx)
     cam.getWorldDirection(this._panDir);

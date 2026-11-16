@@ -1,41 +1,248 @@
 {
   "module": "M9",
-  "at": "2026-11-15T09:45:02.293Z",
+  "at": "2026-11-16T06:07:24.827Z",
   "passed": 6,
   "total": 6,
   "allPass": true,
   "checks": [
     {
-      "name": "A 农场结构（detail ≥15 子对象）",
+      "name": "A 农场结构（detail ≥7 子对象）",
       "pass": true,
       "detail": {
-        "childCount": 15,
+        "childCount": 7,
+        "names": [
+          "Districts/farm/soil",
+          "Districts/farm/structure",
+          "Districts/farm/crop-rice",
+          "Districts/farm/crop-corn",
+          "Districts/farm/crop-wheat",
+          "Districts/farm/crop-veg-leaves",
+          "Districts/farm/crop-veg-fruits"
+        ],
         "structMerged": true,
-        "structTris": 128,
-        "cropCount": 14,
-        "instTotal": 504
+        "structTris": 338,
+        "soil": true,
+        "cropCount": 5,
+        "instTotal": 968,
+        "crops": {
+          "rice": {
+            "count": 360,
+            "rows": 18,
+            "cols": 20,
+            "heightRange": [
+              1,
+              1.2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "corn": {
+            "count": 168,
+            "rows": 14,
+            "cols": 12,
+            "heightRange": [
+              1.85,
+              2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "wheat": {
+            "count": 360,
+            "rows": 15,
+            "cols": 24,
+            "heightRange": [
+              0.78,
+              0.82
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-leaves": {
+            "count": 40,
+            "rows": 4,
+            "cols": 10,
+            "heightRange": [
+              0.3,
+              0.5
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-fruits": {
+            "count": 40,
+            "rows": -1,
+            "cols": -1,
+            "heightRange": null,
+            "map": null,
+            "alphaTest": 0,
+            "doubleSide": false
+          }
+        }
       }
     },
     {
-      "name": "B 几何形态（合并+顶点色结构 / 14 作物实例网格）",
+      "name": "B 几何形态（合并+顶点色结构 / 5 作物实例网格）",
       "pass": true,
       "detail": {
-        "childCount": 15,
+        "childCount": 7,
+        "names": [
+          "Districts/farm/soil",
+          "Districts/farm/structure",
+          "Districts/farm/crop-rice",
+          "Districts/farm/crop-corn",
+          "Districts/farm/crop-wheat",
+          "Districts/farm/crop-veg-leaves",
+          "Districts/farm/crop-veg-fruits"
+        ],
         "structMerged": true,
-        "structTris": 128,
-        "cropCount": 14,
-        "instTotal": 504
+        "structTris": 338,
+        "soil": true,
+        "cropCount": 5,
+        "instTotal": 968,
+        "crops": {
+          "rice": {
+            "count": 360,
+            "rows": 18,
+            "cols": 20,
+            "heightRange": [
+              1,
+              1.2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "corn": {
+            "count": 168,
+            "rows": 14,
+            "cols": 12,
+            "heightRange": [
+              1.85,
+              2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "wheat": {
+            "count": 360,
+            "rows": 15,
+            "cols": 24,
+            "heightRange": [
+              0.78,
+              0.82
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-leaves": {
+            "count": 40,
+            "rows": 4,
+            "cols": 10,
+            "heightRange": [
+              0.3,
+              0.5
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-fruits": {
+            "count": 40,
+            "rows": -1,
+            "cols": -1,
+            "heightRange": null,
+            "map": null,
+            "alphaTest": 0,
+            "doubleSide": false
+          }
+        }
       }
     },
     {
-      "name": "C 作物合理（14 类型 / 实例 300-900）",
+      "name": "C 作物合理（3 主田+菜圃 / 实例 900-1050）",
       "pass": true,
       "detail": {
-        "childCount": 15,
+        "childCount": 7,
+        "names": [
+          "Districts/farm/soil",
+          "Districts/farm/structure",
+          "Districts/farm/crop-rice",
+          "Districts/farm/crop-corn",
+          "Districts/farm/crop-wheat",
+          "Districts/farm/crop-veg-leaves",
+          "Districts/farm/crop-veg-fruits"
+        ],
         "structMerged": true,
-        "structTris": 128,
-        "cropCount": 14,
-        "instTotal": 504
+        "structTris": 338,
+        "soil": true,
+        "cropCount": 5,
+        "instTotal": 968,
+        "crops": {
+          "rice": {
+            "count": 360,
+            "rows": 18,
+            "cols": 20,
+            "heightRange": [
+              1,
+              1.2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "corn": {
+            "count": 168,
+            "rows": 14,
+            "cols": 12,
+            "heightRange": [
+              1.85,
+              2
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "wheat": {
+            "count": 360,
+            "rows": 15,
+            "cols": 24,
+            "heightRange": [
+              0.78,
+              0.82
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-leaves": {
+            "count": 40,
+            "rows": 4,
+            "cols": 10,
+            "heightRange": [
+              0.3,
+              0.5
+            ],
+            "map": "procedural/crop-leaf-atlas",
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          "veg-fruits": {
+            "count": 40,
+            "rows": -1,
+            "cols": -1,
+            "heightRange": null,
+            "map": null,
+            "alphaTest": 0,
+            "doubleSide": false
+          }
+        }
       }
     },
     {
@@ -43,21 +250,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 74,
+          "textures": 41
         },
         "rounds": [
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 74,
+            "textures": 41
           }
         ],
         "dGeo": 0,
@@ -65,16 +272,16 @@
       }
     },
     {
-      "name": "D 预算（俯瞰≤30万面 / 农场隔离≤1.5万面·≤20calls）",
+      "name": "D 预算（俯瞰≤30万面 / 农场隔离≤3万面·≤20calls）",
       "pass": true,
       "detail": {
         "top": {
-          "calls": 916,
-          "triangles": 273076
+          "calls": 855,
+          "triangles": 197866
         },
         "farmOnly": {
-          "calls": 16,
-          "triangles": 6332
+          "calls": 7,
+          "triangles": 12526
         }
       }
     },
@@ -83,7 +290,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 677618
+        "shotBytes": 494932
       }
     }
   ],

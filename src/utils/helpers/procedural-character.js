@@ -3,7 +3,7 @@
  * ProceduralCharacter.js —— v4 T10 程序化人物工厂（真实比例 / 关节化 / 1 draw call）
  * ============================================================================
  * 背景：旧版 NPCManager 用 CapsuleGeometry(0.30,0.88) + SphereGeometry(0.225)
- *       拼「胶囊人」，JumpJump / ParkourRun 玩家也是低模拼搭，无头发 / 五官 /
+ *       拼「胶囊人」，ParkourRun 玩家与 DanceHall 表演者也是低模拼搭，无头发 / 五官 /
  *       两段式四肢。本模块用一套【共享的部件描述】产出两种形态：
  *
  *   ① buildCharacter()      → THREE.Group，带完整 pivot 层级（肩/肘/髋/膝），
@@ -137,15 +137,15 @@ function ellipsoid(rx, ry, rz, x = 0, y = 0, z = 0, _segW, _segH) {
   // 【面数预算】按部件尺寸自适应分段：微小五官 6×4 / 中等 7×5 / 大块 8×6。
   // 调用点保留的可选段数参数被统一忽略，便于一处控制 10 NPC 的三角面总量。
   const size = Math.max(rx, ry, rz);
-  const segW = size < 0.025 ? 6 : size < 0.15 ? 7 : 8;
-  const segH = size < 0.025 ? 4 : size < 0.15 ? 5 : 6;
+  const segW = size < 0.025 ? 5 : size < 0.15 ? 6 : 7;
+  const segH = size < 0.025 ? 3 : size < 0.15 ? 4 : 5;
   const g = new THREE.SphereGeometry(1, segW, segH);
   return xform(g, { sx: rx, sy: ry, sz: rz, x, y, z });
 }
 
 function capsule(r, len, x = 0, y = 0, z = 0, _radial, _cap) {
   // 低模童话风：六边截面 + 2 段端帽，四肢仍有圆润轮廓但面数减半
-  const g = new THREE.CapsuleGeometry(r, len, 2, 6);
+  const g = new THREE.CapsuleGeometry(r, len, 1, 5);
   return xform(g, { x, y, z });
 }
 
@@ -156,18 +156,18 @@ function box(w, h, d, x = 0, y = 0, z = 0, rz = 0, rx = 0) {
 
 function cyl(rt, rb, h, x = 0, y = 0, z = 0, _seg = 12, open = false, sz = 1) {
   // 衣领/袖口/袜子等小圆柱统一 6 边，足够在低模风格下保持轮廓
-  const g = new THREE.CylinderGeometry(rt, rb, h, 6, 1, open);
+  const g = new THREE.CylinderGeometry(rt, rb, h, 5, 1, open);
   return xform(g, { sz, x, y, z });
 }
 
 function torus(r, tube, x = 0, y = 0, z = 0, arc = Math.PI * 2, sx = 1, sy = 1) {
-  const g = new THREE.TorusGeometry(r, tube, 3, 8, arc);
+  const g = new THREE.TorusGeometry(r, tube, 3, 6, arc);
   return xform(g, { rx: Math.PI / 2, sx, sy, x, y, z });
 }
 
 /** 头部：球体下半段收窄成下巴，并让下唇方向微凸，避免「外星人圆头」 */
 function headGeometry() {
-  const g = new THREE.SphereGeometry(1, 12, 9);
+  const g = new THREE.SphereGeometry(1, 10, 7);
   const pos = g.attributes.position;
   for (let i = 0; i < pos.count; i += 1) {
     const nx = pos.getX(i), ny = pos.getY(i), nz = pos.getZ(i);
@@ -188,14 +188,14 @@ function torsoGeometry() {
     [0.142, 1.075], [0.150, 1.160], [0.176, 1.300], [0.198, 1.395],
     [0.185, 1.445], [0.080, 1.472], [0.000, 1.480],
   ];
-  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 10);
+  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 8);
   g.scale(1, 1, TORSO_Z);
   return g;
 }
 
 /** 头顶半球（发帽 / 帽子通用） */
 function hairCap(scale = 1.055, theta = Math.PI * 0.42) {
-  const g = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, theta);
+  const g = new THREE.SphereGeometry(1, 8, 5, 0, Math.PI * 2, 0, theta);
   return xform(g, {
     sx: HEAD_RX * scale, sy: HEAD_RY * scale, sz: HEAD_RZ * scale,
     x: 0, y: HEAD_Y, z: 0,
@@ -618,8 +618,8 @@ export function buildCharacter(options = {}) {
   const group = new THREE.Group();
   group.name = options.name || `ProceduralCharacter/${style}`;
   group.userData.absPos = [0, 0, 0];
-  // 【外层 group 恒为 scale=1】调用方（JumpJump 每局 scale.set(1,1,1) /
-  // 蓄力压扁）直接操作外层不会覆盖人物基准尺寸；尺寸放在内层 body。
+  // 【外层 group 恒为 scale=1】调用方（ParkourRun 蓄力压扁 / DanceHall 坐姿定位）
+  // 直接操作外层不会覆盖人物基准尺寸；尺寸放在内层 body。
   const body = new THREE.Group();
   body.name = 'character-body';
   body.userData.absPos = [0, 0, 0];
@@ -762,7 +762,7 @@ export function buildNPCCharacter(options = {}) {
 
 /**
  * 释放 buildCharacter() 产出的全部 GPU 资源（幂等由调用方保证）。
- * 注意：JumpJump / ParkourRun 会把这些资源同时登记进自身数组与
+ * 注意：ParkourRun / DanceHall 会把这些资源同时登记进自身数组与
  * ctx.registerDisposable，两边都会调用 dispose；Three.js 的 dispose 幂等。
  * @param {THREE.Group} group buildCharacter() 的返回值
  */

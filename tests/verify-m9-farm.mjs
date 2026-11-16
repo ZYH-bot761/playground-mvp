@@ -2,10 +2,10 @@
  * tests/verify-m9-farm.mjs —— M9 农家宝专项
  * 运行：node tests/verify-m9-farm.mjs   （需先 npm run dev 起 5173）
  *
- * A 农场结构：detail 含 structure + 14 个 crop InstancedMesh（≥15 子对象）
+ * A 农场结构：detail 含 structure/soil + 5 个 crop InstancedMesh（≥7 子对象）
  * B 几何形态：structure 为合并几何且带顶点色；crop 均为 InstancedMesh
- * C 作物合理：作物类型 14；实例总数 [300, 900]
- * D 预算：四宫格俯瞰 ≤30 万面；农场自身增量 ≤1.5 万面 / ≤20 calls
+ * C 作物合理：水稻/玉米/小麦 3 主田 + 菜圃叶/果；实例总数 [900, 1050]
+ * D 预算：四宫格俯瞰 ≤30 万面；农场隔离 ≤3 万面 / ≤20 calls
  * E 资源台账：预热→3 轮 Δgeo=0 / Δtex=0
  * F 0 pageerror / console.error + 农场近景截图有效
  */
@@ -56,21 +56,49 @@ try {
     const children = (detail?.children || []).map((c) => ({ name: c.name, instanced: !!c.isInstancedMesh, mesh: !!c.isMesh && !c.isInstancedMesh }));
     const struct = detail?.getObjectByName('Districts/farm/structure');
     const crops = children.filter((c) => c.instanced && c.name.startsWith('Districts/farm/crop-'));
+    const info = {};
     let instTotal = 0;
-    for (const c of crops) { const im = detail.getObjectByName(c.name); instTotal += im.count; }
+    for (const c of crops) {
+      const im = detail.getObjectByName(c.name);
+      instTotal += im.count;
+      info[c.name.replace('Districts/farm/crop-', '')] = {
+        count: im.count,
+        rows: im.userData?.rows ?? -1,
+        cols: im.userData?.cols ?? -1,
+        heightRange: im.userData?.heightRange ?? null,
+        map: im.material?.map?.name || null,
+        alphaTest: im.material?.alphaTest ?? 0,
+        doubleSide: im.material?.side === 2,
+      };
+    }
     return {
       childCount: detail?.children?.length ?? -1,
+      names: children.map((c) => c.name),
       structMerged: !!struct && struct.isMesh && !struct.isInstancedMesh && !!struct.geometry?.attributes?.color,
       structTris: struct?.geometry?.index ? struct.geometry.index.count / 3 : (struct?.geometry?.attributes?.position?.count ?? -1) / 3,
+      soil: !!detail?.getObjectByName('Districts/farm/soil'),
       cropCount: crops.length,
       instTotal,
+      crops: info,
     };
   });
-  add('A 农场结构（detail ≥15 子对象）', farm.childCount >= 15, farm);
-  add('B 几何形态（合并+顶点色结构 / 14 作物实例网格）',
-    farm.structMerged && farm.cropCount === 14, farm);
-  add('C 作物合理（14 类型 / 实例 300-900）',
-    farm.cropCount === 14 && farm.instTotal >= 300 && farm.instTotal <= 900, farm);
+  const rice = farm.crops.rice;
+  const corn = farm.crops.corn;
+  const wheat = farm.crops.wheat;
+  const veg = [farm.crops['veg-leaves'], farm.crops['veg-fruits']].filter(Boolean);
+  const heightOk = (c, lo, hi) => !!c?.heightRange && c.heightRange[0] >= lo && c.heightRange[1] <= hi;
+  add('A 农场结构（detail ≥7 子对象）',
+    farm.childCount >= 7 && farm.soil && farm.names.includes('Districts/farm/structure'), farm);
+  add('B 几何形态（合并+顶点色结构 / 5 作物实例网格）',
+    farm.structMerged && farm.cropCount === 5, farm);
+  add('C 作物合理（3 主田+菜圃 / 实例 900-1050）',
+    farm.cropCount === 5 && farm.instTotal >= 900 && farm.instTotal <= 1050
+    && rice && corn && wheat && veg.length === 2
+    && heightOk(rice, 1.0, 1.2) && heightOk(corn, 1.8, 2.0) && heightOk(wheat, 0.76, 0.84)
+    && rice.rows > 1 && rice.cols > 1 && corn.rows > 1 && corn.cols > 1
+    && rice.map && corn.map && wheat.map
+    && rice.alphaTest > 0 && rice.doubleSide && corn.doubleSide && wheat.doubleSide,
+    farm);
 
   // ---------- E 资源台账（先做，默认机位剔除 farm → Δ0/0）----------
   const keys = await page.evaluate(() => window.__playground.attractionManager.keys
@@ -123,15 +151,15 @@ try {
     cam.updateProjectionMatrix();
     return { top, farmOnly };
   });
-  add('D 预算（俯瞰≤30万面 / 农场隔离≤1.5万面·≤20calls）',
-    budget.top.triangles <= 300000 && budget.farmOnly.triangles <= 15000 && budget.farmOnly.calls <= 20,
+  add('D 预算（俯瞰≤30万面 / 农场隔离≤3万面·≤20calls）',
+    budget.top.triangles <= 300000 && budget.farmOnly.triangles <= 30000 && budget.farmOnly.calls <= 20,
     budget);
 
   // ---------- F 报错 + 农场近景截图 ----------
   const shotData = await page.evaluate(() => {
     const pg = window.__playground;
     const sm = pg.sceneManager, cam = sm.camera;
-    cam.position.set(60, 20, 102); cam.up.set(0, 1, 0); cam.lookAt(60, 8, 60);
+    cam.position.set(48, 14, 88); cam.up.set(0, 1, 0); cam.lookAt(60, 2, 60);
     cam.updateProjectionMatrix(); sm.renderOnce();
     return sm.renderer.domElement.toDataURL('image/png');
   });

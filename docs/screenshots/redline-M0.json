@@ -1,6 +1,6 @@
 {
-  "module": "M0",
-  "at": "2026-11-12T04:09:24.525Z",
+  "module": "m0",
+  "at": "2026-11-15T13:02:47.686Z",
   "port": 5173,
   "passed": 8,
   "total": 8,
@@ -11,21 +11,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 66,
-          "textures": 33
+          "geometries": 67,
+          "textures": 36
         },
         "rounds": [
           {
-            "geometries": 66,
-            "textures": 33
+            "geometries": 67,
+            "textures": 36
           },
           {
-            "geometries": 66,
-            "textures": 33
+            "geometries": 67,
+            "textures": 36
           },
           {
-            "geometries": 66,
-            "textures": 33
+            "geometries": 67,
+            "textures": 36
           }
         ],
         "dGeo": 0,
@@ -37,12 +37,12 @@
       "pass": true,
       "detail": {
         "before": {
-          "geometries": 66,
-          "textures": 33
+          "geometries": 67,
+          "textures": 36
         },
         "after": {
-          "geometries": 66,
-          "textures": 33
+          "geometries": 67,
+          "textures": 36
         },
         "dGeo": 0,
         "dTex": 0
@@ -53,12 +53,12 @@
       "pass": true,
       "detail": {
         "overview": {
-          "calls": 1041,
-          "triangles": 294856
+          "calls": 1097,
+          "triangles": 296534
         },
         "standard": {
-          "calls": 1011,
-          "triangles": 283352
+          "calls": 1059,
+          "triangles": 285066
         }
       }
     },
@@ -100,22 +100,22 @@
         },
         "measured": {
           "overview": {
-            "calls": 1041,
-            "triangles": 294856
+            "calls": 1097,
+            "triangles": 296534
           },
           "standard": {
-            "calls": 1011,
-            "triangles": 283352
+            "calls": 1059,
+            "triangles": 285066
           }
         },
         "delta": {
           "overview": {
-            "triangles": 0,
-            "calls": 0
+            "triangles": 1678,
+            "calls": 56
           },
           "standard": {
-            "triangles": 0,
-            "calls": 0
+            "triangles": 1714,
+            "calls": 48
           }
         }
       }
@@ -149,8 +149,8 @@
       "name": "截图有效",
       "pass": true,
       "detail": {
-        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-M0.png",
-        "bytes": 1188711
+        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-m0.png",
+        "bytes": 1252663
       }
     }
   ],

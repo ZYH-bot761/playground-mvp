@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-15T09:06:54.566Z",
+  "at": "2026-11-16T05:56:54.750Z",
   "passed": 8,
   "total": 8,
   "allPass": true,
@@ -9,7 +9,7 @@
       "pass": true,
       "detail": {
         "hasArch": true,
-        "towers": 6,
+        "towers": 4,
         "crenels": 1
       }
     },
@@ -17,11 +17,11 @@
       "name": "B 皇堡体量升级（主塔 ≥20m / 塔楼 ≥4 / 尖顶 ≥3 / 纹章）",
       "pass": true,
       "detail": {
-        "mainTop": 27.32,
-        "towers": 6,
-        "spires": 12,
+        "mainTop": 29.35,
+        "towers": 4,
+        "spires": 3,
         "emblem": true,
-        "children": 42
+        "children": 17
       }
     },
     {
@@ -39,7 +39,7 @@
             "pumpkin-thrower"
           ],
           "eastWing": [
-            "jump-jump",
+            "dance-hall",
             "carousel",
             "fireworks-deck"
           ],
@@ -51,7 +51,7 @@
           "pumpkin-thrower",
           "parkour-run",
           "memory-match",
-          "jump-jump",
+          "dance-hall",
           "train-ride",
           "carousel",
           "pirate-ship",
@@ -67,17 +67,17 @@
         "gateBoxes": [
           {
             "key": "gate-left",
-            "minX": -8.6,
-            "maxX": -4.4,
-            "minZ": 12.8,
-            "maxZ": 17.2
+            "minX": -10.5,
+            "maxX": -4.9,
+            "minZ": 12,
+            "maxZ": 18
           },
           {
             "key": "gate-right",
-            "minX": 4.4,
-            "maxX": 8.6,
-            "minZ": 12.8,
-            "maxZ": 17.2
+            "minX": 4.9,
+            "maxX": 10.5,
+            "minZ": 12,
+            "maxZ": 18
           }
         ],
         "blockingCenter": []
@@ -117,11 +117,11 @@
           "triangles": 283352
         },
         "measured": {
-          "calls": 1063,
-          "triangles": 285114
+          "calls": 1028,
+          "triangles": 230652
         },
-        "dCalls": 52,
-        "dTris": 1762
+        "dCalls": 17,
+        "dTris": -52700
       }
     },
     {
@@ -134,7 +134,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m5-castle-gate.png",
-        "bytes": 1258777
+        "bytes": 1198104
       }
     }
   ],

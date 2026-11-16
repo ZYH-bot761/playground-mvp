@@ -1,0 +1,227 @@
+{
+  "module": "Phase3",
+  "at": "2026-11-16T02:32:37.091Z",
+  "passed": 7,
+  "total": 7,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "A 城堡群 8 塔 + 合并几何 + 实例窗",
+      "pass": true,
+      "detail": {
+        "childCount": 8,
+        "meta": {
+          "towerCount": 8,
+          "heightRange": [
+            22,
+            35
+          ],
+          "windowCount": 148
+        },
+        "windows": {
+          "isInstanced": true,
+          "count": 148
+        }
+      }
+    },
+    {
+      "name": "B 三主田 + 菜圃：高度/行列/双面叶片",
+      "pass": true,
+      "detail": {
+        "rice": {
+          "name": "rice",
+          "isInstanced": true,
+          "count": 360,
+          "heightRange": [
+            1,
+            1.2
+          ],
+          "rows": 18,
+          "cols": 20,
+          "rowGap": 0.8333333333333334,
+          "colGap": 0.9,
+          "hasMap": true,
+          "alphaTest": 0.45,
+          "doubleSide": true
+        },
+        "corn": {
+          "name": "corn",
+          "isInstanced": true,
+          "count": 168,
+          "heightRange": [
+            1.85,
+            2
+          ],
+          "rows": 14,
+          "cols": 12,
+          "rowGap": 1.1428571428571428,
+          "colGap": 1.6666666666666667,
+          "hasMap": true,
+          "alphaTest": 0.45,
+          "doubleSide": true
+        },
+        "wheat": {
+          "name": "wheat",
+          "isInstanced": true,
+          "count": 360,
+          "heightRange": [
+            0.78,
+            0.82
+          ],
+          "rows": 15,
+          "cols": 24,
+          "rowGap": 0.8,
+          "colGap": 1.0833333333333333,
+          "hasMap": true,
+          "alphaTest": 0.45,
+          "doubleSide": true
+        },
+        "veg": [
+          {
+            "name": "veg-leaves",
+            "isInstanced": true,
+            "count": 40,
+            "heightRange": [
+              0.3,
+              0.5
+            ],
+            "rows": 4,
+            "cols": 10,
+            "rowGap": 2.5,
+            "colGap": 1.4,
+            "hasMap": true,
+            "alphaTest": 0.45,
+            "doubleSide": true
+          },
+          {
+            "name": "veg-fruits",
+            "isInstanced": true,
+            "count": 40,
+            "heightRange": null,
+            "rows": null,
+            "cols": null,
+            "rowGap": null,
+            "colGap": null,
+            "hasMap": false,
+            "alphaTest": 0,
+            "doubleSide": false
+          }
+        ],
+        "childCount": 7
+      }
+    },
+    {
+      "name": "C 五机位三角面 ≤300,000",
+      "pass": true,
+      "detail": {
+        "overview": {
+          "calls": 958,
+          "triangles": 286636
+        },
+        "castle": {
+          "calls": 942,
+          "triangles": 275100
+        },
+        "farm": {
+          "calls": 455,
+          "triangles": 248326
+        },
+        "redline": {
+          "calls": 1245,
+          "triangles": 296834
+        },
+        "standard": {
+          "calls": 1089,
+          "triangles": 284746
+        }
+      }
+    },
+    {
+      "name": "D 城堡/农场自身增量与 draw call 结构",
+      "pass": true,
+      "detail": {
+        "castle": {
+          "calls": 16,
+          "triangles": 6272
+        },
+        "farm": {
+          "calls": 14,
+          "triangles": 25052
+        }
+      }
+    },
+    {
+      "name": "E 5 轮进出 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 60,
+          "textures": 45
+        },
+        "rounds": [
+          {
+            "geometries": 60,
+            "textures": 45
+          },
+          {
+            "geometries": 60,
+            "textures": 45
+          },
+          {
+            "geometries": 60,
+            "textures": 45
+          },
+          {
+            "geometries": 60,
+            "textures": 45
+          },
+          {
+            "geometries": 60,
+            "textures": 45
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "F 夜间窗光 + 0 报错",
+      "pass": true,
+      "detail": {
+        "night": {
+          "mode": "night",
+          "windowIntensity": 2,
+          "exposure": 0.86
+        },
+        "errors": []
+      }
+    },
+    {
+      "name": "G 截图有效",
+      "pass": true,
+      "detail": [
+        {
+          "f": "phase3-overview.png",
+          "bytes": 666013
+        },
+        {
+          "f": "phase3-castle-day.png",
+          "bytes": 730809
+        },
+        {
+          "f": "phase3-castle-night.png",
+          "bytes": 921161
+        },
+        {
+          "f": "phase3-farm-day.png",
+          "bytes": 801800
+        },
+        {
+          "f": "phase3-farm-corn.png",
+          "bytes": 770707
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

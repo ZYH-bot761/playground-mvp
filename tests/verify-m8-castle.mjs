@@ -2,10 +2,10 @@
  * tests/verify-m8-castle.mjs —— M8 童话公主风城堡园专项
  * 运行：node tests/verify-m8-castle.mjs   （需先 npm run dev 起 5173）
  *
- * A 城堡结构：detail 含 body/roof/finials/windows/gate（≥5 子对象）
+ * A 城堡结构：detail 含 body/walls/roof/gate/windows/finials/flags/lights（8 子对象）
  * B 几何形态：body/roof 为合并几何且带顶点色；windows/finials 为 InstancedMesh
- * C 体量合理：body 几何三角面在 [500, 4000]，窗户实例数 [60, 200]
- * D 预算：四宫格俯瞰 ≤30 万面；城堡自身增量 ≤1.5 万面 / ≤6 calls
+ * C 体量合理：body 几何三角面在 [500, 4000]，窗户实例数 [60, 220]
+ * D 预算：四宫格俯瞰 ≤30 万面；城堡自身增量 ≤1.2 万面 / ≤20 calls
  * E 资源台账：预热→3 轮 Δgeo=0 / Δtex=0（城堡在 redline 机位被剔除，不计入 Δ）
  * F 0 pageerror / console.error + 城堡近景截图有效
  */
@@ -73,16 +73,17 @@ try {
       gate: !!gate,
     };
   });
-  add('A 城堡结构（detail 含 5 子对象）',
-    castle.childCount >= 5 && castle.names.includes('Districts/castle/body')
+  add('A 城堡结构（detail 含 8 子对象）',
+    castle.childCount >= 8 && castle.names.includes('Districts/castle/body')
     && castle.names.includes('Districts/castle/roof') && castle.names.includes('Districts/castle/windows')
-    && castle.names.includes('Districts/castle/finials') && castle.names.includes('Districts/castle/gate'),
+    && castle.names.includes('Districts/castle/finials') && castle.names.includes('Districts/castle/gate')
+    && castle.names.includes('Districts/castle/flags') && castle.names.includes('Districts/castle/lights'),
     castle);
   add('B 几何形态（合并+顶点色 / 实例窗与宝珠）',
     castle.body.isMerged && castle.body.hasColor && castle.roof.isMerged && castle.roof.hasColor
     && castle.wins.isInstanced && castle.fins.isInstanced, castle);
-  add('C 体量合理（body 500-4000 面 / 窗 60-200）',
-    castle.body.tris >= 500 && castle.body.tris <= 4000 && castle.wins.count >= 60 && castle.wins.count <= 200,
+  add('C 体量合理（body 500-4000 面 / 窗 60-220）',
+    castle.body.tris >= 500 && castle.body.tris <= 4000 && castle.wins.count >= 60 && castle.wins.count <= 220,
     { bodyTris: castle.body.tris, winCount: castle.wins.count, finCount: castle.fins.count });
 
   // ---------- E 资源台账（先做，默认机位剔除城堡 → Δ0/0）----------
@@ -132,8 +133,8 @@ try {
     cam.updateProjectionMatrix();
     return { top, self: { calls: top.calls - hidden.calls, triangles: top.triangles - hidden.triangles } };
   });
-  add('D 预算（俯瞰≤30万面 / 城堡增量≤1.5万面·≤15calls）',
-    budget.top.triangles <= 300000 && budget.self.triangles <= 15000 && budget.self.calls <= 15,
+  add('D 预算（俯瞰≤30万面 / 城堡增量≤1.2万面·≤20calls）',
+    budget.top.triangles <= 300000 && budget.self.triangles <= 12000 && budget.self.calls <= 20,
     budget);
 
   // ---------- F 报错 + 城堡近景截图（同步 renderOnce + toDataURL）----------

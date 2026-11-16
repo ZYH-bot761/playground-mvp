@@ -3,10 +3,11 @@
  * RenderOptimizer —— 渲染加载优化（消灭远景方块 / 纹理色块 / 剔除误判）
  * ============================================================================
  * 【阶段三需求映射】
- *  1. LOD「确保视野内始终加载高模」：把所有 THREE.LOD（四宫格区域 LOD + 设施
- *     三级 DetailLOD）钉死在 level 0（高模），autoUpdate=false，永不自动降级 →
- *     远景不再出现 Ico / Box 剪影方块。LOD 结构与 levels 全部保留（不删除功能），
- *     手动调用 lod.update(camera) 仍能按距离切换（m7 D 验收不受影响）。
+ *  1. LOD 策略（M8 反转）：设施三级 DetailLOD 保留「视野内始终加载高模」——
+ *     medium/low 阈值适度调大到 90/115m；区域级 LOD（Districts/castle|farm/lod）
+ *     恢复 autoUpdate=true 自动降级，远景 100m 外切 silhouette 低模，
+ *     给 30 万三角面硬预算腾空间（远景剪影方块在雾中不可辨，属可接受代价）。
+ *     LOD 结构与 levels 全部保留；手动 lod.update(camera) 仍可按距离切换。
  *  2. 纹理 Mipmap / 各向异性：遍历场景全部贴图，统一 generateMipmaps + 三线性
  *     minFilter + 设备上限 anisotropy，远距离不再糊成单色块。
  *  3. frustumCulled 误判：遍历所有 Mesh / InstancedMesh 重算精确包围体（合并几何
@@ -61,12 +62,13 @@ export class RenderOptimizer {
   }
 
   /**
-   * 「视野内始终加载高模」，分两类处理（都不删除 LOD 结构 / levels）：
-   *  - 区域级 LOD（Districts/castle|farm/lod）：远景 silhouette 就是用户说的
-   *    「远景方块」。设 autoUpdate=false + 强制 level0 可见 → 运行时永不降级；
-   *    levels 距离保持不变，手动 lod.update(camera) 仍可按距离切换（m7 D 不受影响）。
-   *  - 设施 DetailLOD：把 medium / low 阈值调大到超出场地尺度（160/260m），
-   *    视野内一律高模，超远仍保留降级能力。
+   * LOD 策略（M8 反转，都不删除 LOD 结构 / levels）：
+   *  - 区域级 LOD（Districts/castle|farm/lod）：【恢复自动降级】autoUpdate=true，
+   *    renderer 每帧自动 update(camera) 按距离选层 → 远景走 silhouette 低模，
+   *    为 30 万面硬预算腾空间；若此前被钉死（autoUpdate=false）则在此恢复，
+   *    并把钉死时强制的可见性标记还原（首帧 LOD.update 会重新裁定）。
+   *  - 设施 DetailLOD：把 medium / low 阈值「适度调大」到 90/115m，
+   *    玩家常规视野内一律高模，超远仍降级。
    */
   pinHighDetail(root) {
     let n = 0;
@@ -74,8 +76,11 @@ export class RenderOptimizer {
       if (!o.isLOD || !o.levels || o.levels.length === 0) return;
       const isDistrict = typeof o.name === 'string' && o.name.startsWith('Districts/');
       if (isDistrict) {
-        o.autoUpdate = false;
-        for (let i = 0; i < o.levels.length; i += 1) o.levels[i].object.visible = i === 0;
+        // 【M8】不再钉死 level0：恢复区域级 LOD 的距离选层
+        if (o.autoUpdate === false) {
+          o.autoUpdate = true;
+          for (let i = 0; i < o.levels.length; i += 1) o.levels[i].object.visible = true;
+        }
         n += 1;
       } else if (o.levels.length > 1) {
         /* 【预算口径】设施三级 LOD 只把阈值从 70/90 「适度调大」到 90/115：

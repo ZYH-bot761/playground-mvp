@@ -137,6 +137,11 @@ export class ParkourRun {
     this._buildings = [];       // 每个 InstancedMesh 一条 {mesh, span}（逐实例登记会导致滚动重复叠加）
     this._countTimer = 0;
 
+    // HUD 写入缓存（写变化检测 + 道具条节流），消灭每帧 innerHTML 重建
+    this._hudScore = -1;
+    this._hudCoins = -1;
+    this._hudFrame = 0;
+
     // DOM
     this._ui = null;
     this._styleEl = null;
@@ -465,7 +470,7 @@ export class ParkourRun {
     const ui = document.createElement('div');
     ui.className = 'pk-ui';
     ui.innerHTML = `
-      <div class="pk-hud"><div class="pk-score" id="pk-score">0<small> 分</small></div></div>
+      <div class="pk-hud"><div class="pk-score" id="pk-score"><b id="pk-score-num">0</b><small> 分</small></div></div>
       <div class="pk-coins" id="pk-coins">◎ 0</div>
       <div class="pk-power" id="pk-power"></div>
       <div class="pk-count" id="pk-count">3</div>
@@ -485,6 +490,7 @@ export class ParkourRun {
 
     this._el = {
       score: ui.querySelector('#pk-score'),
+      scoreNum: ui.querySelector('#pk-score-num'),
       coins: ui.querySelector('#pk-coins'),
       power: ui.querySelector('#pk-power'),
       count: ui.querySelector('#pk-count'),
@@ -707,7 +713,7 @@ export class ParkourRun {
       for (let i = 0; i < COIN_CAP && placed < n; i++) {
         const c = this._coins[i];
         if (c.active) continue;
-        c.active = true; c.lane = lane;
+        c.active = true; c.lane = lane; c.hidden = false;
         c.x = LANE_X[lane]; c.y = 0.9;
         c.z = SPAWN_Z - placed * 2.2;
         c.spin = 0;
@@ -820,14 +826,18 @@ export class ParkourRun {
     const center = this._tmpV.set(this._playerX, this._playerY + 0.9, 0);
     for (const c of this._coins) {
       if (!c.active) {
-        // 回收/拾取后缩到 0，避免残留可见
-        this._dummy.position.set(0, -1000, 0);
-        this._dummy.rotation.set(0, 0, 0);
-        this._dummy.scale.set(0, 0, 0);
-        this._dummy.updateMatrix();
-        this._coinMesh.setMatrixAt(c.idx, this._dummy.matrix);
+        // 回收/拾取后缩到 0，避免残留可见。【优化】只写一次零矩阵，不再每帧重复写 160 次
+        if (!c.hidden) {
+          c.hidden = true;
+          this._dummy.position.set(0, -1000, 0);
+          this._dummy.rotation.set(0, 0, 0);
+          this._dummy.scale.set(0, 0, 0);
+          this._dummy.updateMatrix();
+          this._coinMesh.setMatrixAt(c.idx, this._dummy.matrix);
+        }
         continue;
       }
+      c.hidden = false;
       // 磁铁吸附
       if (this._magnetT > 0) {
         const dx = center.x - c.x, dy = center.y - c.y, dz = center.z - c.z;
@@ -960,17 +970,30 @@ export class ParkourRun {
   }
 
   /* ----------------------------- HUD ----------------------------- */
+  /* 【热点修复】原来 running 态每帧重建 score/power 两处 innerHTML（60/s DOM 拼串+解析）：
+   *  - 分数：数值只在整数变化时写 <b> 的 textContent（"<small> 分</small>" 静态化，不再进 innerHTML）；
+   *  - 金币：textContent 仅在变化时写；
+   *  - 道具条：进度条肉眼无感，节流到 ~10Hz 重建一次 innerHTML。 */
   _setHUD() {
     const score = Math.floor(this._distance) + this._coinCount * (this._doubleT > 0 ? 2 : 1);
-    this._el.score.innerHTML = `${score}<small> 分</small>`;
-    this._el.coins.textContent = `◎ ${this._coinCount}`;
-    // 道具条
-    const chips = [];
-    if (this._magnetT > 0) chips.push(this._chip('磁铁', this._magnetT / 8));
-    if (this._doubleT > 0) chips.push(this._chip('双倍', this._doubleT / 10));
-    if (this._jetT > 0) chips.push(this._chip('飞行', this._jetT / 5));
-    if (this._shield) chips.push(`<div class="pk-chip">护盾</div>`);
-    this._el.power.innerHTML = chips.join('');
+    if (score !== this._hudScore) {
+      this._hudScore = score;
+      this._el.scoreNum.textContent = String(score);
+    }
+    if (this._coinCount !== this._hudCoins) {
+      this._hudCoins = this._coinCount;
+      this._el.coins.textContent = `◎ ${this._coinCount}`;
+    }
+    // 道具条节流（6 帧 ≈ 0.1s）；拾取/失效的瞬间最多延迟 0.1s 显示，视觉无感
+    if (++this._hudFrame >= 6) {
+      this._hudFrame = 0;
+      const chips = [];
+      if (this._magnetT > 0) chips.push(this._chip('磁铁', this._magnetT / 8));
+      if (this._doubleT > 0) chips.push(this._chip('双倍', this._doubleT / 10));
+      if (this._jetT > 0) chips.push(this._chip('飞行', this._jetT / 5));
+      if (this._shield) chips.push(`<div class="pk-chip">护盾</div>`);
+      this._el.power.innerHTML = chips.join('');
+    }
   }
   _chip(name, ratio) {
     const pct = clamp(ratio, 0, 1) * 100;

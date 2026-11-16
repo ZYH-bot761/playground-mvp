@@ -25,7 +25,7 @@ import * as THREE from 'three';
 export const ZOO_LAYOUT = Object.freeze({
   bird_zone: {
     cx: 45, cz: 14, w: 26, h: 24, color: 0x70bff2,
-    cn: '鸟类区', en: 'BIRD ZONE', kind: 'bird', count: 8,
+    cn: '家禽区', en: 'POULTRY ZONE', kind: 'poultry', count: 12,
   },
   reptile_zone: {
     cx: 75, cz: 14, w: 26, h: 24, color: 0xc29b57,
@@ -42,21 +42,22 @@ export const ZOO_LAYOUT = Object.freeze({
 });
 
 /**
- * 【M6】具体物种清单与造型特征（用户点名：鸡、狗、鸭、鹅）。
- * 四区里不再是泛化的「鸟/兽/龟/鱼」，而是可辨认的家禽家畜：
- *   鸟区 8 只 = 鸡 3 / 鸭 3 / 鹅 2（红冠、扁喙、长颈各有造型件）
- *   哺乳区 5 只 = 狗 5（竖耳 + 上翘尾）
- *   爬行区 4 只 = 龟 4（硬壳 + 短腿，贴地爬行）
- *   海洋区 15 条 = 鱼 15（尾鳍摆动集群）
- * 造型差异用「每类 3 个 InstancedMesh + instanceColor 局部染色 + 特征部件」实现，
- * 不增加 draw call（仍是每类 3 个 = 12 个 InstancedMesh）。
+ * 【阶段二·模块 3】用户点名四类主角：鸡、鸭、狗、鹅 —— 全部改用
+ * 「球体(ico)/圆柱(cyl)/圆锥(cone)/方体(box)」五部件拼搭，每类独立 spec：
+ *   家禽区 12 只 = 鸡 5（红冠+黄羽）/ 鸭 4（扁喙+长颈）/ 鹅 3（长颈+橙喙+大体型）
+ *   哺乳区 5 只 = 狗 5（竖耳 + 摇尾 + 间歇停顿）
+ *   爬行区 4 只 = 龟 4（硬壳 + 短腿，保留）
+ *   海洋区 15 条 = 鱼 15（尾鳍集群，保留）
+ * 部件级动画：头颈点头（啄食节奏）、双翅扇合、双腿交替、狗摇尾。
+ * 共 30 个 InstancedMesh；几何全部复用 G.ico/G.cone/G.box/G.cyl，
+ * 新增几何仅 1 个共享圆柱（约 32 面），远低于 2k 三角面预算。
  */
 export const ZOO_SPECIES = Object.freeze(['鸡', '鸭', '鹅', '狗', '龟', '鱼']);
 export const ZOO_TRAITS = Object.freeze({
-  鸡: Object.freeze({ zone: 'bird_zone', count: 3, feature: '红冠 + 短喙 + 短尾', color: 0xffd23f }),
-  鸭: Object.freeze({ zone: 'bird_zone', count: 3, feature: '扁喙 + 圆头 + 白羽', color: 0xf2f7ff }),
-  鹅: Object.freeze({ zone: 'bird_zone', count: 2, feature: '长颈 + 橙喙 + 大体型', color: 0xeaf4ff }),
-  狗: Object.freeze({ zone: 'mammal_zone', count: 5, feature: '竖耳 + 上翘尾 + 项圈', color: 0xb9793f }),
+  鸡: Object.freeze({ zone: 'bird_zone', count: 5, feature: '红冠 + 黄羽 + 短喙', color: 0xffd23f }),
+  鸭: Object.freeze({ zone: 'bird_zone', count: 4, feature: '扁喙 + 长颈 + 白羽', color: 0xf2f7ff }),
+  鹅: Object.freeze({ zone: 'bird_zone', count: 3, feature: '长颈 + 橙喙 + 大体型', color: 0xeaf4ff }),
+  狗: Object.freeze({ zone: 'mammal_zone', count: 5, feature: '竖耳 + 摇尾 + 间歇停顿', color: 0xb9793f }),
   龟: Object.freeze({ zone: 'reptile_zone', count: 4, feature: '硬壳 + 短腿 + 缩头', color: 0x66c25a }),
   鱼: Object.freeze({ zone: 'marine_zone', count: 15, feature: '流线体 + 尾鳍集群', color: 0x59c9f2 }),
 });
@@ -73,6 +74,15 @@ const BASE_Y = 1.1;          // 分区地面顶面，高于远处草丘最大起
 const LOOP_FRAMES = 240;     // 240 帧闭环，与 Blender 版一致
 const BLEND_FRAMES = 24;     // 末段插值回首帧，保证周期首尾相接
 const LOOP_SECONDS = 10;     // 240 帧 @24fps
+
+/* 【热点修复】update 每帧每只动物的局部旋转：原实现 new 闭包 + new 数组（32 只 × ~8 次/帧），
+ * 改为写入模块级共享变量，零分配。 */
+let _rotX = 0;
+let _rotZ = 0;
+function rotZInto(cy, sy, x, z) {
+  _rotX = x * cy + z * sy;
+  _rotZ = -x * sy + z * cy;
+}
 
 /* -------------------------------------------------------------------------- */
 /* 工具                                                                        */
@@ -166,6 +176,7 @@ export class Zoo {
       box: this._geo(new THREE.BoxGeometry(1, 1, 1)),
       ico: this._geo(new THREE.IcosahedronGeometry(1, 0)),   // 20 面
       cone: this._geo(new THREE.ConeGeometry(1, 1, 6)),      // 12 面
+      cyl: this._geo(new THREE.CylinderGeometry(1, 1, 1, 8)), // 【模块 3】约 32 面：鸭/鹅长颈
       plane: this._geo(new THREE.PlaneGeometry(1, 1)),
     };
     this._G = G;
@@ -181,6 +192,9 @@ export class Zoo {
       archTrim: this._basic(0x8fd8ff),
       bird: this._basic(0xffd23f),
       birdWing: this._basic(0xfff0a8),
+      comb: this._basic(0xd83a2a),     // 【模块 3】鸡冠红
+      beak: this._basic(0xf28c28),     // 【模块 3】喙橙（鸡/鸭/鹅通用）
+      goose: this._basic(0xe8eef6),    // 【模块 3】鹅灰白
       reptile: this._basic(0x66c25a),
       reptileLeg: this._basic(0x3f8b3a),
       fish: this._basic(0x59c9f2),
@@ -335,23 +349,28 @@ export class Zoo {
     g.name = 'Zoo/entry-arch';
     root.add(g);
     const x = 30, z = 8;
+    // 【阶段二·模块 3】立柱内收：±4.2 → ±3.2，留出 ≥4m 宽沥青路口供玩家进出
     this._mesh(g, 'Zoo/entry-pillar-l', G.box, M.arch,
-      x, BASE_Y + 3.4, z - 4.2, 0.8, 6.8, 0.8);
+      x, BASE_Y + 3.4, z - 3.2, 0.8, 6.8, 0.8);
     this._mesh(g, 'Zoo/entry-pillar-r', G.box, M.arch,
-      x, BASE_Y + 3.4, z + 4.2, 0.8, 6.8, 0.8);
+      x, BASE_Y + 3.4, z + 3.2, 0.8, 6.8, 0.8);
     this._mesh(g, 'Zoo/entry-beam', G.box, M.archTrim,
-      x, BASE_Y + 6.9, z, 1.0, 0.5, 9.4);
+      x, BASE_Y + 6.9, z, 1.0, 0.5, 7.4);
     const tex = this._tex(makeLabelTexture('动物园', 'ZOO  →', 0x8fd8ff));
     const mat = this._mat(new THREE.MeshBasicMaterial({
       map: tex, transparent: true, alphaTest: 0.06, side: THREE.DoubleSide, fog: false,
       toneMapped: false,
     }));
     this._mesh(g, 'Zoo/entry-board', G.box, M.board,
-      x, BASE_Y + 8.4, z, 0.4, 2.6, 9.0);
+      x, BASE_Y + 8.4, z, 0.4, 2.6, 7.0);
     this._mesh(g, 'Zoo/entry-sign', G.plane, mat,
-      x + 0.24, BASE_Y + 8.4, z, 8.6, 2.4, 1).rotation.y = Math.PI / 2;
+      x + 0.24, BASE_Y + 8.4, z, 6.6, 2.4, 1).rotation.y = Math.PI / 2;
     this._mesh(g, 'Zoo/entry-sign-2', G.plane, mat,
-      x - 0.24, BASE_Y + 8.4, z, 8.6, 2.4, 1).rotation.y = -Math.PI / 2;
+      x - 0.24, BASE_Y + 8.4, z, 6.6, 2.4, 1).rotation.y = -Math.PI / 2;
+    // 【阶段二·模块 3】门内沙砾小径：从拱门铺进家禽区，引导玩家走进围观
+    const pathMat = this._basic(0xb8a888);
+    this._mesh(g, 'Zoo/entry-path', G.plane, pathMat,
+      33.5, BASE_Y + 0.014, z, 6.5, 3.6, 1).rotation.x = -Math.PI / 2;
   }
 
   /* -------------------------------------------------------------------------- */
@@ -360,8 +379,11 @@ export class Zoo {
 
   _bakeAllTrajectories() {
     this._bakeFish();
-    this._bakeGroundWalk('reptile', 4);
-    this._bakeGroundWalk('mammal', 5);
+    // 【阶段二·模块 3】家禽混群烘焙：鸡(0-4) 鸭(5-8) 鹅(9-11) 一份轨迹，
+    // 同群互相分离、共避岩石；狗独立烘焙（间歇停顿由 pause 控制）。
+    this._bakeGroundWalk('poultry', 12, { pause: false, seed: 7704 });
+    this._bakeGroundWalk('dog', 5, { pause: true, seed: 7705 });
+    this._bakeGroundWalk('reptile', 4, { pause: false, seed: 7706 });
   }
 
   _bakeFish() {
@@ -460,14 +482,13 @@ export class Zoo {
     }
   }
 
-  _bakeGroundWalk(kind, n) {
-    const isMammal = kind === 'mammal';
+  _bakeGroundWalk(kind, n, { pause = false, seed = 7704 } = {}) {
     const bx = 10.8, bz = 9.8;
     const pos = new Float32Array(n * 3);
-    let seed = isMammal ? 7705 : 7704;
+    let s = seed >>> 0;
     const rnd = () => {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      return seed / 4294967296;
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
     };
     for (let i = 0; i < n; i += 1) {
       pos[i * 3] = (rnd() - 0.5) * 14;
@@ -483,14 +504,17 @@ export class Zoo {
     const SIM = LOOP_FRAMES - BLEND_FRAMES;
     const traj = new Float32Array(LOOP_FRAMES * n * 3);
     const step = new Float32Array(n * 2);
-    const rocks = isMammal
+    // 避障锚点按烘焙种群所在分区：狗区有 4 棵树、龟区有 3 块岩石、家禽区无
+    const rocks = kind === 'dog'
       ? [[-8, -8, 2.4], [8, -8, 2.4], [-8, 8, 2.4], [8, 8, 2.4]]
-      : [[-6, -5, 2.2], [5, 4, 2.5], [2, -7, 1.9]];
+      : kind === 'reptile'
+        ? [[-6, -5, 2.2], [5, 4, 2.5], [2, -7, 1.9]]
+        : [];
     for (let f = 0; f < SIM; f += 1) {
       for (let i = 0; i < n; i += 1) {
         const ix = i * 3;
-        // 哺乳动物：每 70 帧里前 20 帧间歇停顿（按个体错峰）
-        const paused = isMammal && ((f + i * 17) % 70) < 20;
+        // 狗：每 70 帧里前 20 帧间歇停顿（按个体错峰）；家禽不停
+        const paused = pause && ((f + i * 17) % 70) < 20;
         if (paused) { step[i * 2] = 0; step[i * 2 + 1] = 0; }
         else {
           const dx = target[i * 2] - pos[ix];
@@ -540,85 +564,116 @@ export class Zoo {
   }
 
   /* -------------------------------------------------------------------------- */
-  /* 动物（每类 3 个 InstancedMesh：body / head / limb，共 12 draw call）        */
+  /* 【阶段二·模块 3】动物五部件拼搭（球体/圆柱/圆锥/方体 × InstancedMesh）      */
+  /* 每部件 = 1 个 InstancedMesh；pair:2 表示左右成对（翅/腿/耳，count=2n）。     */
+  /* anim: nod 头颈点头 | flap 扇翅 | legs 交替迈步 | tail 摇尾 | ear 竖耳 |      */
+  /*       fswim 鱼尾摆 | 缺省 = 刚性随体                                        */
   /* -------------------------------------------------------------------------- */
 
   _buildAnimals(G, M) {
-    const spec = {
-      bird: {
-        zone: ZOO_LAYOUT.bird_zone, geo: [G.ico, G.ico, G.box],
-        mats: [M.bird, M.white, M.birdWing],
-        scale: [[0.34, 0.28, 0.46], [0.20, 0.20, 0.20], [0.62, 0.07, 0.30]],
-        off: [[0, 0, 0], [0, 0.06, 0.42], [0, 0.10, 0]],
+    // 家禽混群：poultry 轨迹 12 只中 鸡占 0-4、鸭占 5-8、鹅占 9-11
+    const K = {
+      // —— 鸡：红冠 + 黄羽 + 短喙 ——
+      chicken: {
+        traj: 'poultry', off: 0, n: 5, zone: ZOO_LAYOUT.bird_zone,
+        // instanceColor 与材质色相乘：以白为基的亮度变化，避免平方过暗
+        colors: [0xffffff, 0xffe9a8, 0xffffff, 0xfff6d8, 0xffe9a8],
+        parts: [
+          { geo: G.ico, mat: M.bird, s: [0.34, 0.28, 0.44], o: [0, 0.30, 0] },
+          { geo: G.ico, mat: M.white, s: [0.17, 0.17, 0.17], o: [0, 0.56, 0.28], anim: 'nod' },
+          { geo: G.cone, mat: M.comb, s: [0.09, 0.13, 0.10], o: [0, 0.73, 0.26], anim: 'nod' },
+          { geo: G.cone, mat: M.beak, s: [0.06, 0.12, 0.06], o: [0, 0.54, 0.43], anim: 'nod', rotX: Math.PI / 2 },
+          { geo: G.ico, mat: M.birdWing, s: [0.26, 0.07, 0.18], o: [0, 0.34, -0.02], dx: 0.30, pair: 2, anim: 'flap' },
+          { geo: G.box, mat: M.mammalLeg, s: [0.05, 0.20, 0.05], o: [0, 0.10, 0], dx: 0.09, pair: 2, anim: 'legs' },
+        ],
       },
-      fish: {
-        zone: ZOO_LAYOUT.marine_zone, geo: [G.ico, G.ico, G.cone],
-        mats: [M.fish, M.white, M.fishTail],
-        scale: [[0.26, 0.22, 0.50], [0.17, 0.16, 0.17], [0.30, 0.46, 0.30]],
-        off: [[0, 0, 0], [0, 0.02, 0.44], [0, 0, -0.56]],
+      // —— 鸭：扁喙 + 长颈 + 白羽 ——
+      duck: {
+        traj: 'poultry', off: 5, n: 4, zone: ZOO_LAYOUT.bird_zone,
+        colors: [0xffffff, 0xe8ddd0, 0xffffff, 0xf0e8dc],
+        parts: [
+          { geo: G.ico, mat: M.white, s: [0.36, 0.26, 0.48], o: [0, 0.30, 0] },
+          { geo: G.cyl, mat: M.white, s: [0.07, 0.30, 0.07], o: [0, 0.55, 0.26], anim: 'nod' },
+          { geo: G.ico, mat: M.white, s: [0.16, 0.15, 0.18], o: [0, 0.74, 0.30], anim: 'nod' },
+          { geo: G.box, mat: M.beak, s: [0.15, 0.05, 0.16], o: [0, 0.72, 0.47], anim: 'nod' },
+          { geo: G.cone, mat: M.white, s: [0.14, 0.16, 0.10], o: [0, 0.42, -0.46], anim: 'tail', rotX: -1.9 },
+          { geo: G.box, mat: M.mammalLeg, s: [0.05, 0.20, 0.05], o: [0, 0.10, 0], dx: 0.10, pair: 2, anim: 'legs' },
+        ],
       },
+      // —— 鹅：长颈 + 橙喙 + 大体型 ——
+      goose: {
+        traj: 'poultry', off: 9, n: 3, zone: ZOO_LAYOUT.bird_zone,
+        colors: [0xffffff, 0xd8e4ee, 0xffffff],
+        parts: [
+          { geo: G.ico, mat: M.goose, s: [0.42, 0.32, 0.56], o: [0, 0.36, 0] },
+          { geo: G.cyl, mat: M.goose, s: [0.06, 0.44, 0.06], o: [0, 0.76, 0.24], anim: 'nod' },
+          { geo: G.ico, mat: M.goose, s: [0.15, 0.14, 0.18], o: [0, 1.02, 0.28], anim: 'nod' },
+          { geo: G.cone, mat: M.beak, s: [0.055, 0.16, 0.055], o: [0, 1.00, 0.46], anim: 'nod', rotX: Math.PI / 2 },
+          { geo: G.ico, mat: M.birdWing, s: [0.30, 0.08, 0.24], o: [0, 0.40, -0.04], dx: 0.36, pair: 2, anim: 'flap' },
+          { geo: G.box, mat: M.mammalLeg, s: [0.06, 0.26, 0.06], o: [0, 0.13, 0], dx: 0.11, pair: 2, anim: 'legs' },
+        ],
+      },
+      // —— 狗：竖耳 + 摇尾 + 间歇停顿 ——
+      dog: {
+        traj: 'dog', off: 0, n: 5, zone: ZOO_LAYOUT.mammal_zone,
+        colors: [0xffffff, 0xe8c9a0, 0xffffff, 0xc9a06a, 0xe8c9a0],
+        parts: [
+          { geo: G.ico, mat: M.mammal, s: [0.40, 0.34, 0.56], o: [0, 0.42, 0] },
+          { geo: G.ico, mat: M.mammal, s: [0.26, 0.24, 0.26], o: [0, 0.72, 0.40], anim: 'nod' },
+          { geo: G.cone, mat: M.mammalLeg, s: [0.09, 0.20, 0.06], o: [0, 0.92, 0.36], dx: 0.13, pair: 2, anim: 'ear' },
+          { geo: G.cone, mat: M.mammalLeg, s: [0.07, 0.26, 0.07], o: [0, 0.56, -0.52], anim: 'tail', rotX: -1.1 },
+          { geo: G.box, mat: M.mammalLeg, s: [0.08, 0.30, 0.08], o: [0, 0.15, 0], dx: 0.13, pair: 2, anim: 'legs' },
+        ],
+      },
+      // —— 龟（保留）：硬壳 + 短腿 ——
       reptile: {
-        zone: ZOO_LAYOUT.reptile_zone, geo: [G.ico, G.ico, G.cone],
-        mats: [M.reptile, M.reptile, M.reptileLeg],
-        scale: [[0.36, 0.22, 0.58], [0.23, 0.19, 0.24], [0.16, 0.48, 0.16]],
-        off: [[0, 0, 0], [0, 0.06, 0.55], [0, 0.02, -0.62]],
+        traj: 'reptile', off: 0, n: 4, zone: ZOO_LAYOUT.reptile_zone,
+        colors: null,
+        parts: [
+          { geo: G.ico, mat: M.reptile, s: [0.36, 0.22, 0.58], o: [0, 0.22, 0] },
+          { geo: G.ico, mat: M.reptile, s: [0.23, 0.19, 0.24], o: [0, 0.28, 0.55], anim: 'nod' },
+          { geo: G.ico, mat: M.reptileLeg, s: [0.40, 0.18, 0.50], o: [0, 0.38, -0.02] },
+          { geo: G.box, mat: M.reptileLeg, s: [0.10, 0.14, 0.10], o: [0, 0.07, 0.18], dx: 0.22, pair: 2, anim: 'legs' },
+        ],
       },
-      mammal: {
-        zone: ZOO_LAYOUT.mammal_zone, geo: [G.ico, G.ico, G.box],
-        mats: [M.mammal, M.mammal, M.mammalLeg],
-        scale: [[0.44, 0.40, 0.62], [0.27, 0.27, 0.27], [0.15, 0.62, 0.15]],
-        off: [[0, 0, 0], [0, 0.36, 0.58], [0, -0.34, 0]],
+      // —— 鱼（保留）：流线体 + 尾鳍集群 ——
+      fish: {
+        traj: 'fish', off: 0, n: ZOO_LAYOUT.marine_zone.count, zone: ZOO_LAYOUT.marine_zone,
+        colors: null, aquatic: true,
+        parts: [
+          { geo: G.ico, mat: M.fish, s: [0.26, 0.22, 0.50], o: [0, 0, 0] },
+          { geo: G.ico, mat: M.white, s: [0.17, 0.16, 0.17], o: [0, 0.02, 0.44] },
+          { geo: G.cone, mat: M.fishTail, s: [0.30, 0.46, 0.30], o: [0, 0, -0.56], anim: 'fswim' },
+        ],
       },
-    };
-    /* 【M6】每个物种的「特征件」：鸡冠 / 鸭扁喙 / 鹅长颈 / 狗竖耳+尾 / 龟壳 / 鱼尾鳍。
-     * 用第 4 个 InstancedMesh 承载，四区共 16 个 InstancedMesh（≤16 draw call 预算）。 */
-    const features = {
-      // [geo, mat, scale, offset, 摆动方式] —— 特征件跟随 body 一起移动
-      bird: [G.cone, M.birdWing, [0.12, 0.26, 0.12], [0, 0.30, 0.28], 'comb'],
-      fish: [G.cone, M.fishTail, [0.30, 0.46, 0.30], [0, 0, -0.56], 'tail'],
-      reptile: [G.ico, M.reptileLeg, [0.40, 0.18, 0.50], [0, 0.16, -0.02], 'shell'],
-      mammal: [G.cone, M.mammalLeg, [0.14, 0.40, 0.14], [0, 0.50, -0.30], 'ear'],
-    };
-    // 物种配色（每只动物的 body 用 instanceColor 区分：黄鸡 / 白鸭 / 灰白鹅 / 棕狗…）
-    const palette = {
-      bird: [0xffd23f, 0xf2f7ff, 0xeaf4ff, 0xffd23f, 0xf2f7ff, 0xeaf4ff, 0xffd23f, 0xf2f7ff],
-      fish: null, reptile: null, mammal: null,
     };
 
-    for (const [kind, s] of Object.entries(spec)) {
-      const n = s.zone.count;
+    for (const [kind, sp] of Object.entries(K)) {
       const host = this.group.children.find((c) => c.name === `Zoo/${this._zoneKeyOf(kind)}`)
         || this.group;
-      const parts = s.geo.map((geo, k) => {
-        const im = new THREE.InstancedMesh(geo, s.mats[k], n);
+      const parts = sp.parts.map((part, k) => {
+        const count = sp.n * (part.pair || 1);
+        const im = new THREE.InstancedMesh(part.geo, part.mat, count);
         im.name = `Zoo/${kind}/part-${k}`;
         im.frustumCulled = false;
         im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        if (k === 0 && palette[kind]) {
-          for (let i = 0; i < n; i += 1) {
-            im.setColorAt(i, new THREE.Color(palette[kind][i % palette[kind].length]));
+        if (k === 0 && sp.colors) {
+          for (let i = 0; i < sp.n; i += 1) {
+            im.setColorAt(i, new THREE.Color(sp.colors[i % sp.colors.length]));
           }
           if (im.instanceColor) im.instanceColor.needsUpdate = true;
         }
         host.add(im);
         return im;
       });
-      // 第 4 个实例网格：物种特征件（鸡冠 / 龟壳 / 狗耳…）
-      const f = features[kind];
-      const feat = new THREE.InstancedMesh(f[0], f[1], n);
-      feat.name = `Zoo/${kind}/feature`;
-      feat.frustumCulled = false;
-      feat.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      host.add(feat);
-      parts.push(feat);
-      this._animals.push({ kind, n, zone: s.zone, spec: s, parts, feature: f });
+      this._animals.push({ kind, n: sp.n, zone: sp.zone, spec: sp, parts });
     }
   }
 
   _zoneKeyOf(kind) {
     return {
-      bird: 'bird_zone', fish: 'marine_zone',
-      reptile: 'reptile_zone', mammal: 'mammal_zone',
+      chicken: 'bird_zone', duck: 'bird_zone', goose: 'bird_zone',
+      dog: 'mammal_zone', fish: 'marine_zone', reptile: 'reptile_zone',
     }[kind];
   }
 
@@ -645,75 +700,87 @@ export class Zoo {
     const nxt = [0, 0, 0];
 
     for (const a of this._animals) {
-      const { kind, n, zone, spec, parts, feature } = a;
-      const isBird = kind === 'bird';
-      const isFish = kind === 'fish';
+      const { kind, n, zone, spec, parts } = a;
+      const aquatic = spec.aquatic === true;
       for (let i = 0; i < n; i += 1) {
         let lx, ly, lz, yaw, flap;
-        if (isBird) {
-          // 闭合椭圆环绕飞行 + 上下浮动（纯周期函数）
-          // 【M6 修复】周期必须严格 = LOOP_SECONDS(10s)，否则与其余三类
-          // 240 帧烘焙表不同步，整场动画在 t=10s 处不闭环（实测误差 10.99m）。
-          const th = (t / LOOP_SECONDS) * Math.PI * 2 + (i / n) * Math.PI * 2;
-          lx = 9.2 * Math.cos(th);
-          lz = 7.0 * Math.sin(th);
-          ly = 4.6 + 1.5 * Math.sin(3 * th + i * 0.4);
-          // 局部 +Z 为前进方向：绕 Y 旋转 yaw 后 +Z → (sin yaw, 0, cos yaw)
-          yaw = Math.atan2(-9.2 * Math.sin(th), 7.0 * Math.cos(th));
-          flap = Math.sin(t * 7.5 + i) * 0.65;
-        } else {
+        if (aquatic) {
+          // 鱼：烘焙鱼群轨迹（边界/聚群/环流在烘焙期完成）
           this._sample(kind, i, phase, local);
           lx = local[0]; ly = local[1]; lz = local[2];
-          // 用下一帧方向求 yaw（烘焙表已闭环，f1 自动回卷）
           const ph2 = (phase + 1) % LOOP_FRAMES;
           this._sample(kind, i, ph2, nxt);
           const dx = nxt[0] - lx, dz = nxt[2] - lz;
           yaw = (dx * dx + dz * dz) > 1e-7 ? Math.atan2(dx, dz) : 0;
-          flap = Math.sin(t * (isFish ? 9 : 6) + i * 1.3) * (isFish ? 0.55 : 0.40);
+          flap = Math.sin(t * 9 + i * 1.3) * 0.55;
+        } else {
+          // 陆生：地面游走烘焙轨迹（鸡/鸭/鹅共用 poultry，狗/龟独立）
+          this._sample(spec.traj, spec.off + i, phase, local);
+          lx = local[0]; ly = local[1]; lz = local[2];
+          const ph2 = (phase + 1) % LOOP_FRAMES;
+          this._sample(spec.traj, spec.off + i, ph2, nxt);
+          const dx = nxt[0] - lx, dz = nxt[2] - lz;
+          yaw = (dx * dx + dz * dz) > 1e-7 ? Math.atan2(dx, dz) : 0;
+          flap = Math.sin(t * 2.1 + i * 1.7);
         }
 
         const wx = zone.cx + lx;
-        const wy = BASE_Y + (isFish ? ly : ly);
+        const wy = BASE_Y + ly;
         const wz = zone.cz + lz;
         const cy = Math.cos(yaw), sy = Math.sin(yaw);
-        const rotZ = (x, z) => [x * cy + z * sy, -x * sy + z * cy];
 
-        for (let k = 0; k < 3; k += 1) {
-          const [ox, oy, oz] = spec.off[k];
-          const [rx, rz] = rotZ(ox, oz);
-          p.set(wx + rx, wy + oy, wz + rz);
-          e.set(0, yaw, 0);
-          if (k === 2) {
-            // 翅 / 尾 / 腿：绕局部轴摆动，形成骨骼式循环动画
-            if (isBird) e.set(0, yaw, flap);
-            else if (isFish) e.set(0, yaw + flap, 0);
-            else e.set(flap * 0.5, yaw, 0);
+        /* 部件级动画参数（每动物一次，部件间共享）：
+         * nod —— 头颈啄食节奏：慢摆 + 偶发低头啄地（^6 峰值脉冲）
+         * walkStep —— 迈步相位（左右腿反相） */
+        const peck = Math.max(0, Math.sin(t * 1.3 + i * 2.4));
+        const nod = Math.sin(t * 2.2 + i * 1.1) * 0.12 + peck * peck * peck * peck * peck * peck * 0.5;
+        const stepA = Math.sin(t * (kind === 'dog' ? 6 : 8) + i * 2.1);
+        const flapAmp = kind === 'goose'
+          ? 0.10 + Math.max(0, Math.sin(t * 1.8 + i * 0.9)) ** 3 * 0.55
+          : 0.08 + Math.max(0, flap) * 0.12;
+
+        // 实例游标：pair 部件每动物占 2 个实例
+        let cursor = 0;
+        for (let k = 0; k < parts.length; k += 1) {
+          const part = spec.parts[k];
+          const copies = part.pair || 1;
+          const im = parts[k];
+          for (let j = 0; j < copies; j += 1) {
+            const dxOff = (part.dx || 0) * (j === 0 ? 1 : -1);
+            // 【热点修复】旋转写入共享变量，替代每帧 new 闭包/数组
+            rotZInto(cy, sy, part.o[0] + dxOff, part.o[2]);
+            p.set(wx + _rotX, wy + part.o[1], wz + _rotZ);
+            e.set(part.rotX || 0, yaw, 0);
+            switch (part.anim) {
+              case 'nod':  // 头颈/冠/喙：随啄食节奏点头（绕自身中心小幅俯仰）
+                e.set((part.rotX || 0) + nod, yaw, 0);
+                break;
+              case 'flap': // 双翅：静息微张 + 周期扇合（左右镜像）
+                e.set(0, yaw, (j === 0 ? 1 : -1) * flapAmp);
+                break;
+              case 'legs': // 双腿：交替迈步（走动才有意义，停顿帧轨迹 y 恒定 → 同样摆动，视觉可接受）
+                e.set(stepA * (j === 0 ? 1 : -1) * 0.5, yaw, 0);
+                break;
+              case 'tail': // 尾：狗摇尾 / 鸭尾上翘轻摆
+                e.set((part.rotX || 0) + Math.sin(t * (kind === 'dog' ? 9 : 3) + i) * (kind === 'dog' ? 0.24 : 0.08), yaw, 0);
+                break;
+              case 'ear':  // 狗耳：竖立 + 小幅抖动
+                e.set(Math.sin(t * 3 + i * 1.3) * 0.1, yaw, 0);
+                break;
+              case 'fswim': // 鱼尾：左右摆（绕 Y）
+                e.set(0, yaw + flap, 0);
+                break;
+              default: break; // 刚性部件（龟壳/鱼头等）
+            }
+            q.setFromEuler(e);
+            s.set(part.s[0], part.s[1], part.s[2]);
+            m.compose(p, q, s);
+            im.setMatrixAt(cursor, m);
+            cursor += 1;
           }
-          q.setFromEuler(e);
-          s.set(spec.scale[k][0], spec.scale[k][1], spec.scale[k][2]);
-          m.compose(p, q, s);
-          parts[k].setMatrixAt(i, m);
-        }
-
-        // 【M6】物种特征件：鸡冠 / 鸭扁喙 / 鹅长颈 / 狗竖耳 / 龟壳 / 鱼尾鳍
-        // 复用同一套 wx/wy/wz/yaw，不新建任何对象，随身体一起循环摆动
-        if (feature) {
-          const [fgeo, fmat, fscale, foff, fkind] = feature;
-          void fgeo; void fmat;
-          const [ox, oy, oz] = foff;
-          const [rx, rz] = rotZ(ox, oz);
-          p.set(wx + rx, wy + oy + (fkind === 'comb' ? 0.04 * Math.sin(t * 3 + i) : 0), wz + rz);
-          e.set(0, yaw, 0);
-          if (fkind === 'tail') e.set(0, yaw + flap, 0);          // 鱼尾鳍摆动
-          else if (fkind === 'comb') e.set(0, yaw, flap * 0.15);  // 鸡冠轻晃
-          else if (fkind === 'ear') e.set(flap * 0.3, yaw, 0);    // 狗耳竖动
-          q.setFromEuler(e);
-          s.set(fscale[0], fscale[1], fscale[2]);
-          m.compose(p, q, s);
-          parts[3].setMatrixAt(i, m);
         }
       }
-      for (const im of parts) im.instanceMatrix.needsUpdate = true;
+      for (let k = 0; k < parts.length; k += 1) parts[k].instanceMatrix.needsUpdate = true;
     }
 
     // 标牌轻微呼吸光（只改材质属性，不新建资源）

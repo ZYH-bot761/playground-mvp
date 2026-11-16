@@ -1,13 +1,13 @@
 /**
- * tests/verify-m4-jump.mjs —— M4 第一人称主路跑酷专项
+ * tests/verify-m4-jump.mjs —— 【阶段二重写】跳舞厅专项（原跳一跳退役）
  * 运行：node tests/verify-m4-jump.mjs
  *
- * A 能稳定进入跳一跳（activeKey 不卡、cameraRig 完成 blend）
- * B 第一人称机位：相机在玩家头顶、朝向下一落脚台（非第三人称后上方）
- * C 沿主路闭环 10 个落脚台（不是随机方块池），且都在中轴 ±3m 内
- * D 自动连续跳跃：受控推进后分数递增、落脚台索引前进
- * E 落地判定放宽后不再「跳不进去」（成功率 > 80%）
- * F 视角不卡住：相机随玩家移动，且无 roll、0 报错
+ * A 能稳定进入跳舞厅（attractionManager.activeKey === 'dance-hall'，无独立天幕）
+ * B 第一人称机位：相机眼高 1.6m、落在大厅地板范围内；WASD 控制器挂载
+ * C 三个表演者 rig 齐全（琴师/歌手/舞者），坐姿琴师骨盆落凳面高度
+ * D 舞台灯光 3 盏 + 镜球 + 音箱在场；音频调度器可启停（_muted 切换）
+ * E 退出回大厅：activeKey === 'lobby'、DanceHall 根节点摘除、UI 清理
+ * F 全程 0 报错
  */
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -16,7 +16,7 @@ import path from 'node:path';
 const PORT = process.env.PORT || 5173;
 const BASE = `http://localhost:${PORT}/`;
 const OUT = path.resolve('docs/screenshots');
-const REPORT = path.join(OUT, 'verify-m4-jump.json');
+const REPORT = path.join(OUT, 'verify-m4-dance.json');
 const EDGE = process.env.EDGE_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -38,109 +38,83 @@ try {
   await page.goto(`${BASE}?t=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__playground?.bootReady === true, null, { timeout: 120000 });
   await page.locator('[data-action="start"]').click();
-  await page.waitForFunction(() => window.__playground?.loopStarted === true, null, { timeout: 30000 });
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => window.__playground?.baselineCalibrated === true, null, { timeout: 120000 });
 
-  // 进入跳一跳
-  await page.evaluate(() => window.__playground.onEnterAttraction('jump-jump'));
-  const enter = await page.evaluate(() => {
+  // A 进入跳舞厅（真实路径：预热 + activate）
+  await page.evaluate(() => window.__playground.prewarm('dance-hall'));
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => window.__playground.attractionManager.activate('dance-hall'));
+  await page.waitForTimeout(1000);
+
+  const inside = await page.evaluate(() => {
     const pg = window.__playground;
-    const fr = pg.facilityRuntime;
-    const v = fr?._views?.get?.('jump-jump') || fr?.views?.get?.('jump-jump') || null;
+    const host = pg.attractionManager.active;
+    const cam = pg.sceneManager.camera;
+    const scene = pg.sceneManager.scene;
     return {
       activeKey: pg.attractionManager.activeKey,
-      embedded: !!fr?.isEmbeddedActive,
-      view: !!v,
-      score: v?.score ?? null,
-      state: v?.state ?? null,
-      camera: [pg.sceneManager.camera.position.x, pg.sceneManager.camera.position.y,
-        pg.sceneManager.camera.position.z].map((n) => +n.toFixed(2)),
+      camY: +cam.position.y.toFixed(3),
+      camXZ: [Math.round(cam.position.x * 10) / 10, Math.round(cam.position.z * 10) / 10],
+      wasd: host?._wasd != null,
+      ui: !!document.querySelector('.dh-ui'),
+      musicBtn: !!document.querySelector('[data-dh="music"]'),
+      performers: Array.isArray(host?._performers) ? host._performers.length : 0,
+      performerRigs: Array.isArray(host?._performers)
+        ? host._performers.map((p) => !!p?.group?.userData?.rig) : [],
+      pianistSeated: Array.isArray(host?._performers)
+        ? (host._performers.find((p) => p.kind === 'pianist')?.group?.position?.y ?? null) : null,
+      lights: (host?._stageLight ? 1 : 0) + (host?._discoLight ? 1 : 0)
+        + (scene.getObjectByName('DanceHall/light-fill') ? 1 : 0),
+      disco: !!scene.getObjectByName('DanceHall/disco-ball'),
+      speakers: !!scene.getObjectByName('DanceHall/speaker-l'),
+      orphanSky: !!scene.getObjectByName('DanceHall/sky'),
+      lobbyAlive: !!scene.getObjectByName('Lobby') || pg.attractionManager.activeKey === 'dance-hall',
     };
   });
-  add('A 可稳定进入跳一跳', enter.embedded && enter.view, enter);
+  add('A 进入跳舞厅', inside.activeKey === 'dance-hall', `activeKey=${inside.activeKey}`);
+  add('B1 第一人称眼高≈1.6', Math.abs(inside.camY - 1.6) < 0.35, `camY=${inside.camY}`);
+  add('B2 WASD 挂载', inside.wasd === true, `wasd=${inside.wasd}`);
+  add('C1 表演者 ×3 + rig 齐全', inside.performers === 3 && inside.performerRigs.every(Boolean),
+    `performers=${inside.performers} rigs=${JSON.stringify(inside.performerRigs)}`);
+  add('C2 琴师坐姿高度≈0.61', inside.pianistSeated != null && Math.abs(inside.pianistSeated - 0.61) < 0.05,
+    `pianistY=${inside.pianistSeated}`);
+  add('D1 舞台灯光 3 盏', inside.lights === 3, `lights=${inside.lights}`);
+  add('D2 镜球 + 音箱在场', inside.disco && inside.speakers, `disco=${inside.disco} speakers=${inside.speakers}`);
+  add('D3 无独立天幕（室内但同场景）', !inside.orphanSky, `orphanSky=${inside.orphanSky}`);
+  add('E0 UI + 音乐按钮', inside.ui && inside.musicBtn, `ui=${inside.ui} music=${inside.musicBtn}`);
+  await page.screenshot({ path: path.join(OUT, 'verify-dance-inside.png') });
 
-  const layout = await page.evaluate(() => {
-    const pg = window.__playground;
-    const fr = pg.facilityRuntime;
-    const v = [...(fr?._views?.values?.() || [])].find((x) => x.key === 'jump-jump');
-    if (!v) return null;
-    const pts = v._blocks.map((b) => [+b.x.toFixed(2), +b.z.toFixed(2), b.active]);
-    const offAxis = pts.filter(([x]) => Math.abs(x) > 3).length;
-    return { pts, offAxis, current: v._current, next: v._next, pool: v._blocks.length,
-      anchor: {
-        y: +v._anchor.position.y.toFixed(2),
-        x: +v._anchor.position.x.toFixed(2),
-        z: +v._anchor.position.z.toFixed(2),
-      },
-      player: [+v._playerPos.x.toFixed(2), +v._playerPos.y.toFixed(2), +v._playerPos.z.toFixed(2)] };
+  // D4 音乐静音切换不报错
+  await page.evaluate(() => {
+    const host = window.__playground.attractionManager.active;
+    host?.toggleMute?.();
+    host?.toggleMute?.();
   });
-  add('C 沿主路闭环 10 个落脚台', layout && layout.pool === 10 && layout.offAxis === 0,
-    layout && { pool: layout.pool, offAxis: layout.offAxis, pts: layout.pts });
 
-  // 第一人称：相机与玩家同 x/z，且高于玩家脚底
-  const fp = layout && Math.abs(layout.anchor.x - layout.player[0]) < 0.2
-    && Math.abs(layout.anchor.z - layout.player[2]) < 0.2
-    && layout.anchor.y > layout.player[1] + 0.8;
-  add('B 第一人称机位（相机在玩家头顶）', fp,
-    layout && { anchor: layout.anchor, player: layout.player });
-
-  // D/E：受控推进 900 帧（45s），看分数 / 索引 / 落点
-  const run = await page.evaluate(() => {
+  // E 退出回大厅
+  await page.evaluate(() => window.__playground.onExitAttraction?.());
+  await page.waitForTimeout(1500);
+  const after = await page.evaluate(() => {
     const pg = window.__playground;
-    const fr = pg.facilityRuntime;
-    const v = [...(fr?._views?.values?.() || [])].find((x) => x.key === 'jump-jump');
-    if (!v) return null;
-    const start = { score: v.score, cur: v._current,
-      px: v._playerPos.x, pz: v._playerPos.z };
-    let maxScore = 0, jumps = 0, lastState = v.state;
-    const positions = [];
-    for (let i = 0; i < 900; i += 1) {
-      // 与真实 frameDriver 同口径：facilityRuntime.update 内部同时推进
-      // activeView.update + cameraRig.update（后者负责完成 0.8s 相机 blend）
-      pg.facilityRuntime.update(0.05);
-      if (v.state === 'jumping' && lastState !== 'jumping') jumps += 1;
-      lastState = v.state;
-      maxScore = Math.max(maxScore, v.score);
-      if (i % 150 === 0) positions.push([+v._playerPos.x.toFixed(1), +v._playerPos.z.toFixed(1)]);
-    }
-    return { start, maxScore, jumps, final: v.score, state: v.state,
-      current: v._current, positions,
-      moved: Math.hypot(v._playerPos.x - start.px, v._playerPos.z - start.pz) };
+    const scene = pg.sceneManager.scene;
+    let orphan = 0;
+    scene.traverse((o) => { if (String(o.name || '').startsWith('DanceHall')) orphan += 1; });
+    return { activeKey: pg.attractionManager.activeKey, orphan, ui: !!document.querySelector('.dh-ui') };
   });
-  add('D 自动连续跳跃使分数递增', run && run.maxScore > 3 && run.jumps >= 3, run);
-  add('E 落脚成功（非反复掉落）', run && run.final > 3, run);
+  add('E1 退出回大厅', after.activeKey === 'lobby', `activeKey=${after.activeKey}`);
+  add('E2 DanceHall 对象清零', after.orphan === 0, `orphan=${after.orphan}`);
+  add('E3 跳舞厅 UI 移除', !after.ui, `ui=${after.ui}`);
+  await page.screenshot({ path: path.join(OUT, 'verify-dance-lobby.png') });
 
-  // F 相机随玩家移动 + 无 roll + 0 报错
-  const cam = await page.evaluate(() => {
-    const pg = window.__playground;
-    const c = pg.sceneManager.camera;
-    const up = c.up;
-    return { up: [up.x, up.y, up.z].map((n) => +n.toFixed(3)),
-      fov: c.fov, pos: [c.position.x, c.position.y, c.position.z].map((n) => +n.toFixed(2)) };
-  });
-  add('F 相机无 roll / FOV 已切第一人称', Math.abs(cam.up[1] - 1) < 0.01 && cam.fov >= 70, cam);
-  add('0 pageerror / console.error', errors.length === 0, errors.slice(0, 5));
-
-  // 退出不卡
-  await page.evaluate(() => window.__playground.onExitAttraction());
-  const exit = await page.evaluate(() => ({
-    activeKey: window.__playground.attractionManager.activeKey,
-    embedded: !!window.__playground.facilityRuntime.isEmbeddedActive,
-  }));
-  add('G 可正常返回大厅', exit.activeKey === 'lobby' && !exit.embedded, exit);
-
-  const shot = path.join(OUT, 'zoo-m4-jump.png');
-  await page.evaluate(() => window.__playground?.sceneManager?.renderOnce?.());
-  await page.screenshot({ path: shot });
-  add('截图有效', fs.statSync(shot).size > 20000, { file: shot, bytes: fs.statSync(shot).size });
+  add('F 全程 0 报错', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
 } catch (err) {
-  add('脚本执行', false, String(err?.stack || err));
-} finally {
-  const passed = checks.filter((c) => c.pass).length;
-  const report = { at: new Date().toISOString(), passed, total: checks.length,
-    allPass: passed === checks.length, checks, errors };
-  fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
-  console.log(`M4_JUMP ${passed}/${checks.length} allPass=${report.allPass}`);
-  for (const c of checks) console.log(`${c.pass ? 'PASS' : 'FAIL'}  ${c.name}  ${JSON.stringify(c.detail).slice(0, 300)}`);
-  await browser.close();
+  add('流程异常', false, String(err));
 }
+
+const pass = checks.filter((c) => c.pass).length;
+const summary = { suite: 'verify-m4-dance/1.0（原跳一跳专项退役重写）', pass, total: checks.length,
+  ok: pass === checks.length, checks, errors: errors.slice(0, 10) };
+console.log(JSON.stringify(summary, null, 2));
+fs.writeFileSync(REPORT, JSON.stringify(summary, null, 2));
+await browser.close();
+process.exit(summary.ok ? 0 : 1);

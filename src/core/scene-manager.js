@@ -70,7 +70,7 @@ export class SceneManager {
     // 白天大气透视：薄雾，远处草坪与天空平滑衔接
     this.scene.fog = new THREE.Fog(new THREE.Color(FOG_COLOR).multiplyScalar(EXPOSURE_COMP), 45, 130);
 
-    this.camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 200);
+    this.camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 700);
     this.camera.position.set(0, 2.0, 7);
     this.camera.lookAt(0, 0.6, 0);
 

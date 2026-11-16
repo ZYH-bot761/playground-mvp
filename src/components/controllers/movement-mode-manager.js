@@ -45,8 +45,8 @@ const FLY_SPEED = 16;
 const BLEND_TIME = 0.5;
 /** 飞行模式的默认巡航高度 */
 const FLIGHT_CRUISE_Y = 14;
-/** 水平漫游边界 */
-const WORLD_BOUND = 118;
+/** 水平漫游边界——与 WASD_WORLD_BOUND / 草坪半径 110 统一口径（M8 修复边界分裂） */
+const WORLD_BOUND = 110;
 
 const MOVE_CODES = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD',
@@ -100,7 +100,7 @@ class MovementModeManager {
     this._camera = null;
     this._domElement = null;
     this._getObstacles = () => [];
-    this._getContext = () => ({ activeKey: null, embedded: false });
+    this._getContext = () => ({ activeKey: null, embedded: false, busy: false });
     this._keys = new Set();
     this._yaw = 0;
     this._pitch = 0;
@@ -238,6 +238,7 @@ class MovementModeManager {
     if (this._disposed || this.engaged) return this;
     const ctx = this._getContext();
     if (ctx.activeKey && ctx.activeKey !== 'lobby') return this;
+    if (ctx.busy) return this; // Lobby 内部相机过渡（动物园飞行等）期间让位
     if (cameraRig.isTransitioning) return this;
     this.engaged = true;
     this._initOrientation();
@@ -297,6 +298,7 @@ class MovementModeManager {
     const ctx = this._getContext();
     if (ctx.embedded || cameraRig.isTransitioning) return false;
     if (ctx.activeKey && ctx.activeKey !== 'lobby') return false;
+    if (ctx.busy) return false; // Lobby 内部相机过渡（动物园飞行等）期间自动让位
     return true;
   }
 

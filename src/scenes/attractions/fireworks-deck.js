@@ -36,6 +36,10 @@ const lerp = (a, b, t) => a + (b - a) * t;
 /** 烟花在相机前方的世界锚点（相机看向此处上空） */
 const ANCHOR = new THREE.Vector3(0, 19, -22);
 
+/** 自动模式花型池：排除 text（文字必须走 launchText 专用链路，不能进 launch()）。
+ *  原实现用硬编码 (rand*3)|0 隐式排除第 4 项，配置一旦调整就会漏型/崩溃——改为显式过滤。 */
+const AUTO_TYPES = FIREWORK_TYPES.filter((t) => t.key !== 'text');
+
 export class FireworksDeck extends IAttraction {
   constructor() {
     super();
@@ -45,6 +49,9 @@ export class FireworksDeck extends IAttraction {
 
     this._geometries = [];
     this._materials = [];
+    /** InstancedMesh 台账：instanceMatrix/instanceColor 的 GL 缓冲必须走 IM.dispose() 释放，
+     *  geometry/material dispose 不覆盖它们（原实现漏掉 → 每次进出设施累积泄漏）。 */
+    this._instancedMeshes = [];
 
     // 相机
     this._cameraSaved = null;
@@ -192,6 +199,7 @@ export class FireworksDeck extends IAttraction {
     const postGeo = this._geo(new THREE.CylinderGeometry(0.075, 0.075, 1.1, 6));
     const N = 32;
     const posts = new THREE.InstancedMesh(postGeo, trimMat, N);
+    this._instancedMeshes.push(posts); // 【泄漏修复】登记实例缓冲，dispose 时必须释放
     posts.frustumCulled = false;
     const dummy = new THREE.Object3D();
     for (let i = 0; i < N; i++) {
@@ -217,6 +225,7 @@ export class FireworksDeck extends IAttraction {
     // 发射筒（InstancedMesh，1 draw call）
     const tubeGeo = this._geo(new THREE.CylinderGeometry(0.34, 0.42, 1.7, 10));
     const tubes = new THREE.InstancedMesh(tubeGeo, trimMat, 6);
+    this._instancedMeshes.push(tubes); // 【泄漏修复】
     tubes.frustumCulled = false;
     for (let i = 0; i < 6; i++) {
       const a = -0.55 + (i / 5) * 1.1;
@@ -232,6 +241,7 @@ export class FireworksDeck extends IAttraction {
     // 筒口发光环
     const capGeo = this._geo(new THREE.TorusGeometry(0.34, 0.055, 6, 16));
     const caps = new THREE.InstancedMesh(capGeo, glowMat, 6);
+    this._instancedMeshes.push(caps); // 【泄漏修复】
     caps.frustumCulled = false;
     for (let i = 0; i < 6; i++) {
       const a = -0.55 + (i / 5) * 1.1;
@@ -473,7 +483,7 @@ export class FireworksDeck extends IAttraction {
       this._autoT += d;
       if (this._autoT >= 2.2) {
         this._autoT = 0;
-        const t = FIREWORK_TYPES[(Math.random() * 3) | 0].key; // 自动模式不放文字
+        const t = AUTO_TYPES[(Math.random() * AUTO_TYPES.length) | 0].key;
         const c = FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0].hex;
         fireworkSystem.launch(
           { x: ANCHOR.x + (Math.random() - 0.5) * 15, y: ANCHOR.y + (Math.random() - 0.5) * 7, z: ANCHOR.z },
@@ -535,6 +545,8 @@ export class FireworksDeck extends IAttraction {
     }
 
     // GPU 资源（登记器会二次兜底，dispose 幂等）
+    for (const im of this._instancedMeshes) { try { im.dispose(); } catch (e) { /* noop */ } }
+    this._instancedMeshes.length = 0;
     for (const g of this._geometries) { try { g.dispose(); } catch (e) { /* noop */ } }
     for (const m of this._materials) { try { m.dispose(); } catch (e) { /* noop */ } }
     this._geometries.length = 0;

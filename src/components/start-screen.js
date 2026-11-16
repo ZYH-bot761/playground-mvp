@@ -54,7 +54,7 @@ const STYLE_TEXT = `
   box-sizing: border-box;
   /* 刘海 / 圆角屏：卡片始终留在安全区内 */
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-family: var(--pg-ui-font, 'Noto Sans SC', 'Source Han Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif);
   color: #eaf3ff;
   background: linear-gradient(
     180deg,
@@ -166,15 +166,16 @@ const STYLE_TEXT = `
   width: min(580px, calc(100vw - 40px));
   padding: 44px 42px 34px;
   text-align: center;
-  border: 1px solid rgba(142, 200, 255, 0.26);
+  border: 1px solid rgba(235, 198, 128, 0.34);
   border-radius: 26px;
-  background: linear-gradient(158deg, rgba(11, 18, 36, 0.74) 0%, rgba(11, 18, 36, 0.5) 100%);
+  background: linear-gradient(158deg, rgba(15, 20, 34, 0.78) 0%, rgba(10, 16, 30, 0.56) 100%);
   box-shadow:
     0 28px 90px rgba(3, 8, 20, 0.62),
+    0 0 0 1px rgba(92, 56, 22, 0.42),
     0 0 70px rgba(39, 200, 255, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+    inset 0 1px 0 rgba(255, 246, 214, 0.2);
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
   animation: pg-start-rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 

@@ -1,0 +1,74 @@
+{
+  "suite": "verify-m4-dance/1.0（原跳一跳专项退役重写）",
+  "pass": 13,
+  "total": 13,
+  "ok": true,
+  "checks": [
+    {
+      "name": "A 进入跳舞厅",
+      "pass": true,
+      "detail": "activeKey=dance-hall"
+    },
+    {
+      "name": "B1 第一人称眼高≈1.6",
+      "pass": true,
+      "detail": "camY=1.6"
+    },
+    {
+      "name": "B2 WASD 挂载",
+      "pass": true,
+      "detail": "wasd=true"
+    },
+    {
+      "name": "C1 表演者 ×3 + rig 齐全",
+      "pass": true,
+      "detail": "performers=3 rigs=[true,true,true]"
+    },
+    {
+      "name": "C2 琴师坐姿高度≈0.61",
+      "pass": true,
+      "detail": "pianistY=0.61"
+    },
+    {
+      "name": "D1 舞台灯光 3 盏",
+      "pass": true,
+      "detail": "lights=3"
+    },
+    {
+      "name": "D2 镜球 + 音箱在场",
+      "pass": true,
+      "detail": "disco=true speakers=true"
+    },
+    {
+      "name": "D3 无独立天幕（室内但同场景）",
+      "pass": true,
+      "detail": "orphanSky=false"
+    },
+    {
+      "name": "E0 UI + 音乐按钮",
+      "pass": true,
+      "detail": "ui=true music=true"
+    },
+    {
+      "name": "E1 退出回大厅",
+      "pass": true,
+      "detail": "activeKey=lobby"
+    },
+    {
+      "name": "E2 DanceHall 对象清零",
+      "pass": true,
+      "detail": "orphan=0"
+    },
+    {
+      "name": "E3 跳舞厅 UI 移除",
+      "pass": true,
+      "detail": "ui=false"
+    },
+    {
+      "name": "F 全程 0 报错",
+      "pass": true,
+      "detail": "clean"
+    }
+  ],
+  "errors": []
+}

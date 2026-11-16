@@ -30,7 +30,7 @@ import * as THREE from 'three';
 import { buildNPCCharacter, NPC_SCALE } from './procedural-character.js';
 
 export const NPC_COUNT = 10;
-const GREETER_COUNT = 2;          // 入口迎宾（挥手）
+const GREETER_COUNT = 4;          // 入口迎宾（挥手）：4 人一排，余下 6 人为巡游通勤者
 const WALK_MIN = 0.5, WALK_MAX = 1.5;
 const SEPARATION = 1.05;         // 最小间距（排斥力）
 const CULL_DIST2 = 45 * 45;      // 超过 45m 暂停动画
@@ -42,6 +42,10 @@ const NAV_STEP = 2.4;
 const NAV_LINK_MAX = NAV_STEP * 1.5;
 const NAV_EDGE_SAMPLES = 5;      // 每条候选边的中点采样数（防斜穿墙角）
 const NAV_RETRY_MAX = 8;
+/** 【阶段二·模块 3】前瞻探测距离（m）：贴墙走时提前换向，避免蹭墙 */
+const LOOKAHEAD = 1.2;
+/** 换向冷却（s）：防止「探测→换向→再探测」每帧抖动 */
+const RETARGET_COOLDOWN = 0.6;
 
 const ST = Object.freeze({ WALK: 0, IDLE: 1, LOOK: 2, WAVE: 3 });
 
@@ -97,7 +101,7 @@ class NPCManagerImpl {
     this._navDirty = true;
     this._bfsPrev = null;   // Int32Array，BFS 复用
     this._bfsQueue = null;  // Int32Array，BFS 复用
-    this._navStats = { nodes: 0, edges: 0, rebuilds: 0 };
+    this._navStats = { nodes: 0, edges: 0, rebuilds: 0, blockedRetargets: 0 };
 
     // 复用临时对象
     this._dummy = new THREE.Object3D();
@@ -138,7 +142,7 @@ class NPCManagerImpl {
       // 迎宾固定在大门内侧两边，其余在环带随机撒点
       const a = rand() * Math.PI * 2;
       const r = ARENA_MIN_R + rand() * (ARENA_MAX_R - ARENA_MIN_R);
-      const x = greeter ? (i === 0 ? -2.8 : 2.8) : Math.cos(a) * r;
+      const x = greeter ? [-4.4, -2.2, 2.2, 4.4][i] : Math.cos(a) * r;
       const z = greeter ? 10.5 : Math.sin(a) * r;
       this._npcs.push({
         x, z,
@@ -314,6 +318,7 @@ class NPCManagerImpl {
     this._navStats = {
       nodes: nodes.length, edges: edgeCount,
       rebuilds: (this._navStats?.rebuilds || 0) + 1,
+      blockedRetargets: this._navStats?.blockedRetargets || 0,
       radius: R,
     };
   }
@@ -441,19 +446,43 @@ class NPCManagerImpl {
               vz += (rz / r) * push;
             }
           }
-          // 【M3】真·沿轴滑动：旧代码第 1/2 分支条件完全重复，滑动永远走不到。
-          // 现在先整步、再 X、再 Z，全被挡则重算路径（不是简单地重选终点）。
+          /* 【阶段二·模块 3】步进前三重防线（用户点名「行走前必须检测」）：
+           * ① 整段位移线采样（复用建图 _segmentBlocked 口径，斜穿墙角也拦）；
+           * ② 整段被挡 → 轴滑动（滑动分量同样做整段采样，而非只验终点）；
+           * ③ 滑动也不通 → 立即换向重选目标（带 0.6s 冷却防抖动）。
+           * 另加前瞻探测：贴墙走时提前 1.2m 换向，避免「蹭着墙走」。 */
           const nx = n.x + vx * d, nz = n.z + vz * d;
-          if (!this._blocked(nx, nz)) {
+          let moved = false;
+          if (!this._segmentBlocked(n.x, n.z, nx, nz)) {
             n.x = nx; n.z = nz;
-          } else if (!this._blocked(nx, n.z)) {
+            moved = true;
+          } else if (!this._segmentBlocked(n.x, n.z, nx, n.z)) {
             n.x = nx;
-          } else if (!this._blocked(n.x, nz)) {
+            moved = true;
+          } else if (!this._segmentBlocked(n.x, n.z, n.x, nz)) {
             n.z = nz;
+            moved = true;
           } else {
-            n.path = this._findPath(n.x, n.z, n.targetX, n.targetZ);
-            n.pathIdx = 0;
-            if (!n.path) { this._relocate(n); this._pickTarget(n, rand); }
+            // 三面皆墙 → 换向：重算 BFS 路径 / 直接重选目标（防抖冷却统一在下一段递减）
+            if ((n.retargetT || 0) <= 0) {
+              this._navStats.blockedRetargets = (this._navStats.blockedRetargets || 0) + 1;
+              n.path = this._findPath(n.x, n.z, n.targetX, n.targetZ);
+              n.pathIdx = 0;
+              if (!n.path) { this._relocate(n); this._pickTarget(n, rand); }
+              n.retargetT = RETARGET_COOLDOWN;
+            }
+          }
+          // 前瞻探测：沿当前速度方向看 1.2m，被挡且本帧正常移动 → 提前换向
+          n.retargetT = (n.retargetT || 0) - d;
+          if (moved && (n.retargetT || 0) <= 0) {
+            const inv = 1 / Math.max(1e-5, Math.hypot(vx, vz));
+            const ax = n.x + vx * inv * LOOKAHEAD;
+            const az = n.z + vz * inv * LOOKAHEAD;
+            if (this._segmentBlocked(n.x, n.z, ax, az)) {
+              this._navStats.blockedRetargets = (this._navStats.blockedRetargets || 0) + 1;
+              this._pickTarget(n, rand);
+              n.retargetT = RETARGET_COOLDOWN;
+            }
           }
           // 朝向行走方向（平滑）
           const want = Math.atan2(vx, vz);
@@ -550,7 +579,7 @@ class NPCManagerImpl {
     this._bfsPrev = null;
     this._bfsQueue = null;
     this._navDirty = true;
-    this._navStats = { nodes: 0, edges: 0, rebuilds: 0 };
+    this._navStats = { nodes: 0, edges: 0, rebuilds: 0, blockedRetargets: 0 };
     this._mesh = this._char = this._anim = null;
     this._inited = false;
   }

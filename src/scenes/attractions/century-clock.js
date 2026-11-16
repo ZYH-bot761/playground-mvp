@@ -38,6 +38,8 @@ import { dayNightCycle } from '../../utils/helpers/day-night-cycle.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/** 每帧复用的共享 Date（update 热路径读时用 setTime 原地刷新，不再 new Date()） */
+const _sharedClockDate = new Date();
 
 /* -------------------------------------------------------------------------- */
 /* 钟面贴图（1024²，纯 Canvas 程序化，零外部资源）                            */
@@ -399,6 +401,9 @@ export function buildClockTower({ scale = 1, track }) {
   root.add(spot);
 
   let disposed = false;
+  /** finial 材质上一次的昼夜状态（null=未初始化）——只在阈值穿越时换材质，
+   *  修复原来每帧赋值 finial.material 导致阈值附近 shader 编译/切换抖动。 */
+  let nightGold = null;
 
   /** 读取系统真实时间驱动三针；秒针含毫秒平滑扫秒（提示词允许「平滑旋转」） */
   const tick = (date = new Date()) => {
@@ -429,12 +434,18 @@ export function buildClockTower({ scale = 1, track }) {
     faceMatBack.emissiveIntensity = faceEmissive;
     faceLight.intensity = k * 1.1 * scale;
     spot.intensity = k * 1.3 * scale;
-    finial.material = k > 0.5 ? gold : steel;
+    // 【热点修复】阈值状态机：仅在 0.5 穿越（gold↔steel）那一帧换材质
+    const wantGold = k > 0.5;
+    if (wantGold !== nightGold) {
+      nightGold = wantGold;
+      finial.material = wantGold ? gold : steel;
+    }
   };
 
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    nightGold = null;
     root.clear();
     for (const g of geometries) { try { g.dispose(); } catch (e) { /* noop */ } }
     for (const m of materials) { try { m.dispose(); } catch (e) { /* noop */ } }
@@ -576,8 +587,10 @@ export class CenturyClock extends IAttraction {
     this._timeT += d;
     this._phase += d;
 
-    // 每帧驱动三针（平滑扫秒）；数字只在跨秒时刷新，省 DOM 写入
-    const now = new Date();
+    // 每帧驱动三针（平滑扫秒）；数字只在跨秒时刷新，省 DOM 写入。
+    // 【热点修复】复用模块级共享 Date（setTime 原地更新），消灭 60/s new Date() 分配。
+    _sharedClockDate.setTime(Date.now());
+    const now = _sharedClockDate;
     this._tower.tick(now);
     if (now.getSeconds() !== this._lastShownSecond) {
       this._lastShownSecond = now.getSeconds();

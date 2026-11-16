@@ -36,12 +36,17 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DetailLOD } from '../utils/helpers/detail-lod.js';
 import { createFacilityLabelAtlas, applyAtlasUV } from '../utils/helpers/facility-textures.js';
+import {
+  createNoiseRoughnessTexture, createWindowGlowTexture, createCropLeafAtlas,
+} from '../utils/helpers/procedural-textures.js';
 import { cameraRig } from '../core/camera-rig.js';
 import { WASDController, WASD_EYE_HEIGHT, horizontalForward, MOVE_CODES } from '../utils/controls/wasd-controller.js';
 import { movementMode } from '../components/controllers/movement-mode-manager.js';
 import { IAttraction } from './attractions/i-attraction.js';
+import { Metropolis } from './metropolis/metropolis-scene.js';
 import { dayNightCycle, MODE_LABELS } from '../utils/helpers/day-night-cycle.js';
 import { fireworkSystem, FIREWORK_COLORS } from '../utils/helpers/particle-system.js';
 import { npcManager } from '../utils/helpers/npc-manager.js';
@@ -75,6 +80,12 @@ const AABB_PAD = 1;              // 建筑 AABB 长宽各扩张 1 米
 const SIT_PROMPT_RANGE = 8;      // 模块 8：长椅「坐下」提示的相机 3D 距离上限（3~5 核心区 + 俯瞰余量）
 const SIT_EYE_H = 1.0;           // 坐姿眼高（站立 1.6 → 降低 0.6，落在提示词 0.5~0.8 区间）
 
+/* 每帧复用的共享 Date（世纪钟 tick 用）——消灭 update 热路径的 60/s new Date() 分配 */
+const _sharedClockDate = new Date();
+/** 喷泉水面的世界坐标（广场中心），相机距离门控用（平方米） */
+const FOUNTAIN_CENTER = { x: 0, y: 1.0, z: 0 };
+const FOUNTAIN_UPDATE_DIST_SQ = 70 * 70; // 70m 外停更水面顶点（远景波纹不可辨）
+
 /* ---------- T06：触发区尺寸单一真相源 ----------
  * 旧代码把 4.6 / 2.4 / 2.6 / 0.85 等数字散落在 _buildTriggers 与 update 里，
  * 触发点一挪就容易尺寸漂移。现在全部由 TRIGGER_RADIUS 派生：
@@ -85,7 +96,7 @@ const TRIGGER_RADIUS = 2.3;
 const TRIGGER_RING_RADIUS = TRIGGER_RADIUS + 0.1;   // 2.4，环略大于圆盘边缘
 const TRIGGER_POST_OFFSET = TRIGGER_RADIUS * 1.13;  // 2.599，光柱落在盘外沿
 const LABEL_WORLD_W_PER_CHAR = TRIGGER_RADIUS * 0.37; // 0.851m/字，5 字牌 4.255m
-const GATE_LABEL = '游乐园';                         // 大门招牌文字（图集第 0 格）
+const GATE_LABEL = '游乐场';                         // 南门招牌文字（图集第 0 格）
 
 /* ---------- T02：输入模式切换 ----------
  * orbit = OrbitControls 自由探索（默认）；wasd = 第一人称键盘漫游。
@@ -149,9 +160,12 @@ const FACILITY_SPECS = Object.freeze([
   {
     key: 'pumpkin-thrower', name: '南瓜投手', label: '南瓜摩天轮',
     x: -20, z: -16, doorDir: { dx: 0, dz: 1 }, doorDepth: 5,
+    // 【阶段二·模块 4】门面真实前缘（从 builder 实测）：基座圆柱 r=4.3 + 沿 0.3；
+    // 没有「门」的露天设施用 facadeFront 派生触发环，圈不再嵌进立面
+    facadeFront: 4.6,
   },
   {
-    // x=13 是唯一同时避开魔法牌屋（左界 >6.4）与跳跳乐长廊门柱（右界 <19.6）的位置
+    // x=13 是唯一同时避开魔法牌屋（左界 >6.4）与跳舞厅长廊门柱（右界 <19.6）的位置
     key: 'parkour-run', name: '极限跑酷', label: '跑酷跑道',
     x: 13, z: -16, doorDir: { dx: 0, dz: 1 }, doorDepth: 5,
   },
@@ -160,8 +174,10 @@ const FACILITY_SPECS = Object.freeze([
     x: 0, z: -20, doorDir: { dx: 0, dz: 1 }, doorDepth: 4,
   },
   {
-    key: 'jump-jump', name: '跳一跳', label: '跳跳乐',
-    x: 26, z: -2, doorDir: { dx: 0, dz: 1 }, doorDepth: 5,
+    // 【阶段五】道路拓宽：移到南门西侧草坪，避开 16m 主干道走廊。
+    // 建筑整体 0.85 缩放，门面 4.25m，触发环落在门前 3m。
+    key: 'dance-hall', name: '跳舞厅', label: '跳舞厅',
+    x: -23, z: 8.5, doorDir: { dx: 0, dz: 1 }, doorDepth: 5, facadeFront: 4.25,
   },
   {
     key: 'train-ride', name: '高空环游', label: '小火车站台',
@@ -170,14 +186,20 @@ const FACILITY_SPECS = Object.freeze([
   {
     key: 'carousel', name: '旋转木马', label: '旋转木马',
     x: 9, z: 7.5, doorDir: { dx: 0, dz: -1 }, doorDepth: 4,
+    // 【模块 4】帐篷檐口半径 3.75 × 立面 scale 1.25 ≈ 4.69（实测 facade 构建）
+    facadeFront: 4.7,
   },
   {
     key: 'pirate-ship', name: '海盗船', label: '海盗船',
     x: -7, z: 5, doorDir: { dx: 0, dz: -1 }, doorDepth: 4,
+    // 【模块 4】塔架柱面 z=±2.1 × 1.25 + 柱半径 ≈ 2.8（旧圈嵌进塔架 4.4m）
+    facadeFront: 2.8,
   },
   {
+    // 【阶段五】从路口东北角移到大门东侧人行道旁；0.6 缩放后占地 4.3m，
+    // 既避开门柱（x≤10.5）也避开 z≥19 的 16m 主干道走廊。
     key: 'fireworks-deck', name: '烟花观礼台', label: '烟花观礼台',
-    x: 22, z: 20, doorDir: { dx: 0, dz: -1 }, doorDepth: 3,
+    x: 13.8, z: 15.5, doorDir: { dx: 0, dz: -1 }, doorDepth: 3, facadeFront: 2.22,
   },
   {
     key: 'century-clock', name: '世纪钟', label: '世纪钟',
@@ -185,9 +207,15 @@ const FACILITY_SPECS = Object.freeze([
   },
 ]);
 
-/** 由本体 + 大门朝向派生触发圈坐标（门正前方 TRIGGER_FRONT_GAP 米） */
+/**
+ * 由本体 + 大门朝向派生触发圈坐标（门面正前方 TRIGGER_FRONT_GAP 米）。
+ * 【阶段二·模块 4】露天设施（南瓜轮/木马/海盗船）用 facadeFront（门面真实
+ * 前缘距本体中心的距离）替代名义 doorDepth —— 触发圈贴着可见门面外 3m，
+ * 玩家站进圈里时「面朝的确实是这家设施」，不再出现圈叠在帐篷/塔架里。
+ */
 function triggerOf(f) {
-  const d = f.doorDepth + TRIGGER_FRONT_GAP;
+  const front = f.facadeFront ?? f.doorDepth;
+  const d = front + TRIGGER_FRONT_GAP;
   return Object.freeze({
     x: +(f.x + f.doorDir.dx * d).toFixed(3),
     z: +(f.z + f.doorDir.dz * d).toFixed(3),
@@ -616,10 +644,10 @@ const UI_CSS = `
 /* 【六项升级·阶段五】统一半透明毛玻璃 UI，去除高对比实色边框 */
 .lb-ui{position:fixed;inset:0;z-index:20;pointer-events:none;overflow:hidden;
   font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;color:var(--pg-glass-text,#eef6ff);
-  --glass:var(--pg-glass-bg,rgba(18,28,44,.42));
-  --edge:var(--pg-glass-edge,rgba(255,255,255,.14));
+  --glass:var(--pg-glass-bg,rgba(18,26,38,.5));
+  --edge:var(--pg-glass-edge,rgba(255,226,170,.24));
   --blur:var(--pg-glass-blur,blur(18px) saturate(150%));
-  --shadow:var(--pg-glass-shadow,0 12px 40px rgba(4,10,24,.28),inset 0 1px 0 rgba(255,255,255,.12))}
+  --shadow:var(--pg-glass-shadow,0 12px 40px rgba(4,10,24,.32),inset 0 1px 0 rgba(255,246,214,.16))}
 .lb-vignette{position:absolute;inset:0;
   background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 38%,rgba(2,4,12,.42) 100%)}
 .lb-title{position:absolute;top:calc(16px + env(safe-area-inset-top, 0px));left:50%;transform:translateX(-50%);
@@ -627,7 +655,7 @@ const UI_CSS = `
   background:var(--glass);border:1px solid var(--edge);box-shadow:var(--shadow);
   backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   font-size:16px;font-weight:700;letter-spacing:2px;
-  text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  text-shadow:0 1px 2px rgba(0,0,0,.55),0 0 18px rgba(255,196,104,.24)}
 .lb-controls{position:absolute;top:calc(56px + env(safe-area-inset-top, 0px));left:50%;transform:translateX(-50%);
   padding:6px 16px;border-radius:999px;white-space:nowrap;font-size:12px;
   background:var(--glass);border:1px solid var(--edge);
@@ -649,9 +677,10 @@ const UI_CSS = `
   font-size:12px;font-weight:700;letter-spacing:.5px;white-space:nowrap;color:var(--pg-glass-text,#eef6ff);
   background:var(--glass);border:1px solid var(--edge);box-shadow:var(--shadow);
   backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  text-shadow:0 1px 6px rgba(0,0,0,.3);transition:transform .12s,background .2s}
-.lb-mode-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.2)}
-.lb-mode-btn[data-mode='wasd']{color:#10243a;background:rgba(176,220,255,.82);border-color:rgba(255,255,255,.3);text-shadow:none}
+  text-shadow:0 1px 6px rgba(0,0,0,.3);transition:transform .12s,background .2s,box-shadow .2s}
+.lb-mode-btn:hover{transform:translateY(-2px) scale(1.02);background:rgba(255,224,164,.18);
+  box-shadow:0 10px 28px rgba(255,190,96,.18),inset 0 1px 0 rgba(255,255,255,.2)}
+.lb-mode-btn[data-mode='wasd']{color:#231507;background:linear-gradient(145deg,#ffe6ad,#e9bf6f);border-color:rgba(255,247,218,.6);text-shadow:none}
 /* ---- 动物园一键直达（右上角；与左上输入模式 / 右下时间台互不遮挡） ---- */
 .lb-zoo{position:absolute;top:calc(16px + env(safe-area-inset-top, 0px));
   right:calc(16px + env(safe-area-inset-right, 0px));pointer-events:auto}
@@ -718,6 +747,16 @@ const UI_CSS = `
   .lb-mode-btn{font-size:10px;padding:6px 10px}
   .lb-toast{font-size:13px;white-space:normal;text-align:center}
 }
+
+/* 窄屏手机：隐藏中央标题，避免与左侧模式键 / 右侧动物园键重叠；
+   操作提示下移一行，文案由 _syncInputModeUI 切换为触屏版。 */
+@media (max-width:600px){
+  .lb-title{display:none}
+  .lb-mode-btn{font-size:10px;padding:6px 10px}
+  .lb-zoo-btn{font-size:10px;padding:6px 9px}
+  .lb-controls{top:calc(48px + env(safe-area-inset-top, 0px));
+    max-width:calc(100vw - 20px);white-space:normal;text-align:center;line-height:1.35;padding:4px 9px}
+}
 `;
 
 /* ========================================================================== */
@@ -778,8 +817,13 @@ export class Lobby extends IAttraction {
     this._instancedMeshes = [];
     this._pickables = [];
     this._buildingBoxes = [];
+    /** 【阶段二·模块 3】NPC 专属实体障碍：建筑 AABB 之外的喷泉/长椅/路灯/
+     *  花坛/街道道具（此前无碰撞数据，NPC 会从中穿模）。与玩家碰撞
+     *  (_buildingBoxes) 分开维护，互不影响玩家步行口径。 */
+    this._npcBoxes = [];
     this._standaloneColliders = []; // 全程禁用 Rapier，恒为空；保留以完整履行契约
     this._districts = null;            // 【M7】四宫格骨架 + 区域级 LOD
+    this._city = null;                 // 【阶段五】北侧都会区
 
     // ---- 动画对象（init 一次性创建，update 只改属性，绝不惰性新建资源） ----
     this._wheelGroup = null;
@@ -795,8 +839,7 @@ export class Lobby extends IAttraction {
     this._coasterCars = null;   // T08：挂轨小车运行时（自建资源，dispose 配对释放）
     this._coinMeshes = [];
     this._memoryCards = [];
-    this._bounceBall = null;
-    this._bounceHalo = null;
+    this._danceOrbs = null;
     this._particleClouds = [];
     this._triggerRings = [];
     this._fountainWater = null;
@@ -843,6 +886,12 @@ export class Lobby extends IAttraction {
     this._raycaster = new THREE.Raycaster();
     this._ndc = new THREE.Vector2();
 
+    // ---- 触屏点击判定：拖拽 / 双指缩放 / 长按一律不得进入设施 ----
+    this._pointerId = null;
+    this._pointerDownAt = 0;
+    this._pointerMaxDist = 0;
+    this._multiTouch = false;
+
     // ---- 稳定回调（引用固定，可成对解绑） ----
     this._onBlur = () => {
       this._dragging = false;
@@ -852,7 +901,18 @@ export class Lobby extends IAttraction {
       this._wasd?.clearInput();
     };
     this._onPointerDown = (event) => {
+      // 第二根手指 = 双指缩放/旋转：立即作废本次潜在点击
+      if (event.isPrimary === false) {
+        this._multiTouch = true;
+        this._pointerDown = null;
+        this._dragging = true;
+        return;
+      }
       this._dragging = true;
+      this._pointerId = event.pointerId;
+      this._pointerDownAt = performance.now();
+      this._pointerMaxDist = 0;
+      this._multiTouch = false;
       this._pointerDown = { x: event.clientX, y: event.clientY };
       this._lastPointer = { x: event.clientX, y: event.clientY };
     };
@@ -866,18 +926,37 @@ export class Lobby extends IAttraction {
         this._sitPitch = Math.max(-0.62, Math.min(0.62, this._sitPitch - dy * 0.0026));
       }
       this._lastPointer = { x: event.clientX, y: event.clientY };
+      // 记录整个手势期间的最大位移：touch 松手时哪怕回滑到起点也不能算点击
+      if (this._pointerDown) {
+        const dx = event.clientX - this._pointerDown.x;
+        const dy = event.clientY - this._pointerDown.y;
+        this._pointerMaxDist = Math.max(this._pointerMaxDist, Math.hypot(dx, dy));
+      }
       if (this._sitState === 'none') this._updateHover(event);
     };
     this._onPointerUp = (event) => {
+      if (event.isPrimary === false) {
+        this._multiTouch = true;
+        return;
+      }
       this._dragging = false;
       const start = this._pointerDown;
+      const maxDist = this._pointerMaxDist;
+      const elapsed = performance.now() - this._pointerDownAt;
+      const touchLike = event.pointerType === 'touch' || event.pointerType === 'pen';
+      const multi = this._multiTouch;
       this._pointerDown = null;
+      this._pointerId = null;
       this._lastPointer = null;
-      if (!start) return;
-      // ① 位移判定：拖拽旋转视角不算点击
-      const dist = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-      if (dist > DRAG_THRESHOLD) return;
-      // ② 200ms 防抖
+      this._pointerMaxDist = 0;
+      this._multiTouch = false;
+      if (!start || multi) return;
+      // ① 位移判定：桌面 6px；触屏 14px，且按手势【最大】位移算
+      const threshold = touchLike ? 14 : DRAG_THRESHOLD;
+      if (maxDist > threshold) return;
+      // ② 触屏长按不当作点击（避免按住观察后松手误进设施）
+      if (touchLike && elapsed > 550) return;
+      // ③ 200ms 防抖
       const now = performance.now();
       if (now - this._lastClickAt < CLICK_DEBOUNCE) return;
       this._lastClickAt = now;
@@ -886,6 +965,9 @@ export class Lobby extends IAttraction {
     this._onPointerCancel = () => {
       this._dragging = false;
       this._pointerDown = null;
+      this._pointerId = null;
+      this._pointerMaxDist = 0;
+      this._multiTouch = false;
       this._lastPointer = null;
     };
     // 绑定一次固定引用，保证 _addListener / removeEventListener 成对解绑
@@ -922,13 +1004,14 @@ export class Lobby extends IAttraction {
       trigger: { x: f.trigger.x, z: f.trigger.z },
       doorDir: { dx: f.doorDir.dx, dz: f.doorDir.dz },
       doorDepth: f.doorDepth,
+      facadeFront: f.facadeFront ?? null,
     }));
     /* 【M5】建筑逻辑归组：与 M2 的「中轴 + 两翼 + 后排」布局一一对应，
      * 9 个设施各属其一、无重复；供四宫格扩建（M7）与验收读取。 */
     this.root.userData.districts = Object.freeze({
       central: ['century-clock', 'memory-match'],
       westWing: ['train-ride', 'pirate-ship', 'pumpkin-thrower'],
-      eastWing: ['jump-jump', 'carousel', 'fireworks-deck'],
+      eastWing: ['dance-hall', 'carousel', 'fireworks-deck'],
       southRow: ['parkour-run'],
     });
 
@@ -954,7 +1037,7 @@ export class Lobby extends IAttraction {
     this._buildPumpkinWheel();
     this._buildCoinCorridor();
     this._buildMemoryHouse();
-    this._buildBouncingArena();
+    this._buildDanceHall();
     this._buildTrainStation();
     // 实体化外观：40m 过山车 / 巨型南瓜与魔法帐篷 / 竞技场围栏
     this._buildCoasterTrack();
@@ -995,6 +1078,10 @@ export class Lobby extends IAttraction {
       root: this.root,
       shared: this._shared,
     });
+    // 【阶段五】公园北侧都会区：城市 LOD 建筑 + InstancedMesh 交通/人群/路灯
+    this._city = new Metropolis({ root: this.root });
+    this.root.userData.metropolis = this._city;
+    this._applyShadowBudget();
     this.root.userData.districtView = DISTRICT_VIEW;
     this.root.userData.districtGrid = DISTRICT_GRID;
 
@@ -1032,6 +1119,16 @@ export class Lobby extends IAttraction {
         && (cameraRig.owner === null
           || cameraRig.owner === 'lobby'
           || cameraRig.owner === 'lobby-wasd'),
+      /* 移动端摇杆：orbit 与 wasd 都可用；嵌入设施 / 坐姿 / 飞行 / 过渡中隐藏。 */
+      isJoystickEnabled: () => !this._disposed
+        && this._sitState === 'none'
+        && !this._wasdBlendActive
+        && !this._zooFly
+        && !this._zooView
+        && !movementMode.isEngaged()
+        && !cameraRig.isTransitioning
+        && !(this._ctx?.isEmbedded?.())
+        && (this._inputMode === 'orbit' || this._inputMode === 'wasd'),
     });
     this._wasd.attach();
 
@@ -1049,8 +1146,8 @@ export class Lobby extends IAttraction {
     dayNightCycle.setContext('lobby');
     dayNightCycle.applyImmediate();
     fireworkSystem.setContext('lobby');
-    // 【模块 8】把真实建筑 AABB 注入 NPC 寻路（Lobby 每次重建都会换一批）
-    npcManager.setObstacles(this._buildingBoxes);
+    // 【模块 8】把真实建筑 AABB + NPC 实体障碍注入 NPC 寻路（Lobby 每次重建都会换一批）
+    npcManager.setObstacles(this._buildingBoxes.concat(this._npcBoxes));
     npcManager.setContext('lobby');
     this._syncTimePanel();
 
@@ -1082,9 +1179,9 @@ export class Lobby extends IAttraction {
     // 日间游乐场：背景作为天空之外的兜底色，雾很薄，远端设施融进远景而不糊。
     // 颜色线性空间 ×0.38：抵消基座 exposure=1.0（手册 P5），成像与旧 0.38 曝光等价。
     scene.background = new THREE.Color(0x8fc3e8).multiplyScalar(0.38);
-    // 线性雾 45→130：45m 内完全无雾，20~40m 的草地不再被雾抬亮；
-    // 地面半径 110m 处已接近雾色，远端与天空平滑衔接，不再留硬亮带。
-    scene.fog = new THREE.Fog(new THREE.Color(0xa8b0b4).multiplyScalar(0.38), 45, 130);
+    // 【阶段五】雾界拉到 420m：45m 内仍无雾，但北侧都会区（z≈110~245）
+    // 与 620m 地平线垫层能渐隐进天空，不再被 130m 硬切断。
+    scene.fog = new THREE.Fog(new THREE.Color(0xa8b0b4).multiplyScalar(0.38), 55, 420);
 
     // 夜间照明方案已统一在 SceneManager：一主光（方向光投影）+ 半球光 + 极弱环境光。
     // 本类不再压暗/接管外部灯光，只登记原值，确保 dispose 时能够逐一还原。
@@ -1114,11 +1211,15 @@ export class Lobby extends IAttraction {
     const geoIco0 = this._trackGeometry(new THREE.IcosahedronGeometry(1, 0));
     const geoCone = this._trackGeometry(new THREE.ConeGeometry(1, 1, 7));
     const geoTorus = this._trackGeometry(new THREE.TorusGeometry(1, 0.055, 8, 56));
+    // 触发环专用低模：8 个入口从 8×56（896 面）降为 6×32（384 面），
+    // 俯视/常规视距下不可辨，为城市扩建回收 4,096 面。
+    const geoTriggerRing = this._trackGeometry(new THREE.TorusGeometry(1, 0.055, 6, 32));
     const geoCylinder = this._trackGeometry(new THREE.CylinderGeometry(1, 1, 1, 16));
     const geoCoin = this._trackGeometry(new THREE.CylinderGeometry(1, 1, 0.1, 20));
     const geoPlane = this._trackGeometry(new THREE.PlaneGeometry(1, 1));
-    // 草地：独立的大平面几何（96×96 分段用于顶点位移，与共享 geoPlane 分开）
-    const geoGround = this._trackGeometry(new THREE.PlaneGeometry(220, 220, 96, 96));
+    // 草地：独立的大平面几何（56×56 分段用于顶点位移，与共享 geoPlane 分开）
+    // 220m 草坪：56×56 网格（3.93m/格）仍承载大尺度起伏，同时比 72×72 再省 4,096 面。
+    const geoGround = this._trackGeometry(new THREE.PlaneGeometry(220, 220, 56, 56));
     // 云带降级用：开口圆柱，法线朝内
     const geoCloudBand = this._trackGeometry(new THREE.CylinderGeometry(1, 1, 1, 32, 1, true));
 
@@ -1139,6 +1240,27 @@ export class Lobby extends IAttraction {
     const texCloudBand = this._trackTexture(makeCloudBandTexture());
     const texContact = this._trackTexture(makeContactShadowTexture());
     const texShaft = this._trackTexture(makeShaftTexture());
+
+    /* ---------- 阶段三：程序化粗糙度 / 窗光 / 作物叶片 ----------
+     * 全部走 _trackTexture 台账；城堡/农场只引用，不重复释放。 */
+    const texAsphaltRough = this._trackTexture(createNoiseRoughnessTexture({
+      size: 256, base: 0.86, contrast: 0.18, repeat: [10, 10], seed: 31,
+      name: 'procedural/asphalt-rough', anisotropy: maxAniso,
+    }));
+    const texStoneRough = this._trackTexture(createNoiseRoughnessTexture({
+      size: 256, base: 0.76, contrast: 0.2, repeat: [3, 3], seed: 47,
+      name: 'procedural/stone-rough', anisotropy: maxAniso,
+    }));
+    const texSoilRough = this._trackTexture(createNoiseRoughnessTexture({
+      size: 256, base: 0.92, contrast: 0.14, repeat: [6, 6], seed: 63,
+      name: 'procedural/soil-rough', anisotropy: maxAniso,
+    }));
+    const texPaintRough = this._trackTexture(createNoiseRoughnessTexture({
+      size: 256, base: 0.9, contrast: 0.08, repeat: [2, 2], seed: 79,
+      name: 'procedural/paint-rough', anisotropy: maxAniso,
+    }));
+    const texWindowGlow = this._trackTexture(createWindowGlowTexture(maxAniso));
+    const texCropLeaf = this._trackTexture(createCropLeafAtlas(maxAniso));
 
     /* ---------- T06 文字图集：10 个标签共用 1 张 2048² 纹理 ----------
      * 必须在材质之前创建（matLabelAtlas.map 指向它）。renderer 从 ctx 传入，
@@ -1164,8 +1286,8 @@ export class Lobby extends IAttraction {
     // 「像漆面在阳光下的通透感」，同时保证 Bloom(threshold 0.9) 不会误拾取。
     const makePainted = (color, emissive) => this._trackMaterial(new THREE.MeshPhysicalMaterial({
       color, emissive, emissiveIntensity: 0.046, // 0.12×0.38：抵消 exposure=1.0
-      metalness: 0.05, roughness: 0.42,
-      clearcoat: 1.0, clearcoatRoughness: 0.12,
+      metalness: 0.05, roughness: 0.55, roughnessMap: texPaintRough,
+      clearcoat: 1.0, clearcoatRoughness: 0.18,
     }));
     const matNeonWarm = makePainted(0xff5a2b, 0x3a1000);
     const matNeonViolet = makePainted(0x8b5cf6, 0x1b0a3a);
@@ -1291,8 +1413,10 @@ export class Lobby extends IAttraction {
     }));
 
     this._shared = {
-      geoBox, geoSphere, geoIco0, geoCone, geoTorus, geoCylinder, geoCoin, geoPlane,
+      geoBox, geoSphere, geoIco0, geoCone, geoTorus, geoTriggerRing, geoCylinder, geoCoin, geoPlane,
       geoGround, geoCloudBand,
+      texAsphaltRough, texStoneRough, texSoilRough, texPaintRough,
+      texWindowGlow, texCropLeaf,
       matGround, matPillar, matWheelFrame, matTrack,
       matNeonWarm, matNeonViolet, matNeonCyan, matNeonGold, matTrackLine,
       matBark, matLeaf, matFlower,
@@ -1725,8 +1849,8 @@ export class Lobby extends IAttraction {
       this._treePositions.push({ x: p.x, z: p.z, r: 1.0 * scale });
     });
 
-    // ---- 小草簇（手册 P5：草地 InstancedMesh 批量渲染）：400 株细锥，1 draw call ----
-    const tufts = pick(16, 58, 400, 0.9);
+    // ---- 小草簇（手册 P5：草地 InstancedMesh 批量渲染）：300 株细锥，1 draw call ----
+    const tufts = pick(16, 58, 300, 0.9);
     const grassMesh = addInstanced('Lobby/grass-tufts', S.geoCone, S.matLeaf, tufts.length, false);
     tufts.forEach((p, i) => {
       const h = 0.16 + rnd() * 0.14;
@@ -1821,7 +1945,13 @@ export class Lobby extends IAttraction {
     seat.instanceMatrix.needsUpdate = true;
     back.instanceMatrix.needsUpdate = true;
     legs.instanceMatrix.needsUpdate = true;
-    for (const p of benchSpots) this._treePositions.push({ x: p.x, z: p.z, r: 1.5 });
+    for (const p of benchSpots) {
+      this._treePositions.push({ x: p.x, z: p.z, r: 1.5 });
+      // 【阶段二·模块 3】长椅计入 NPC 实体障碍（按 yaw 求轴对齐半宽）
+      const ex = 1.1 * Math.abs(Math.cos(p.yaw)) + 0.31 * Math.abs(Math.sin(p.yaw)) + 0.15;
+      const ez = 1.1 * Math.abs(Math.sin(p.yaw)) + 0.31 * Math.abs(Math.cos(p.yaw)) + 0.15;
+      this._npcBoxes.push({ minX: p.x - ex, maxX: p.x + ex, minZ: p.z - ez, maxZ: p.z + ez });
+    }
 
     /* 【模块 8】把长椅位置存档，并给每张椅子加一个不可见点击代理：
      * 代理复用共享 geoBox + matPickProxy（零新增 GPU 资源），
@@ -1842,11 +1972,13 @@ export class Lobby extends IAttraction {
     const pole = addIM('Lobby/lamp-pole', S.geoCylinder, S.matPillar, lampCount);
     const head = addIM('Lobby/lamp-head', S.geoSphere, S.matNeonGold, lampCount, false);
     const lampSpots = [];
+    const lampPlaced = new Set();
     for (let i = 0; i < lampCount; i += 1) {
       const a = (i / lampCount) * Math.PI * 2 + 0.9;
       const x = Math.cos(a) * 16.5;
       const z = Math.sin(a) * 16.5;
       if (this._isBlocked(x, z, zones, 0.8)) continue;
+      lampPlaced.add(i);
       lampSpots.push({ x, z });
       dummy.position.set(x, 2.3, z);
       dummy.rotation.set(0, 0, 0);
@@ -1860,7 +1992,24 @@ export class Lobby extends IAttraction {
       color.setHSL(0.11, 0.8, 0.62);
       head.setColorAt(i, color);
     }
-    for (const p of lampSpots) this._treePositions.push({ x: p.x, z: p.z, r: 0.7 });
+    // 【阶段二·修复】被排除的路灯索引同样会留下原点幽灵灯（与长椅同款问题）：
+    // 未使用实例统一缩到 0 隐藏，杜绝广场中心冒出灯柱。
+    for (let i = 0; i < lampCount; i++) {
+      if (lampPlaced.has(i)) continue;
+      dummy.position.set(0, -1000, 0);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(0, 0, 0);
+      dummy.updateMatrix();
+      pole.setMatrixAt(i, dummy.matrix);
+      head.setMatrixAt(i, dummy.matrix);
+    }
+    pole.instanceMatrix.needsUpdate = true;
+    head.instanceMatrix.needsUpdate = true;
+    for (const p of lampSpots) {
+      this._treePositions.push({ x: p.x, z: p.z, r: 0.7 });
+      // 【阶段二·模块 3】灯柱计入 NPC 实体障碍（细柱，小盒子即可）
+      this._npcBoxes.push({ minX: p.x - 0.35, maxX: p.x + 0.35, minZ: p.z - 0.35, maxZ: p.z + 0.35 });
+    }
 
     // ---- 花坛：4 个圆柱花池 + 顶部花球 ----
     const bedCount = 4;
@@ -1888,6 +2037,8 @@ export class Lobby extends IAttraction {
         fi += 1;
       }
       this._treePositions.push({ x, z, r: 1.6 });
+      // 【阶段二·模块 3】花池计入 NPC 实体障碍（含外沿花球）
+      this._npcBoxes.push({ minX: x - 1.75, maxX: x + 1.75, minZ: z - 1.75, maxZ: z + 1.75 });
     }
 
     for (const mesh of trash) mesh.instanceMatrix.needsUpdate = true;
@@ -2006,11 +2157,24 @@ export class Lobby extends IAttraction {
     jet.scale.set(0.12, 0.9, 0.12);
     jet.position.y = 1.75;
     group.add(jet);
+
+    // 【阶段二·模块 3】喷泉计入 NPC 实体障碍（池沿 r≈2.58 → 方形外扩）
+    this._npcBoxes.push({ minX: -2.75, maxX: 2.75, minZ: 6 - 2.75, maxZ: 6 + 2.75 });
   }
 
   /* ------------------------------------------------------------------------ */
   /* ②-b3 外观三级 LOD（手册 P6）：近全模 / 70m 简化轮廓 / 90m 极简剪影          */
   /* ------------------------------------------------------------------------ */
+
+  /** 阴影预算：只保留建筑/设施主体的投影，草地、树冠、触发环、街道小件
+   *  由接触阴影贴片负责落地感。阴影相机 100m 范围内的重复小件很多，
+   *  这项每帧可回收约 3k 三角形，且不改变主光造型。 */
+  _applyShadowBudget() {
+    const SOFT = /(?:^|\/)(?:tree-|grass|shrub|flower|trigger-|entrance-arrow|contact-shadows|street-|lamp-|flowerbed-|arena-fence)/;
+    this.root.traverse((o) => {
+      if ((o.isMesh || o.isInstancedMesh) && SOFT.test(o.name || '')) o.castShadow = false;
+    });
+  }
 
   _applyExteriorLOD() {
     const S = this._shared;
@@ -2018,7 +2182,7 @@ export class Lobby extends IAttraction {
       ['Lobby/pumpkin-wheel', S.matPumpkinOrange],
       ['Lobby/coin-corridor', S.matCoinGold],
       ['Lobby/memory-house', S.matNeonViolet],
-      ['Lobby/bouncing-arena', S.matNeonCyan],
+      ['Lobby/dance-hall', S.matNeonCyan],
       ['Lobby/train-station', S.matPillar],
     ];
     this._lodCenters = {};
@@ -2039,146 +2203,285 @@ export class Lobby extends IAttraction {
     gate.position.set(0, 0, 15);
     this.root.add(gate);
 
+    /* ---------- 南侧主入口：皇堡 / 凯旋门 ----------
+     * 设计口径（阶段四·模块 1）：
+     *   ① 两根 10m 级厚石柱 + 双层基座 + 壁柱 + 金色檐口，形成凯旋门式门面；
+     *   ② 半圆巨型拱洞（内径 8.4m、拱心高 10.7m），拱圈与拱心石压在石柱之间；
+     *   ③ 顶部连续城垛 + 两侧守卫塔，背后再起三层中央主塔，远看是皇堡剪影；
+     *   ④ 「游乐场」招牌独占门头中央的深木匾额，正面 z=1.80 在匾额之外，
+     *      与拱圈、主塔、城垛全部错层，任何角度都不会被建筑体量遮挡。
+     * 资源口径：主体只复用 S 共享几何/材质；新增的仅 1 块半圆拱几何，
+     *   登记进 Lobby 几何台账，重建时随 dispose 释放，热路径零新建。
+     * 碰撞口径：仍只挡左右两根石柱，中间门洞可自由通行（AABB 见方法末尾）。 */
+
+    /* ---------- ① 双层基座 + 厚石柱 + 壁柱 ---------- */
     for (const side of [-1, 1]) {
-      const x = side * 6.5;
-      const pillar = new THREE.Mesh(S.geoCylinder, S.matPillar);
-      pillar.name = `Lobby/gate-pillar-${side}`;
-      pillar.scale.set(1.1, 12, 1.1);
-      pillar.position.set(x, 6, 0);
-      pillar.castShadow = true;
-      gate.add(pillar);
-      this._ball(gate, `gate-orb-${side}`, S.matNeonWarm, 1.25, x, 12.5, 0);
-      // 立柱正面的紫色发光竖条
-      this._box(gate, `gate-strip-${side}`, S.matNeonViolet, 0.22, 10.6, 0.22, x, 6, 1.15);
+      const x = side * 7.0;
+
+      this._box(gate, `gate-plinth-${side}`, S.matPillar,
+        5.4, 1.0, 4.8, x, 0.5, 0, { shadow: true });
+      this._box(gate, `gate-plinth-cap-${side}`, S.matCoinGold,
+        5.65, 0.16, 5.0, x, 1.06, 0);
+      this._box(gate, `gate-pylon-${side}`, S.matPillar,
+        4.2, 10.4, 3.6, x, 6.5, 0, { shadow: true });
+
+      // 石缝金线（三道，只做正面浅浮雕，不增加碰撞）
+      for (let k = 0; k < 3; k += 1) {
+        this._box(gate, `gate-course-${side}-${k}`, S.matCoinGold,
+          4.24, 0.08, 0.12, x, 3.4 + k * 2.6, 1.84);
+      }
+
+      // 面向广场的壁柱 + 科林斯式柱头
+      this._box(gate, `gate-pilaster-${side}`, S.matPillar,
+        1.15, 8.6, 0.55, x, 5.75, 1.92, { shadow: true });
+      this._box(gate, `gate-pilaster-base-${side}`, S.matCoinGold,
+        1.45, 0.28, 0.8, x, 1.45, 1.96);
+      this._box(gate, `gate-capital-${side}`, S.matCoinGold,
+        1.75, 0.4, 0.95, x, 10.0, 1.98);
+
+      // 塔楼 + 檐口 + 宝珠 + 旗帜
+      this._box(gate, `gate-tower-${side}`, S.matPillar,
+        3.4, 4.8, 3.0, x, 13.9, 0, { shadow: true });
+      this._box(gate, `gate-tower-cornice-${side}`, S.matCoinGold,
+        3.95, 0.3, 3.45, x, 16.35, 0);
+      this._ball(gate, `gate-tower-orb-${side}`, S.matNeonWarm,
+        0.42, x, 17.05, 0);
+      this._box(gate, `gate-flag-pole-${side}`, S.matPillar,
+        0.1, 3.0, 0.1, x, 18.7, 0);
+      this._box(gate, `gate-flag-${side}`, S.matNeonViolet,
+        1.45, 1.0, 0.08, x + side * 0.78, 19.55, 0);
     }
 
-    this._box(gate, 'gate-beam', S.matPillar, 15, 1.5, 1.8, 0, 12.4, 0, { shadow: true });
-    this._box(gate, 'gate-beam-glow-top', S.matNeonWarm, 15.2, 0.16, 0.2, 0, 13.24, 0.98);
-    this._box(gate, 'gate-beam-glow-bottom', S.matNeonWarm, 15.2, 0.16, 0.2, 0, 11.56, 0.98);
+    /* ---------- ② 两侧守卫塔（圆柱 + 锥顶） ---------- */
+    for (const side of [-1, 1]) {
+      const x = side * 10.9;
+      const turret = new THREE.Mesh(S.geoCylinder, S.matPillar);
+      turret.name = `Lobby/gate-tower-turret-${side}`;
+      turret.scale.set(0.95, 8.8, 0.95);
+      turret.position.set(x, 4.4, 0);
+      turret.castShadow = true;
+      gate.add(turret);
+      this._box(gate, `gate-turret-band-${side}`, S.matCoinGold,
+        2.05, 0.24, 2.05, x, 8.65, 0);
+      const roof = new THREE.Mesh(S.geoCone, S.matNeonViolet);
+      roof.name = `Lobby/gate-turret-roof-${side}`;
+      roof.scale.set(1.2, 2.4, 1.2);
+      roof.position.set(x, 9.9, 0);
+      roof.castShadow = true;
+      gate.add(roof);
+      this._ball(gate, `gate-turret-finial-${side}`, S.matCoinGold,
+        0.3, x, 11.2, 0);
+    }
 
-    // T06：「游乐园」招牌改为图集文字牌（1 张纹理 / 1 个共享材质，零矩阵方块）。
-    // 正/反两块 Mesh 共用同一块 UV 几何，背面文字也不会镜像；两片法线相反，
-    // 配合 FrontSide 各自只在本侧可见，不会 z-fighting。
+    /* ---------- ③ 半圆巨型拱洞：外金内石，拱心石压顶 ---------- */
+    const archGeo = this._trackGeometry(
+      new THREE.TorusGeometry(1, 0.19, 4, 18, Math.PI)
+    );
+    const archGold = new THREE.Mesh(archGeo, S.matCoinGold);
+    archGold.name = 'Lobby/gate-arch-gold';
+    archGold.scale.set(4.82, 4.82, 5.9);
+    archGold.position.set(0, 6.0, 0);
+    archGold.castShadow = false;
+    gate.add(archGold);
+
+    const archStone = new THREE.Mesh(archGeo, S.matPillar);
+    archStone.name = 'Lobby/gate-arch-stone';
+    archStone.scale.set(4.52, 4.52, 5.7);
+    archStone.position.set(0, 6.0, 0.28);
+    archStone.castShadow = false;
+    gate.add(archStone);
+
+    // 拱脚石 + 拱心石
+    for (const side of [-1, 1]) {
+      this._box(gate, `gate-arch-impost-${side}`, S.matCoinGold,
+        1.1, 0.55, 1.7, side * 4.75, 5.75, 0.45, { shadow: true });
+    }
+    this._box(gate, 'gate-arch-keystone', S.matCoinGold,
+      1.25, 1.15, 1.7, 0, 10.95, 0.5, { shadow: true });
+    this._ball(gate, 'gate-arch-jewel', S.matNeonWarm,
+      0.3, 0, 11.0, 1.32);
+
+    /* ---------- ④ 门头横梁 + 木质匾额 + 招牌 ---------- */
+    this._box(gate, 'gate-entablature', S.matPillar,
+      18.6, 0.95, 3.5, 0, 11.55, 0, { shadow: true });
+    this._box(gate, 'gate-entablature-gold', S.matCoinGold,
+      18.7, 0.12, 0.2, 0, 12.05, 1.76);
+    this._box(gate, 'gate-sign-panel', S.matBark,
+      10.8, 4.2, 0.55, 0, 14.05, 1.5, { shadow: true });
+
     const signInfo = this._atlasLabelGeometry(GATE_LABEL);
     if (signInfo) {
-      const worldW = 10.5;
-      const worldH = worldW / signInfo.uv.aspect;
-      /* 【六项升级·阶段五】「游乐场」招牌沿 Y 轴下移：原 13.45 高于横梁
-       * (y=11.65~13.15) 且 z=0.35 埋在梁体内部，会被门楼塔尖/梁体遮挡。
-       * 下移到横梁正面 (y≈11.6 底边、z=1.02 在梁前表面 0.98 之外)，
-       * 既醒目又不遮发光条。 */
-      const signY = 11.6 + worldH / 2;
+      // 字号按匾额可用高度反算：3 字标签约 8.4×3.55m，既大又不溢出木框
+      let worldW = 9.8;
+      let worldH = worldW / signInfo.uv.aspect;
+      if (worldH > 3.55) {
+        worldH = 3.55;
+        worldW = worldH * signInfo.uv.aspect;
+      }
+      const signY = 14.05;
+      const halfW = worldW / 2;
+      const halfH = worldH / 2;
+
+      // 前/后两块共用同一 UV 几何，背面文字不镜像；各自法线朝外
       for (const side of [1, -1]) {
         const sign = new THREE.Mesh(signInfo.geo, S.matLabelAtlas);
         sign.name = `Lobby/gate-sign-${side > 0 ? 'front' : 'back'}`;
-        sign.position.set(0, signY, 1.02);
+        sign.userData.gateSign = true;
+        sign.position.set(0, signY, side > 0 ? 1.80 : 1.19);
         sign.scale.set(worldW, worldH, 1);
         if (side < 0) sign.rotation.y = Math.PI;
         gate.add(sign);
       }
+
+      // 黄铜画框：四边都不压字，且比招牌更靠前，形成立体包边
+      for (const side of [1, -1]) {
+        const z = side > 0 ? 1.88 : 1.11;
+        for (const dir of [-1, 1]) {
+          this._box(gate, `gate-sign-frame-v-${side}-${dir}`, S.matCoinGold,
+            0.2, worldH + 0.55, 0.16, dir * (halfW + 0.26), signY, z);
+          this._box(gate, `gate-sign-frame-h-${side}-${dir}`, S.matCoinGold,
+            worldW + 0.9, 0.2, 0.16, 0, signY + dir * (halfH + 0.26), z);
+        }
+      }
+
+      // 四角暖光灯珠：夜景里给招牌一圈真正的“发光”轮廓
+      for (const sx of [-1, 1]) {
+        for (const sy of [-1, 1]) {
+          this._ball(gate, `gate-sign-glow-${sx}-${sy}`, S.matNeonWarm,
+            0.17, sx * (halfW + 0.55), signY + sy * (halfH + 0.55), 1.96);
+        }
+      }
     }
 
-    /* ---------- T09：城堡门楼（哥特尖拱 + 双塔 + 城垛 + 纹章） ----------
-     * 全部复用 S 共享几何/材质，零新增 geometry/material/texture；
-     * 只加普通 Mesh + 1 个 InstancedMesh（城垛 1 draw call）。
-     * 底部通行区与 gate-left/right AABB 完全不动 → 第 7 项触发点分散成果不受影响。 */
-    // ① 尖拱：两根斜梁在门洞上方汇成 ∧ 形，中央拱心石（name 含 arch）
-    for (const side of [-1, 1]) {
-      const arch = this._box(gate, `gate-arch-${side > 0 ? 'right' : 'left'}`,
-        S.matCoinGold, 0.5, 5.2, 0.75, side * 2.0, 9.4, 0.12, { shadow: true });
-      arch.rotation.z = side * 0.62;
+    // 匾额上方皇冠徽记 + 皇家盾徽（M5 纹章判据；全部在招牌上方，不遮字）
+    this._box(gate, 'gate-emblem-frame', S.matCoinGold,
+      2.6, 1.65, 0.22, 0, 17.05, 1.1);
+    this._box(gate, 'gate-emblem', S.matNeonViolet,
+      2.25, 1.35, 0.3, 0, 17.05, 1.24, { shadow: true });
+    this._box(gate, 'gate-emblem-crown', S.matCoinGold,
+      1.9, 0.26, 0.36, 0, 17.82, 1.26);
+    this._ball(gate, 'gate-emblem-jewel', S.matNeonWarm,
+      0.18, 0, 17.08, 1.44);
+
+    // 匾额上方皇冠徽记
+    this._box(gate, 'gate-crown-base', S.matCoinGold,
+      1.7, 0.34, 0.5, 0, 16.55, 1.55);
+    for (const dx of [-0.55, 0, 0.55]) {
+      const prong = new THREE.Mesh(S.geoCone, S.matCoinGold);
+      prong.name = `Lobby/gate-crown-prong-${dx}`;
+      prong.scale.set(0.22, 0.55, 0.22);
+      prong.position.set(dx, 16.95, 1.55);
+      gate.add(prong);
     }
-    this._box(gate, 'gate-arch-keystone', S.matNeonWarm, 1.0, 0.9, 0.9, 0, 11.35, 0.12);
-    // 纹章：拱内金色盾牌 + 光环
-    this._box(gate, 'gate-emblem', S.matCoinGold, 1.35, 1.6, 0.3, 0, 10.15, 0.55);
-    const emblemRing = new THREE.Mesh(S.geoTorus, S.matNeonWarm);
-    emblemRing.name = 'Lobby/gate-emblem-ring';
-    emblemRing.scale.set(1.0, 1.0, 0.1);
-    emblemRing.position.set(0, 10.15, 0.75);
-    gate.add(emblemRing);
-    // ② 双塔：柱身上段加宽成方形塔楼 + 锥顶 + 塔尖宝珠（name 含 tower）
-    for (const side of [-1, 1]) {
-      const x = side * 6.5;
-      this._box(gate, `gate-tower-${side}`, S.matPillar, 2.6, 4.2, 2.6, x, 10.4, 0, { shadow: true });
-      const spire = new THREE.Mesh(S.geoCone, S.matNeonViolet);
-      spire.name = `Lobby/gate-tower-spire-${side}`;
-      spire.scale.set(1.95, 3.4, 1.95);
-      spire.position.set(x, 14.3, 0);
-      spire.castShadow = true;
-      gate.add(spire);
-      this._ball(gate, `gate-tower-finial-${side}`, S.matCoinGold, 0.4, x, 16.2, 0);
+    this._ball(gate, 'gate-crown-jewel', S.matNeonWarm,
+      0.2, 0, 16.62, 1.86);
+
+    /* ---------- ⑤ 顶部城垛（单 InstancedMesh，1 draw call） ---------- */
+    const merlons = [];
+    for (let i = 0; i < 13; i += 1) {
+      merlons.push({ x: -9.3 + i * 1.55, y: 17.15, z: 0, ry: 0 });
     }
-    // ③ 城垛：横梁上沿两侧各 5 个，避开中央 10.5m 宽的 atlas 招牌
-    const crenelXs = [];
-    for (let i = 0; i < 5; i += 1) crenelXs.push(-8.4 + i * 0.6, 6.0 + i * 0.6);
-    const crenels = new THREE.InstancedMesh(S.geoBox, S.matPillar, crenelXs.length);
+    for (const side of [-1, 1]) {
+      for (const dz of [-0.85, 0.85]) {
+        merlons.push({ x: side * 10.9, y: 11.0, z: dz, ry: Math.PI / 2 });
+      }
+    }
+    const crenels = new THREE.InstancedMesh(S.geoBox, S.matPillar, merlons.length);
     crenels.name = 'Lobby/gate-crenels';
     crenels.castShadow = true;
     const cd = new THREE.Object3D();
-    crenelXs.forEach((cx, i) => {
-      cd.position.set(cx, 13.7, 0);
-      cd.scale.set(0.42, 1.15, 1.5);
+    merlons.forEach((m, i) => {
+      cd.position.set(m.x, m.y, m.z);
+      cd.rotation.set(0, m.ry, 0);
+      cd.scale.set(m.ry === 0 ? 0.68 : 1.75, 1.2, m.ry === 0 ? 2.9 : 0.68);
       cd.updateMatrix();
       crenels.setMatrixAt(i, cd.matrix);
     });
     crenels.instanceMatrix.needsUpdate = true;
     gate.add(crenels);
 
-    /* ---------- 【M5】皇堡升级：中央主塔 + 侧翼塔 + 尖顶 + 旗帜 ----------
-     * 继续复用 S.geoBox / S.geoCone / S.geoCylinder 与既有共享材质，
-     * 零新增 geometry / material / texture；重复件一律 InstancedMesh。
-     * 所有新增体量都在 y≥12 的门洞上方，AABB 与可通行区域完全不变。 */
-    // ① 中央主塔（三层收分 + 尖顶 + 宝珠），塔顶约 24.5m
+    /* ---------- ⑥ 背后中央主塔：只做剪影，不参与正面遮挡 ---------- */
     this._box(gate, 'gate-keep-base', S.matPillar,
-      7.4, 3.4, 3.4, 0, 15.1, 0, { shadow: true });
+      6.6, 5.0, 4.2, 0, 13.5, -2.8, { shadow: true });
     this._box(gate, 'gate-keep-mid', S.matPillar,
-      5.4, 3.0, 3.0, 0, 18.3, 0, { shadow: true });
+      5.2, 4.2, 3.6, 0, 19.1, -2.8, { shadow: true });
     this._box(gate, 'gate-keep-upper', S.matPillar,
-      3.8, 2.6, 2.6, 0, 21.1, 0, { shadow: true });
+      3.8, 3.4, 3.0, 0, 23.0, -2.8, { shadow: true });
+    for (const dx of [-1.3, 0, 1.3]) {
+      this._box(gate, `gate-keep-window-${dx}`, S.matNeonWarm,
+        0.34, 1.35, 0.12, dx, 19.1, -0.94);
+    }
     const keepSpire = new THREE.Mesh(S.geoCone, S.matNeonViolet);
     keepSpire.name = 'Lobby/gate-keep-spire';
-    keepSpire.scale.set(2.4, 4.2, 2.4);
-    keepSpire.position.set(0, 24.5, 0);
+    keepSpire.scale.set(2.3, 4.4, 2.3);
+    keepSpire.position.set(0, 26.8, -2.8);
     keepSpire.castShadow = true;
     gate.add(keepSpire);
-    this._ball(gate, 'Lobby/gate-keep-finial', S.matCoinGold, 0.65, 0, 27.0, 0);
-    // 主塔正面皇家纹章（蓝底 + 金冠 + 暖光宝珠）
-    this._box(gate, 'gate-royal-shield', S.matNeonViolet, 2.4, 3.0, 0.35, 0, 17.6, 1.75);
-    this._box(gate, 'gate-royal-crown', S.matCoinGold, 2.0, 0.5, 0.42, 0, 19.3, 1.8);
-    this._ball(gate, 'gate-royal-jewel', S.matNeonWarm, 0.34, 0, 17.8, 2.0);
+    this._ball(gate, 'gate-keep-finial', S.matCoinGold, 0.5, 0, 29.1, -2.8);
 
-    // ② 侧翼塔加高：在 T09 双塔顶再加一层塔身 + 第二道尖顶 + 旗杆旗面
-    for (const side of [-1, 1]) {
-      const x = side * 6.5;
-      this._box(gate, `gate-wing-upper-${side}`, S.matPillar,
-        2.0, 2.4, 2.0, x, 15.6, 0, { shadow: true });
-      const spire2 = new THREE.Mesh(S.geoCone, S.matNeonViolet);
-      spire2.name = `Lobby/gate-wing-spire-${side}`;
-      spire2.scale.set(1.5, 2.6, 1.5);
-      spire2.position.set(x, 18.3, 0);
-      spire2.castShadow = true;
-      gate.add(spire2);
-      // 旗杆 + 旗面（金色，迎风方向固定，零动画零新建）
-      this._box(gate, `gate-flag-pole-${side}`, S.matPillar,
-        0.12, 2.2, 0.12, x, 20.4, 0);
-      this._box(gate, `gate-flag-banner-${side}`, S.matCoinGold,
-        1.3, 0.85, 0.08, x + side * 0.7, 21.1, 0);
-    }
+    // 合并全部装饰盒/柱/锥/球（保留招牌、拱、城垛、塔楼与尖顶判据名），
+    // 把 60 余个 draw call 压到 5 个材质批次，避免阶段四新增拖高 calls。
+    this._mergeGateDecor(gate, S);
 
-    // ③ 门洞上方双层皇冠拱：比 T09 单拱更厚重，且仍在 |x|<4 的上方
-    for (const side of [-1, 1]) {
-      const crown = this._box(gate, `gate-crown-arch-${side}`, S.matCoinGold,
-        0.42, 6.6, 0.9, side * 2.6, 11.0, 0.55, { shadow: true });
-      crown.rotation.z = side * 0.5;
-    }
-    this._box(gate, 'gate-crown-keystone', S.matNeonWarm,
-      1.2, 1.0, 1.0, 0, 13.7, 0.55);
-
-    // AABB：只挡两根立柱，中间留出可通行的门洞（M5 皇堡结构全在门洞上部，不改碰撞）
+    // AABB 只挡两根石柱，中间 8.4m 门洞完全可通行
     this._buildingBoxes.push(
-      { key: 'gate-left', minX: -7.6 - AABB_PAD, maxX: -5.4 + AABB_PAD, minZ: 15 - 1.2 - AABB_PAD, maxZ: 15 + 1.2 + AABB_PAD },
-      { key: 'gate-right', minX: 5.4 - AABB_PAD, maxX: 7.6 + AABB_PAD, minZ: 15 - 1.2 - AABB_PAD, maxZ: 15 + 1.2 + AABB_PAD }
+      { key: 'gate-left', minX: -9.5 - AABB_PAD, maxX: -4.9, minZ: 15 - 2.0 - AABB_PAD, maxZ: 15 + 2.0 + AABB_PAD },
+      { key: 'gate-right', minX: 4.9, maxX: 9.5 + AABB_PAD, minZ: 15 - 2.0 - AABB_PAD, maxZ: 15 + 2.0 + AABB_PAD }
     );
+  }
+
+  /**
+   * 南门装饰合批：同材质的所有静态小件（盒 / 柱 / 锥 / 球）烘焙到 5 个 Mesh。
+   * 招牌、拱券、城垛 InstancedMesh、塔楼与尖顶保留独立对象，供验收按名字识别。
+   * 源几何来自共享池，克隆仅用于合并；最终几何登记进 _geometries 随 Lobby 释放。
+   * @param {THREE.Group} gate
+   * @param {object} S
+   */
+  _mergeGateDecor(gate, S) {
+    if (!gate) return;
+    const KEEP = /gate-(?:sign-(?:front|back|panel)|arch-(?:gold|stone)|crenels|tower--?\d+$|tower-turret-|keep-finial|keep-spire|emblem(?!-))/;
+    /** @type {Map<string,{mat:THREE.Material, parts:THREE.Mesh[], geos:THREE.BufferGeometry[], shadow:boolean}>} */
+    const groups = new Map();
+    for (const child of gate.children.slice()) {
+      if (!child.isMesh || child.isInstancedMesh) continue;
+      if (KEEP.test(child.name)) continue;
+      const geo = child.geometry;
+      if (!geo?.attributes?.position || !child.material) continue;
+      const key = child.material.uuid;
+      if (!groups.has(key)) {
+        groups.set(key, { mat: child.material, parts: [], geos: [], shadow: false });
+      }
+      const group = groups.get(key);
+      child.updateMatrix();
+      const g = geo.index ? geo.toNonIndexed() : geo.clone();
+      g.applyMatrix4(child.matrix);
+      group.parts.push(child);
+      group.geos.push(g);
+      group.shadow = group.shadow || child.castShadow;
+    }
+
+    for (const group of groups.values()) {
+      let merged = null;
+      if (group.geos.length === 1) {
+        merged = group.geos[0];
+      } else {
+        merged = mergeGeometries(group.geos, false);
+      }
+      if (!merged) {
+        for (const g of group.geos) g.dispose();
+        continue;
+      }
+      merged.computeBoundingSphere();
+      this._trackGeometry(merged);
+      const mesh = new THREE.Mesh(merged, group.mat);
+      mesh.name = group.mat === S.matNeonViolet
+        ? 'Lobby/gate-flag-banner-merged'
+        : `Lobby/gate-merged-${mesh.id}`;
+      mesh.castShadow = group.mat === S.matPillar && group.shadow;
+      gate.add(mesh);
+      for (const child of group.parts) gate.remove(child);
+      if (group.geos.length > 1) for (const g of group.geos) g.dispose();
+    }
   }
 
   /* ------------------------------------------------------------------------ */
@@ -2540,75 +2843,68 @@ export class Lobby extends IAttraction {
   }
 
   /* ------------------------------------------------------------------------ */
-  /* ⑤-d 弹跳碰碰球竞技场（右侧前场 x=26 / z=-2）                              */
+  /* ⑤-d 跳舞厅门面（右侧前场 x=26 / z=-2）：霓虹小楼 + 音符灯珠               */
   /* ------------------------------------------------------------------------ */
-  _buildBouncingArena() {
+
+  /**
+   * 【阶段二·模块 1】跳一跳退役，本槽位改建「跳舞厅」门面。
+   * 室内玩法由独立的 DanceHall 设施负责（activate 全场景接管）；
+   * 这里只负责广场可见的外观：暗色小楼 + 霓虹门楣 + 音符灯珠 + 顶部镜球。
+   * 全部复用共享几何 / 材质（零新增 geometry / material / texture）；
+   * 「跳舞厅」三字由图集字符集动态收录（createFacilityLabelAtlas 按 label 派生）。
+   */
+  _buildDanceHall() {
     const S = this._shared;
     const facility = FACILITIES[3];
     const group = new THREE.Group();
-    group.name = 'Lobby/bouncing-arena';
+    group.name = 'Lobby/dance-hall';
     group.position.set(facility.x, 0, facility.z);
+    group.scale.setScalar(0.85);
     this.root.add(group);
 
-    // 环形场地基座 + 发光围边（复用共享几何，零新增资源）
-    const base = new THREE.Mesh(S.geoCylinder, S.matWheelFrame);
-    base.name = 'Lobby/bounce-base';
-    base.scale.set(5.4, 0.6, 5.4);
-    base.position.y = 0.3;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    group.add(base);
+    // 主体小楼：11×7×9（x×y×z），门朝广场 +z（与 FACILITIES doorDir 一致）
+    const hall = this._box(group, 'dance-hall-block', S.matPillar, 11, 7, 9, 0, 3.5, 0,
+      { key: facility.key, shadow: true });
+    hall.receiveShadow = true;
+    // 屋檐压顶 + 顶部发光檐条
+    this._box(group, 'dance-hall-roof', S.matBark, 11.6, 0.5, 9.6, 0, 7.25, 0, { shadow: true });
+    this._box(group, 'dance-hall-eave-glow', S.matNeonViolet, 11.7, 0.14, 9.7, 0, 7.58, 0);
 
-    const rim = new THREE.Mesh(S.geoTorus, S.matTrackLine);
-    rim.name = 'Lobby/bounce-rim';
-    rim.rotation.x = -Math.PI / 2;
-    rim.scale.setScalar(5.25);
-    rim.position.y = 0.62;
-    group.add(rim); // 装饰环不做拾取
+    // 正面（z=+4.5）霓虹门框：双柱 + 门楣 + 玻璃门芯（ emissive 呼吸条见 update ）
+    this._box(group, 'dance-hall-door-post-l', S.matNeonCyan, 0.42, 4.6, 0.42, -2.2, 2.3, 4.62);
+    this._box(group, 'dance-hall-door-post-r', S.matNeonCyan, 0.42, 4.6, 0.42, 2.2, 2.3, 4.62);
+    // 门楣为共享材质（禁止热路径改共享 mat），节拍呼吸交给下方 5 颗音符灯珠
+    this._box(group, 'dance-hall-door-lintel', S.matNeonWarm, 4.9, 0.5, 0.42, 0, 4.85, 4.62);
+    this._box(group, 'dance-hall-door-glass', S.matTrackLine, 3.6, 4.0, 0.14, 0, 2.0, 4.58);
+    // 侧墙竖向霓虹条（舞台氛围预告）
+    this._box(group, 'dance-hall-side-strip-l', S.matNeonViolet, 0.16, 5.6, 0.16, -5.42, 3.0, 1.8);
+    this._box(group, 'dance-hall-side-strip-r', S.matNeonViolet, 0.16, 5.6, 0.16, 5.42, 3.0, 1.8);
 
-    // 场地内 3 个彩色弹性桩（对应游戏内三种球色）
-    const bumperMats = [S.matNeonViolet, S.matNeonWarm, S.matTrackLine];
-    const bumperPos = [
-      { x: -2.6, z: -1.5 }, { x: 2.6, z: -1.5 }, { x: 0, z: 2.4 },
-    ];
-    bumperPos.forEach((p, i) => {
-      const post = new THREE.Mesh(S.geoCylinder, S.matPillar);
-      post.name = `Lobby/bounce-post-${i}`;
-      post.scale.set(0.48, 2.2, 0.48);
-      post.position.set(p.x, 1.1, p.z);
-      post.castShadow = true;
-      group.add(post);
-      this._ball(group, `bounce-orb-${i}`, bumperMats[i], 0.78, p.x, 2.35, p.z,
-        { key: facility.key, shadow: true });
-    });
+    // 门楣上方跑马灯牌座：深色底板 + 5 颗音符灯珠（update 按节拍脉动）
+    this._box(group, 'dance-hall-marquee', S.matBark, 7.4, 1.15, 0.5, 0, 6.35, 4.4, { shadow: true });
+    this._danceOrbs = [];
+    for (let i = 0; i < 5; i += 1) {
+      const orb = this._ball(group, `dance-hall-note-${i}`,
+        i % 2 === 0 ? S.matNeonGold : S.matNeonCyan, 0.30, (i - 2) * 1.32, 6.35, 4.72,
+        { key: facility.key });
+      this._danceOrbs.push(orb);
+    }
 
-    // 悬浮主球 + 光环：update 里只改 position / rotation
-    const mainBall = new THREE.Mesh(S.geoSphere, S.matPumpkinOrange);
-    mainBall.name = 'Lobby/bounce-main-ball';
-    mainBall.scale.setScalar(1.5);
-    mainBall.position.set(0, 5.4, 0);
-    mainBall.castShadow = true;
-    group.add(mainBall);
-    this._bounceBall = mainBall;
+    // 屋顶小镜球（室内还有一颗真正旋转的，屋顶这颗是外观符号）
+    this._ball(group, 'dance-hall-roof-ball', S.matCoinGold, 0.52, 0, 8.0, 0.6, { shadow: true });
 
-    const halo = new THREE.Mesh(S.geoTorus, S.matTrackLine);
-    halo.name = 'Lobby/bounce-halo';
-    halo.rotation.x = -Math.PI / 2;
-    halo.scale.setScalar(2.15);
-    halo.position.set(0, 5.4, 0);
-    group.add(halo);
-    this._bounceHalo = halo;
+    // 不可见点击代理 + 浮动光点（沿用弹跳竞技场的拾取口径）
+    this._pickProxy(group, facility.key, 11, 8, 9, 0, 3.6, 0);
+    this._buildParticleCloud(group, facility.key, 30, S.matParticleGold,
+      { rx: 8.5, ry: 6.5, rz: 8, cy: 4.0 });
 
-    // 不可见点击代理 + 浮动光点
-    this._pickProxy(group, facility.key, 11, 10, 11, 0, 4.6, 0);
-    this._buildParticleCloud(group, facility.key, 36, S.matParticleGold,
-      { rx: 9, ry: 7.5, rz: 9, cy: 4.4 });
-
-    // AABB：只挡场地本体；触发环（z=6）在场地外 1.6 米，玩家可自由站上去
+    // AABB：按 0.85 缩放后的建筑本体收边，触发环在门前 3m。
     this._buildingBoxes.push({
       key: facility.key,
-      minX: facility.x - 5.4 - AABB_PAD, maxX: facility.x + 5.4 + AABB_PAD,
-      minZ: facility.z - 5.4 - AABB_PAD, maxZ: facility.z + 5.4 + AABB_PAD,
+      minX: facility.x - (5.5 + AABB_PAD) * 0.85,
+      maxX: facility.x + (5.5 + AABB_PAD) * 0.85,
+      minZ: facility.z - (4.5 + AABB_PAD) * 0.85,
+      maxZ: facility.z + (2.5 + AABB_PAD) * 0.85,
     });
   }
 
@@ -3029,6 +3325,7 @@ export class Lobby extends IAttraction {
     const group = new THREE.Group();
     group.name = 'Lobby/facade-fireworks-deck';
     group.position.set(f.x, 0, f.z);
+    group.scale.setScalar(0.6);
     this.root.add(group);
 
     const deck = this._box(group, 'fw-deck', S.matPillar,
@@ -3062,8 +3359,8 @@ export class Lobby extends IAttraction {
 
     this._buildingBoxes.push({
       key: f.key,
-      minX: f.x - 3.6, maxX: f.x + 3.6,
-      minZ: f.z - 3.6, maxZ: f.z + 3.6,
+      minX: f.x - 3.6 * 0.6, maxX: f.x + 3.6 * 0.6,
+      minZ: f.z - 3.6 * 0.6, maxZ: f.z + 3.6 * 0.6,
     });
   }
 
@@ -3282,6 +3579,18 @@ export class Lobby extends IAttraction {
           n.sign += 1;
         }
         this._treePositions.push({ x, z, r: 0.9 }); // 供接触阴影统一铺设
+        /* 【阶段二·模块 3】街道道具计入 NPC 实体障碍（按 kind 收窄 AABB） */
+        if (kind === 0 && n.bench > 0) {
+          this._npcBoxes.push({ minX: x - 0.55, maxX: x + 0.55, minZ: z - 1.2, maxZ: z + 1.2 });
+        } else if (kind === 1 && n.lamp > 0) {
+          this._npcBoxes.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
+        } else if (kind === 2 && n.bin > 0) {
+          this._npcBoxes.push({ minX: x - 0.55, maxX: x + 0.55, minZ: z - 0.55, maxZ: z + 0.55 });
+        } else if (kind === 3 && n.sign > 0) {
+          const bx0 = Math.min(x, x - side * 0.55) - 0.75;
+          const bx1 = Math.max(x, x - side * 0.55) + 0.75;
+          this._npcBoxes.push({ minX: bx0, maxX: bx1, minZ: z - 0.3, maxZ: z + 0.3 });
+        }
       }
     }
     this._flushInstances([seat, back, pole, head, bin, lid, signPost, signBoard]);
@@ -3305,7 +3614,7 @@ export class Lobby extends IAttraction {
       disc.position.set(x, 0.075, z);
       this.root.add(disc);
 
-      const ring = new THREE.Mesh(S.geoTorus, S.matTriggerRing);
+      const ring = new THREE.Mesh(S.geoTriggerRing, S.matTriggerRing);
       ring.name = `Lobby/trigger-ring-${facility.key}`;
       ring.rotation.x = -Math.PI / 2;
       ring.scale.setScalar(TRIGGER_RING_RADIUS);
@@ -3395,12 +3704,25 @@ export class Lobby extends IAttraction {
         if (d < min) tooClose.push(msg);
       }
     }
-    if (tooClose.length > 0) {
-      console.warn(`[Lobby] 触发点间距不足（共 ${tooClose.length} 对）：`, tooClose.join('；'));
+    // 【阶段二·模块 4】对齐自检：每个触发圈到本体门面（facadeFront 或名义
+    // doorDepth）的垂直距离必须落在 GAP±0.5m —— 圈既不嵌进立面，也不飘走。
+    const misaligned = [];
+    for (const f of FACILITIES) {
+      const front = f.facadeFront ?? f.doorDepth;
+      const gap = Math.hypot(f.trigger.x - f.x, f.trigger.z - f.z) - front;
+      if (Math.abs(gap - TRIGGER_FRONT_GAP) > 0.5) {
+        const msg = `[Lobby] 触发圈与门面失配：${f.label} 圈距门面 ${gap.toFixed(2)}m ≠ ${TRIGGER_FRONT_GAP}m`;
+        console.assert(false, msg);
+        misaligned.push(msg);
+      }
+    }
+    if (tooClose.length > 0 || misaligned.length > 0) {
+      console.warn(`[Lobby] 触发点自检未通过（间距 ${tooClose.length} 对 / 失配 ${misaligned.length} 处）：`,
+        tooClose.concat(misaligned).join('；'));
     } else {
       console.info(
         `[Lobby] 触发点间距自检通过：${FACILITIES.length} 个点，` +
-        `最小 ${minDist.toFixed(2)}m（${minPair}）≥ ${min.toFixed(2)}m`
+        `最小 ${minDist.toFixed(2)}m（${minPair}）≥ ${min.toFixed(2)}m，圈-门面失配 0 处`
       );
     }
   }
@@ -3549,9 +3871,14 @@ export class Lobby extends IAttraction {
     );
   }
 
-  /** 切换输入模式（M 键 / HUD 按钮共用入口）。坐姿与过渡中一律拒绝。 */
+  /** 切换输入模式（M 键 / HUD 按钮共用入口）。坐姿、动物园飞行与过渡中一律拒绝。 */
   _toggleInputMode() {
     if (this._disposed || this._sitState !== 'none' || this._wasdBlendActive) return;
+    if (this._zooFly) {
+      // 【互斥修复】动物园飞行中按 M 会与 _updateZooFly 双写相机
+      this._showToast('相机飞行中，暂不可切换模式');
+      return;
+    }
     const cam = this._ctx?.camera;
     const controls = this._controls;
     if (!cam || !controls || !this._wasd) return;
@@ -3686,12 +4013,12 @@ export class Lobby extends IAttraction {
       <div class="lb-vignette"></div>
       <div class="lb-title" data-role="time-title">日光游乐场 · 中央广场</div>
       <div class="lb-mode">
-        <button class="lb-mode-btn" data-role="input-mode" data-mode="orbit" title="WASD 可直接走动；按 M 切第一人称 / 鼠标">◧ 鼠标漫游 · WASD 走动 · M 切第一人称</button>
+        <button class="lb-mode-btn" data-role="input-mode" data-mode="orbit" title="WASD 可直接走动；按 M 切第一人称 / 鼠标">鼠标漫游 · WASD 走动 · M 切第一人称</button>
       </div>
       <div class="lb-zoo">
         <button class="lb-zoo-btn" data-role="zoo-visit" data-at="plaza" title="一键飞到游乐场旁的动物园">🦁 去动物园</button>
       </div>
-      <div class="lb-controls" data-role="controls-hint">拖拽旋转 · 滚轮 / 双指缩放 · 点击设施入口标识进入</div>
+      <div class="lb-controls" data-role="controls-hint">拖拽旋转 · 滚轮 / 双指缩放 · 手机左侧摇杆移动 · 点击入口进入</div>
       <div class="lb-toast" data-role="toast" data-hidden="true"></div>
       <div class="lb-compass" data-role="compass-hint">OrbitControls 自由探索 · 缩放范围 5–50</div>
       <div class="lb-sit-vignette" data-role="sit-vignette" data-on="0"></div>
@@ -3771,14 +4098,17 @@ export class Lobby extends IAttraction {
     const { modeBtn, controlsHint, compassHint } = this._ui || {};
     if (!modeBtn) return;
     const wasd = this._inputMode === 'wasd';
+    const compact = typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches;
     modeBtn.dataset.mode = this._inputMode;
     modeBtn.textContent = wasd
-      ? '⌨ WASD 第一人称 · M 切回鼠标'
-      : '◧ 鼠标漫游 · WASD 走动 · M 切第一人称';
+      ? (compact ? '⌨ WASD · M 切鼠标' : '⌨ WASD 第一人称 · M 切回鼠标')
+      : (compact ? '漫游 · WASD' : '鼠标漫游 · WASD 走动 · M 切第一人称');
     if (controlsHint) {
-      controlsHint.textContent = wasd
-        ? 'W / A / S / D 或方向键移动 · Shift 加速 · 按住画面拖拽环顾 · 点击入口进入'
-        : 'WASD / 方向键走动 · 拖拽旋转 · 滚轮缩放 · 点击设施入口标识进入';
+      controlsHint.textContent = compact
+        ? '左侧摇杆移动 · 拖拽转视角 · 点击入口进入'
+        : (wasd
+          ? 'W / A / S / D 或方向键移动 · Shift 加速 · 按住画面拖拽环顾 · 点击入口进入'
+          : 'WASD / 方向键走动 · 拖拽旋转 · 滚轮缩放 · 点击设施入口标识进入');
     }
     if (compassHint) {
       compassHint.textContent = wasd
@@ -3833,6 +4163,16 @@ export class Lobby extends IAttraction {
    */
   _sitDown(index) {
     if (this._sitState !== 'none') return;
+    if (this._zooFly) {
+      // 【互斥修复】动物园飞行中坐下会与 _updateZooFly 双写相机
+      this._showToast('相机飞行中，暂不可坐下');
+      return;
+    }
+    if (movementMode.isEngaged()) {
+      // 【互斥修复】漫游接管中坐下会与 movementMode.update 双写相机
+      this._showToast('漫游模式中请先按 F 交还相机');
+      return;
+    }
     const bench = this._benchSpots[index];
     const cam = this._ctx?.camera;
     const controls = this._controls;
@@ -4121,6 +4461,24 @@ export class Lobby extends IAttraction {
     const controls = this._controls;
     if (!cam || !controls || this._disposed) return;
 
+    /* 【互斥修复】飞行回程（_zooFly 已激活）允许直接 toggle；但「坐下/漫游接管/
+     * 相机过渡中」首次触发飞行会双写相机（与 _updateSit / movementMode /
+     * CameraRig 抢写），一律拒绝并提示。 */
+    if (!this._zooFly) {
+      if (this._sitState !== 'none') {
+        this._showToast('请先起身，再去动物园');
+        return;
+      }
+      if (movementMode.isEngaged()) {
+        this._showToast('漫游模式中请先按 F 交还相机');
+        return;
+      }
+      if (cameraRig.isTransitioning) {
+        this._showToast('相机过渡中，请稍候');
+        return;
+      }
+    }
+
     // 飞行期间强制 orbit 模式，避免 WASDController 与过渡同时写相机
     if (this._inputMode === 'wasd') {
       this._inputMode = 'orbit';
@@ -4234,15 +4592,13 @@ export class Lobby extends IAttraction {
       }
     }
 
-    // 弹跳竞技场：主球自转 + 上下弹跳感 + 光环缩放
-    if (this._bounceBall && lodOn('bouncing-arena')) {
-      this._bounceBall.rotation.y += dt * 0.7;
-      this._bounceBall.rotation.x += dt * 0.25;
-      this._bounceBall.position.y = 5.4 + Math.sin(t * 1.35) * 0.32;
-    }
-    if (this._bounceHalo && lodOn('bouncing-arena')) {
-      this._bounceHalo.scale.setScalar(2.15 * (1 + 0.05 * Math.sin(t * 1.35)));
-      this._bounceHalo.position.y = this._bounceBall ? this._bounceBall.position.y : 5.4;
+    // 跳舞厅门面：音符灯珠节拍脉动（LOD 门控，零分配；共享材质不参与动画）
+    if (this._danceOrbs && lodOn('dance-hall')) {
+      for (let i = 0; i < this._danceOrbs.length; i += 1) {
+        const orb = this._danceOrbs[i];
+        const s = 0.82 + 0.30 * Math.max(0, Math.sin(t * 3.03 + i * 0.6));
+        orb.scale.setScalar(s);
+      }
     }
 
     for (const cloud of this._particleClouds) {
@@ -4258,15 +4614,24 @@ export class Lobby extends IAttraction {
       this._triggerRings[i].scale.setScalar(s);
     }
 
-    // 喷泉水面：径向正弦波纹（边缘衰减），343 顶点逐帧位移 + 重算法线
+    // 喷泉水面：径向正弦波纹（边缘衰减），343 顶点逐帧位移 + 重算法线。
+    // 【热点修复】按相机距离门控：70m 外波纹不可辨，停更顶点省掉
+    // computeVertexNormals 的每帧临时向量分配（全大厅唯一无 LOD 门控的重算）。
     if (this._fountainWater) {
-      const pos = this._fountainWater.geometry.attributes.position;
-      for (let i = 0; i < pos.count; i += 1) {
-        const r = Math.hypot(pos.getX(i), pos.getY(i));
-        pos.setZ(i, Math.sin(r * 4 - t * 2.5) * 0.03 * (1 - r / 2.4));
+      const fcam = this._ctx?.camera;
+      const near = !fcam
+        || ((fcam.position.x - FOUNTAIN_CENTER.x) ** 2
+          + (fcam.position.y - FOUNTAIN_CENTER.y) ** 2
+          + (fcam.position.z - FOUNTAIN_CENTER.z) ** 2) < FOUNTAIN_UPDATE_DIST_SQ;
+      if (near) {
+        const pos = this._fountainWater.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i += 1) {
+          const r = Math.hypot(pos.getX(i), pos.getY(i));
+          pos.setZ(i, Math.sin(r * 4 - t * 2.5) * 0.03 * (1 - r / 2.4));
+        }
+        pos.needsUpdate = true;
+        this._fountainWater.geometry.computeVertexNormals();
       }
-      pos.needsUpdate = true;
-      this._fountainWater.geometry.computeVertexNormals();
     }
 
     // 入口箭头上下浮动，提示可点击
@@ -4315,6 +4680,8 @@ export class Lobby extends IAttraction {
     if (this._disposed) return;
     const dt = Math.min(Math.max(deltaTime, 0), 0.1);
     if (this._sitState === 'none') this._fitViewport();
+    // 移动端摇杆显隐：orbit / wasd 均可用，嵌入设施与过渡时自动收起
+    this._wasd?.refreshJoystick();
 
     /* 【六项升级·阶段二】漫游态按 Esc 交还相机时，用当前姿态重算 orbit target，
      * 否则 OrbitControls.update() 会按旧 target 把相机瞬间拉回 → 跳变。 */
@@ -4365,11 +4732,13 @@ export class Lobby extends IAttraction {
       }
     }
 
-    if (this._zooFly) this._updateZooFly(dt);
+    if (this._zooFly && this._sitState === 'none') this._updateZooFly(dt);
 
     // 【M7】四宫格区域级 LOD：THREE.LOD 由 renderer 投影阶段自动 update，
     // 热路径只做一次 O(1) 的主矿区查询供 UI/测试读取，零新建 GPU 资源。
     this._districts?.update(this._ctx?.camera);
+    this._city?.setNightMode(dayNightCycle.mode);
+    this._city?.update(dt, this._ctx?.camera);
 
     this._updateAnimations(dt);
 
@@ -4378,7 +4747,8 @@ export class Lobby extends IAttraction {
 
     // 【模块 8】世纪钟大厅地标：每帧读系统时间（平滑扫秒），夜色平滑跟随昼夜模式
     if (this._clockTower) {
-      this._clockTower.tick(new Date());
+      _sharedClockDate.setTime(Date.now()); // 复用共享 Date，消灭 60/s new Date() 分配
+      this._clockTower.tick(_sharedClockDate);
       const target = dayNightCycle.mode === 'night' ? 1 : dayNightCycle.mode === 'sunset' ? 0.5 : 0;
       this._clockNightF += (target - this._clockNightF) * (1 - Math.exp(-3 * dt));
       this._clockTower.setNight(this._clockNightF);
@@ -4576,6 +4946,8 @@ export class Lobby extends IAttraction {
     });
 
     /* ---------- 步骤 5：GPU 资源（几何 / 材质 / 纹理 + uniforms 扫描） ---------- */
+    this._city?.dispose();
+    this._city = null;
     this._step('GPU 资源', () => this._disposeThreeResources());
 
     /* ---------- 步骤 6：台账与状态清空 ---------- */
@@ -4622,6 +4994,9 @@ export class Lobby extends IAttraction {
       this._benchSpots = [];
       this._benchPickables = [];
       this._hoverBenchIndex = -1;
+      this._danceOrbs = null;
+      // 【阶段二·模块 3】NPC 实体障碍随重建清空（init 重新收集）
+      this._npcBoxes.length = 0;
       this._geometries.clear();
       this._materials.clear();
       this._textures.clear();

@@ -77,6 +77,9 @@ const FILTER_PARTICLE = 0;
 const MAX_PUMPKINS = 10; // 存活南瓜上限（边界保护）
 const MAX_PARTICLES = 60; // 存活粒子上限（边界保护）
 const PUMPKIN_MAX_AGE = 8; // 南瓜最长存活（秒）
+
+/** 靶子 setTranslation 的共享传参对象（Rapier 同步读值，热路径复用免分配） */
+const _targetTranslation = { x: 0, y: 0, z: 0 };
 const BODY_LIMIT_Y = -20; // y < -20 立即回收
 const BODY_LIMIT_XZ = 60; // |x| / |z| > 60 立即回收
 const BODY_LIMIT_Z_NEG = -80; // z < -80 立即回收
@@ -924,9 +927,11 @@ export class PumpkinThrower extends IAttraction {
     this._particles.length = 0;
   }
 
-  /** 边界保护 + 粒子 TTL 到期回收（每帧执行） */
+  /** 边界保护 + 粒子 TTL 到期回收（每帧执行）。
+   *  【热点修复】倒序遍历代替 [...arr] 展开——移除走 splice，倒序迭代天然安全且零分配。 */
   _sweepEntities(dt) {
-    for (const pumpkin of [...this._pumpkins]) {
+    for (let i = this._pumpkins.length - 1; i >= 0; i -= 1) {
+      const pumpkin = this._pumpkins[i];
       pumpkin.age += dt;
       const p = pumpkin.body?.translation();
       if (!p) { this._removePumpkin(pumpkin, 'no-body'); continue; }
@@ -943,7 +948,8 @@ export class PumpkinThrower extends IAttraction {
       pumpkin.mesh?.position.set(p.x, p.y, p.z);
       pumpkin.prev.set(p.x, p.y, p.z);
     }
-    for (const particle of [...this._particles]) {
+    for (let i = this._particles.length - 1; i >= 0; i -= 1) {
+      const particle = this._particles[i];
       particle.age += dt;
       if (particle.age >= PARTICLE_TTL) {
         this._removeParticle(particle, 'ttl');
@@ -1038,9 +1044,11 @@ export class PumpkinThrower extends IAttraction {
     // 靶子浮动：结算态停止；位移仅由本类主动 setTranslation，物理不改变它
     if (this._state !== STATE.OVER) this._animateTargets(dt);
 
-    // 命中检测必须在物理步进之后（PhysicsManager.step 已在基座循环里先执行）
+    // 命中检测必须在物理步进之后（PhysicsManager.step 已在基座循环里先执行）。
+    // 【热点修复】倒序遍历代替 [...this._pumpkins] 展开（_resolveHit 内部 splice）
     if (this._state === STATE.PLAYING) {
-      for (const pumpkin of [...this._pumpkins]) {
+      for (let i = this._pumpkins.length - 1; i >= 0; i -= 1) {
+        const pumpkin = this._pumpkins[i];
         const target = this._detectHit(pumpkin);
         if (target) this._resolveHit(pumpkin, target); // 内部先移除南瓜刚体
       }
@@ -1056,15 +1064,18 @@ export class PumpkinThrower extends IAttraction {
     }
   }
 
-  /** 正弦浮动 + 命中闪色；Fixed 刚体仅被主动 setTranslation，不产生冲量 */
+  /** 正弦浮动 + 命中闪色；Fixed 刚体仅被主动 setTranslation，不产生冲量。
+   *  【热点修复】复用共享位置对象传参（Rapier 同步读值），不再每帧 ×5 new 字面量。 */
   _animateTargets(dt) {
     const world = this._ctx?.world;
     if (!world) return;
+    const pos = _targetTranslation;
     for (const target of this._targets) {
       const y = target.baseY + Math.sin(this._time * target.bobSpeed + target.phase) * target.bobAmp;
       target.group.position.y = y;
       try {
-        target.rigidBody.setTranslation({ x: target.layout.x, y, z: target.layout.z }, true);
+        pos.x = target.layout.x; pos.y = y; pos.z = target.layout.z;
+        target.rigidBody.setTranslation(pos, true);
       } catch (err) {
         console.error('[PumpkinThrower] 靶子位置同步失败：', err);
       }

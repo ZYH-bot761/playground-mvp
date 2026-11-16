@@ -99,7 +99,7 @@ try {
     const root = window.__playground.sceneManager.scene.getObjectByName('Lobby');
     const L = root.userData.layout || [];
     return L.map((f) => {
-      const gap = f.doorDepth + 3;
+      const gap = (f.facadeFront ?? f.doorDepth) + 3;
       return Math.abs(f.trigger.x - (f.x + f.doorDir.dx * gap)) < 0.02
         && Math.abs(f.trigger.z - (f.z + f.doorDir.dz * gap)) < 0.02;
     });

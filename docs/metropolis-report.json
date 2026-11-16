@@ -1,0 +1,247 @@
+{
+  "phase": 5,
+  "generatedAt": "2026-11-16T06:34:59.186Z",
+  "pass": 12,
+  "total": 12,
+  "allPass": true,
+  "maxTris": 239204,
+  "maxCalls": 1170,
+  "checks": [
+    {
+      "name": "A 18 座福田式塔楼 + 医院/学校/公交站齐全",
+      "ok": true,
+      "detail": {
+        "towers": 18,
+        "hospital": true,
+        "school": true
+      }
+    },
+    {
+      "name": "B 三级 LOD 面数达标（近 <2.5k / 中远 <400）",
+      "ok": true,
+      "detail": [
+        {
+          "distance": 0,
+          "tri": 1474
+        },
+        {
+          "distance": 95,
+          "tri": 252
+        },
+        {
+          "distance": 185,
+          "tri": 252
+        }
+      ]
+    },
+    {
+      "name": "C 四车道 16m 走廊 + 3.25m 车道",
+      "ok": true,
+      "detail": {
+        "width": 13,
+        "axisX": 24,
+        "axisZ": 27,
+        "walk": 1.5,
+        "lane": 3.25,
+        "corridor": 16
+      }
+    },
+    {
+      "name": "D 跳舞厅/烟花台/大门均退出 16m 道路走廊",
+      "ok": true,
+      "detail": {
+        "corridor": {
+          "minX": 16,
+          "maxX": 32,
+          "minZ": 19,
+          "maxZ": 35
+        },
+        "dance": {
+          "key": "dance-hall",
+          "minX": -28.525,
+          "maxX": -17.475,
+          "minZ": 3.825,
+          "maxZ": 11.475
+        },
+        "fireworks": {
+          "key": "fireworks-deck",
+          "minX": 11.64,
+          "maxX": 15.96,
+          "minZ": 13.34,
+          "maxZ": 17.66
+        }
+      }
+    },
+    {
+      "name": "E 车辆/公交/行人/路灯/信号灯全部 InstancedMesh",
+      "ok": true,
+      "detail": {
+        "cars": 32,
+        "wheels": 128,
+        "bus": 1,
+        "peds": 24,
+        "legs": 48,
+        "lamps": 50,
+        "lampInstances": 50
+      }
+    },
+    {
+      "name": "F 4 迎宾 + 6 通勤 NPC 已生效",
+      "ok": true,
+      "detail": {
+        "total": 10,
+        "greeters": 4
+      }
+    },
+    {
+      "name": "G 所有路线预采样 256 点（运行时零曲线求值）",
+      "ok": true,
+      "detail": [
+        256,
+        256,
+        256,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "H 公交到站 → 3 名低模行人下车并走向大门",
+      "ok": true,
+      "detail": {
+        "bus": {
+          "t": 0.4677609702563693,
+          "fired": true
+        },
+        "alighters": [
+          {
+            "active": true,
+            "t": 0.24188100207733468
+          },
+          {
+            "active": true,
+            "t": 0.35669547553292147
+          },
+          {
+            "active": true,
+            "t": 0.3028383486066617
+          }
+        ],
+        "pedsMoved": true
+      }
+    },
+    {
+      "name": "I 25s 交通推进零新增 geometry/texture",
+      "ok": true,
+      "detail": {
+        "before": {
+          "geometries": 73,
+          "textures": 41
+        },
+        "after": {
+          "geometries": 73,
+          "textures": 41
+        },
+        "car0": 0.9251931871597784
+      }
+    },
+    {
+      "name": "J 夜景暖光：玻璃亮窗 + 路灯光斑点亮",
+      "ok": true,
+      "detail": {
+        "emissive": 3.515,
+        "lampOpacity": 0.55
+      }
+    },
+    {
+      "name": "K 7 机位全部 ≤300k 三角形（含都会区）",
+      "ok": true,
+      "detail": {
+        "maxTris": 239204,
+        "maxCalls": 1170,
+        "views": {
+          "gate": {
+            "triangles": 239204,
+            "calls": 1170,
+            "cityVisible": false,
+            "lod": 1
+          },
+          "overview": {
+            "triangles": 219512,
+            "calls": 903,
+            "cityVisible": true,
+            "lod": 1
+          },
+          "cityNear": {
+            "triangles": 198460,
+            "calls": 427,
+            "cityVisible": true,
+            "lod": 0
+          },
+          "cityFar": {
+            "triangles": 218958,
+            "calls": 480,
+            "cityVisible": true,
+            "lod": 1
+          },
+          "castle": {
+            "triangles": 218960,
+            "calls": 481,
+            "cityVisible": true,
+            "lod": 1
+          },
+          "farm": {
+            "triangles": 196356,
+            "calls": 428,
+            "cityVisible": true,
+            "lod": 1
+          },
+          "south": {
+            "triangles": 236088,
+            "calls": 1104,
+            "cityVisible": false,
+            "lod": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "L 都会区⇄大门 5 轮热路径 Δgeo/Δtex = 0/0",
+      "ok": true,
+      "detail": {
+        "steady": {
+          "geometries": 82,
+          "textures": 46
+        },
+        "deltas": [
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          }
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    "metropolis-close.png",
+    "metropolis-day.png",
+    "metropolis-gate.png",
+    "metropolis-night.png"
+  ],
+  "errors": []
+}

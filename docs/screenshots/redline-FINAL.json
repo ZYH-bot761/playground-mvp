@@ -1,31 +1,31 @@
 {
-  "module": "FINAL",
-  "at": "2026-11-15T09:46:44.104Z",
-  "port": "5173",
-  "passed": 8,
+  "module": "final",
+  "at": "2026-11-16T02:28:56.798Z",
+  "port": 5173,
+  "passed": 7,
   "total": 8,
-  "allPass": true,
+  "allPass": false,
   "checks": [
     {
       "name": "稳态后 3 轮 Δgeo=0 / Δtex=0",
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 51,
+          "textures": 40
         },
         "rounds": [
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 51,
+            "textures": 40
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 51,
+            "textures": 40
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 51,
+            "textures": 40
           }
         ],
         "dGeo": 0,
@@ -37,12 +37,12 @@
       "pass": true,
       "detail": {
         "before": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 51,
+          "textures": 40
         },
         "after": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 51,
+          "textures": 40
         },
         "dGeo": 0,
         "dTex": 0
@@ -53,18 +53,18 @@
       "pass": true,
       "detail": {
         "overview": {
-          "calls": 1097,
-          "triangles": 296534
+          "calls": 1145,
+          "triangles": 294842
         },
         "standard": {
-          "calls": 1059,
-          "triangles": 285066
+          "calls": 1089,
+          "triangles": 284746
         }
       }
     },
     {
       "name": "相对 M0 基线：新增面数 ≤ 5 万 / calls 增量 ≤ 60",
-      "pass": true,
+      "pass": false,
       "detail": {
         "baseline": {
           "note": "M0 容量基线，由 tests/verify-redline.mjs 在固定双机位实测后自举落盘；M1+ 用同一脚本同一机位做增量断言。数值是 renderer.info.render 的当前帧渲染量，受机位影响，不可与 verify-v4.mjs ⑬ 的不同机位数值直接相减。",
@@ -100,22 +100,22 @@
         },
         "measured": {
           "overview": {
-            "calls": 1097,
-            "triangles": 296534
+            "calls": 1145,
+            "triangles": 294842
           },
           "standard": {
-            "calls": 1059,
-            "triangles": 285066
+            "calls": 1089,
+            "triangles": 284746
           }
         },
         "delta": {
           "overview": {
-            "triangles": 1678,
-            "calls": 56
+            "triangles": -14,
+            "calls": 104
           },
           "standard": {
-            "triangles": 1714,
-            "calls": 48
+            "triangles": 1394,
+            "calls": 78
           }
         }
       }
@@ -149,8 +149,8 @@
       "name": "截图有效",
       "pass": true,
       "detail": {
-        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-FINAL.png",
-        "bytes": 1252820
+        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-final.png",
+        "bytes": 1239837
       }
     }
   ],

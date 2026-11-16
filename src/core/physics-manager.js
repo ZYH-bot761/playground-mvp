@@ -30,13 +30,16 @@
  *          若日后升级 Rapier，请先重新核对 dist/init.d.ts 与
  *          dist/pipeline/world.d.ts 的签名，再调整本文件，不要沿用旧写法。
  *
+ * 【懒加载（M8）】本文件不再静态 import Rapier：-compat 版把 .wasm 以 base64
+ * 内联进 .js（~1.3MB 文本），静态引入会把这块体积钉进首包。改为首次 init()
+ * 时动态 import() —— Vite 自动拆出独立 chunk，只有真正需要物理的设施
+ * （dummy / pumpkin-thrower）激活前才下载执行。大厅与全部观赏设施零物理成本。
+ *
  * 【全局唯一约束】world.step() 只允许在本文件的 step() 中出现。
  *          项目（Attraction）内部禁止自行推进物理，否则会出现双重步进、
  *          卸载时残留刚体等难以排查的问题。
  * ============================================================================
  */
-
-import RAPIER from '@dimforge/rapier3d-compat';
 
 export class PhysicsManager {
   static _instance = null;
@@ -49,6 +52,10 @@ export class PhysicsManager {
   constructor() {
     this._ready = false;
     this._world = null;
+    /** @type {object|null} 动态 import 得到的 Rapier 命名空间（init 完成前为 null） */
+    this._rapier = null;
+    /** @type {Promise|null} 进行中的初始化（并发 init() 复用同一 Promise） */
+    this._initPromise = null;
     this._gravity = { x: 0, y: -9.81, z: 0 };
     this._fixedStep = 1 / 60; // Rapier 的固定积分步长（秒）
     this._accumulator = 0;
@@ -58,8 +65,8 @@ export class PhysicsManager {
 
   get isReady() { return this._ready; }
 
-  /** 供项目创建刚体/碰撞体时复用同一个模块命名空间 */
-  get RAPIER() { return RAPIER; }
+  /** 供项目创建刚体/碰撞体时复用同一个模块命名空间（init 完成前为 null） */
+  get RAPIER() { return this._rapier; }
 
   /** 未初始化就取 world 会直接报错，避免项目在 WASM 就绪前创建刚体 */
   get world() {
@@ -70,24 +77,39 @@ export class PhysicsManager {
   }
 
   /**
-   * 异步初始化。compat 版必须先 await RAPIER.init()，否则 new World() 会抛错。
+   * 异步懒加载初始化（幂等、并发安全）：compat 版必须先 await RAPIER.init()，
+   * 否则 new World() 会抛错。Rapier chunk 在首次调用时才拉取。
    * @returns {Promise<PhysicsManager>}
    */
   async init() {
     if (this._ready) return this;
+    if (!this._initPromise) {
+      this._initPromise = this._doInit().catch((err) => {
+        this._initPromise = null; // 失败后允许再次尝试
+        throw err;
+      });
+    }
+    await this._initPromise;
+    return this;
+  }
 
+  /** @private 实际的 WASM 加载与世界构建 */
+  async _doInit() {
+    // 动态 import：Vite 会把 @dimforge/rapier3d-compat 拆成独立 chunk
+    const mod = await import('@dimforge/rapier3d-compat');
+    const RAPIER = mod.default ?? mod;
     // ↓↓↓ 全工程唯一的 WASM 初始化点，必须 await ↓↓↓
     await RAPIER.init();
 
     // Rapier 0.21.0 的 World 构造参数是普通向量对象 {x, y, z}
+    this._rapier = RAPIER;
     this._world = new RAPIER.World(this._gravity);
     this._world.timestep = this._fixedStep;
     this._ready = true;
 
     console.info(
-      `[PhysicsManager] Rapier 初始化完成 | version=${RAPIER.version()} | timestep=${this._world.timestep}s`
+      `[PhysicsManager] Rapier 懒加载初始化完成 | version=${RAPIER.version()} | timestep=${this._world.timestep}s`
     );
-    return this;
   }
 
   /**
@@ -127,6 +149,8 @@ export class PhysicsManager {
       }
     }
     this._world = null;
+    this._rapier = null;
+    this._initPromise = null;
     this._accumulator = 0;
     this._ready = false;
   }
