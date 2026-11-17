@@ -7,7 +7,10 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CITY, CITY_BLOCKS, TOWER_SLOTS, HOSPITAL, SCHOOL, MALL } from './city-layout.js';
-import { makeGlassFacade, makeNightWindows, makeTrackTexture } from './city-textures.js';
+import {
+  makeGlassFacade, makeNightWindows, makeTrackTexture,
+  makeGlassNormalMap, makeGlassRoughness,
+} from './city-textures.js';
 
 const Y0 = CITY.pad.y;
 
@@ -63,12 +66,19 @@ export function buildCityBuildings({ group, owned }) {
   const mapGlass = makeGlassFacade('#2f6776');
   const mapNight = makeNightWindows();
   const mapTrack = makeTrackTexture();
-  owned.textures.push(mapGlass, mapNight, mapTrack);
+  /* 【视觉提质】玻璃幕墙加程序化法线贴图 + 粗糙度贴图（零增面 / 零 draw call）：
+   * 窗框有真实凹凸高光、玻璃有镜面变化，告别"平贴纸"塑料感。
+   * 一次性生成并登记 owned.textures，dispose 成对释放，Δtex 不漂。 */
+  const mapGlassNormal = makeGlassNormalMap();
+  const mapGlassRough = makeGlassRoughness();
+  owned.textures.push(mapGlass, mapNight, mapTrack, mapGlassNormal, mapGlassRough);
 
   const mkGlass = (color, emissiveIntensity = 0) => {
     const m = new THREE.MeshStandardMaterial({
       color, map: mapGlass, emissive: 0xffc38a, emissiveMap: mapNight,
       emissiveIntensity, roughness: 0.52, metalness: 0.16,
+      normalMap: mapGlassNormal, roughnessMap: mapGlassRough,
+      normalScale: new THREE.Vector2(0.55, 0.55),
     });
     owned.materials.push(m);
     return m;
@@ -112,6 +122,12 @@ export function buildCityBuildings({ group, owned }) {
     detail.red.push(boxGeo(1.35, 7.4, 0.55, x - 8.2, Y0 + 34.2, z - d / 2 - 0.36));
     detail.red.push(boxGeo(3.2, 0.75, 0.32, x, Y0 + 15.5, z - d / 2 - 0.44));
     detail.red.push(boxGeo(0.75, 3.2, 0.32, x, Y0 + 15.5, z - d / 2 - 0.44));
+    // 【屋顶设备层】女儿墙压顶 + 两座机房 + 冷却塔，让医院天际线不空
+    detail.roof.push(boxGeo(11.4, 0.5, d + 0.2, x - 8.2, Y0 + 32.4, z));
+    detail.roof.push(boxGeo(11.4, 0.5, d + 0.2, x + 8.2, Y0 + 29.4, z));
+    detail.accent.push(boxGeo(3.0, 1.8, 2.6, x - 10, Y0 + 33.3, z + 1));
+    detail.accent.push(boxGeo(2.2, 1.2, 2.0, x - 6.5, Y0 + 32.9, z - 1));
+    detail.roof.push(cylinderGeo(0.9, 1.1, 1.4, 8, x + 9.5, Y0 + 30.2, z + 1));
     // 入口雨棚与落客区
     detail.accent.push(boxGeo(9, 0.28, 4.2, HOSPITAL.entrance.x - cx, Y0 + 4.1, HOSPITAL.entrance.z - cz));
     detail.glow.push(boxGeo(7.4, 0.14, 2.9, HOSPITAL.entrance.x - cx, Y0 + 0.08, HOSPITAL.entrance.z - cz));
@@ -167,6 +183,12 @@ export function buildCityBuildings({ group, owned }) {
     for (let k = -5; k <= 5; k++) {
       detail.accent.push(boxGeo(0.12, 24, 0.42, x + k * 2.15, Y0 + 13.2, z - d / 2 - 0.48));
     }
+    // 【屋顶设备】穹顶两侧机房 + 女儿墙压顶 + 排风塔
+    detail.roof.push(boxGeo(w + 0.4, 0.55, d + 0.4, x, Y0 + 28.3, z));
+    for (const s of [-1, 1]) {
+      detail.accent.push(boxGeo(2.8, 1.9, 2.4, x + s * (w / 2 - 2.6), Y0 + 29.3, z + 2));
+      detail.roof.push(cylinderGeo(0.45, 0.45, 2.4, 6, x + s * (w / 2 - 4.2), Y0 + 29.5, z - 2));
+    }
     detail.glow.push(boxGeo(10.6, 0.18, 3.2, MALL.entrance.x - cx, Y0 + 0.09, MALL.entrance.z - cz));
     mid.b.push(boxGeo(w, 28, d, x, Y0 + 14, z));
     far.push(boxGeo(w, 28, d, x, Y0 + 14, z));
@@ -195,6 +217,11 @@ export function buildCityBuildings({ group, owned }) {
     detail.c.push(boxGeo(22.5, 8.2, 9.8, x, Y0 + 67.2, z));
     detail.accent.push(boxGeo(23.2, 0.7, 10.4, x, Y0 + 71.6, z));
     detail.roof.push(boxGeo(6.2, 1.0, 6.2, x, Y0 + 73.6, z));
+    // 【顶冠设备】天线阵列 + 航标灯座，强化悬挑环的工业细节
+    for (const s of [-1, 1]) {
+      detail.accent.push(boxGeo(0.28, 4.2, 0.28, x + s * 9.5, Y0 + 74.0, z));
+      detail.roof.push(cylinderGeo(0.34, 0.34, 0.5, 6, x + s * 9.5, Y0 + 76.3, z));
+    }
     // 中间留空的“裤裆”由两条腿自然形成，不填实
     mid.c.push(boxGeo(23, 63, 10, x, Y0 + 31.5, z));
     far.push(boxGeo(23, 63, 10, x, Y0 + 31.5, z));
@@ -209,6 +236,9 @@ export function buildCityBuildings({ group, owned }) {
     const crown = new THREE.ConeGeometry(4.2, 17, 8);
     crown.translate(x, Y0 + 100.5, z);
     detail.white.push(crown);
+    // 【观景台】塔身 60m 处加一圈外挑环廊 + 顶部设备环，打破单调收分
+    detail.accent.push(cylinderGeo(8.4, 8.4, 1.6, 8, x, Y0 + 60, z));
+    detail.roof.push(cylinderGeo(7.6, 8.0, 1.0, 8, x, Y0 + 92, z));
     detail.accent.push(cylinderGeo(0.22, 0.42, 11, 5, x, Y0 + 112.5, z));
     detail.roof.push(cylinderGeo(9.5, 9.9, 1.5, 8, x, Y0 + 1, z));
     mid.a.push(cylinderGeo(6.8, 9.2, 82, 8, x, Y0 + 41, z));
@@ -234,6 +264,11 @@ export function buildCityBuildings({ group, owned }) {
     cap.applyMatrix4(new THREE.Matrix4().makeRotationX(-0.14));
     cap.translate(x, Y0 + 54.2, z);
     detail.white.push(cap);
+    // 【屋顶机房】斜切顶盖旁的设备房 + 两组排风筒
+    detail.roof.push(boxGeo(4.0, 1.6, 3.4, x - 4, Y0 + 52.5, z));
+    for (const s of [-1, 1]) {
+      detail.accent.push(cylinderGeo(0.42, 0.42, 1.8, 6, x + s * 3, Y0 + 53.2, z - 2));
+    }
     detail.roof.push(boxGeo(1.1, 14, 1.1, x, Y0 + 62, z));
     mid.c.push(boxGeo(25, 50, 18, x, Y0 + 25, z));
     far.push(boxGeo(25, 50, 18, x, Y0 + 25, z));

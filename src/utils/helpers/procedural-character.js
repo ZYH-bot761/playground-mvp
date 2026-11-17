@@ -73,6 +73,8 @@ export const NPC_SCALE = 1.04;
 /** 烘焙光照方向（世界/局部空间一致，NPC 不受实时光照影响，夜间也清晰） */
 const LIGHT_DIR = new THREE.Vector3(0.42, 0.84, 0.34).normalize();
 const HALF_DIR = new THREE.Vector3().addVectors(LIGHT_DIR, new THREE.Vector3(0, 0, 1)).normalize();
+/** 视线方向（相机大致从 +Z 看向人物），用于烘焙边缘补光 */
+const _VIEW_DIR = new THREE.Vector3(0, 0, 1);
 const _color = new THREE.Color();
 const _normal = new THREE.Vector3();
 
@@ -165,15 +167,36 @@ function torus(r, tube, x = 0, y = 0, z = 0, arc = Math.PI * 2, sx = 1, sy = 1) 
   return xform(g, { rx: Math.PI / 2, sx, sy, x, y, z });
 }
 
-/** 头部：球体下半段收窄成下巴，并让下唇方向微凸，避免「外星人圆头」 */
+/**
+ * 头部：在同一张 SphereGeometry(1,10,7) 上做多段顶点塑形，顶点数不变（零增面）。
+ * 【提质】在原有「下巴收窄 + 下唇微凸」之上，追加四处真人头型特征：
+ *   ① 颧骨：中下部两侧微外扩，避免锥子脸/气球脸；
+ *   ② 太阳穴：上部两侧内收，形成头骨上宽下窄的自然过渡；
+ *   ③ 后脑：z<0 方向略后凸，正面看脸更立体；
+ *   ④ 额头：ny>0.5 且 nz>0 区域微前突，给刘海/眉骨留出体积。
+ * 全部按归一化坐标的连续函数位移，不产生尖刺或自交。
+ */
 function headGeometry() {
   const g = new THREE.SphereGeometry(1, 10, 7);
   const pos = g.attributes.position;
   for (let i = 0; i < pos.count; i += 1) {
     const nx = pos.getX(i), ny = pos.getY(i), nz = pos.getZ(i);
+    // 下巴：下半部收窄（原逻辑）
     const jaw = ny < 0 ? 1 + ny * 0.26 : 1;
     const chin = ny < -0.35 ? (-ny - 0.35) * 0.16 : 0;
-    pos.setXYZ(i, nx * HEAD_RX * jaw, ny * HEAD_RY, nz * HEAD_RZ * jaw + chin * HEAD_RZ);
+    // ① 颧骨：ny∈[-0.45,0.25] 的两侧 |nx|>0.4 微外扩（峰值 ~6%）
+    const cheek = Math.max(0, 1 - Math.abs(ny - 0.05) / 0.5) * Math.max(0, Math.abs(nx) - 0.35);
+    const cheekGain = 1 + cheek * 0.16;
+    // ② 太阳穴：ny>0.35 的两侧内收（峰值 ~5%）
+    const temple = ny > 0.3 ? Math.min(1, (ny - 0.3) / 0.5) * Math.max(0, Math.abs(nx) - 0.3) : 0;
+    const templeGain = 1 - temple * 0.14;
+    // ③ 后脑：nz<0 方向后凸 ~5%
+    const occiput = nz < 0 ? 1 + (-nz) * 0.06 : 1;
+    // ④ 额头：ny>0.45 且正 z 微前突 ~4%
+    const forehead = ny > 0.45 && nz > 0 ? 1 + Math.min(1, (ny - 0.45) / 0.4) * nz * 0.05 : 1;
+    const x = nx * HEAD_RX * jaw * cheekGain * templeGain;
+    const z = nz * HEAD_RZ * jaw * occiput * forehead + chin * HEAD_RZ;
+    pos.setXYZ(i, x, ny * HEAD_RY, z);
   }
   pos.needsUpdate = true;
   g.computeVertexNormals();
@@ -181,12 +204,16 @@ function headGeometry() {
   return g;
 }
 
-/** 躯干：LatheGeometry 旋转出肩宽腰细的椭圆截面（z 压扁 0.72） */
+/**
+ * 躯干：LatheGeometry 旋转出肩宽腰细的椭圆截面（z 压扁 0.72）。
+ * 【提质】profile 点数与 8 段细分都不变，只调整半径曲线：腰更收、胸廓更饱满、
+ * 肩线更外扩并加一道斜方肌过渡，从"直筒"变成有体型轮廓的上身。
+ */
 function torsoGeometry() {
   const profile = [
-    [0.105, 0.885], [0.152, 0.905], [0.160, 0.950], [0.152, 1.010],
-    [0.142, 1.075], [0.150, 1.160], [0.176, 1.300], [0.198, 1.395],
-    [0.185, 1.445], [0.080, 1.472], [0.000, 1.480],
+    [0.098, 0.885], [0.146, 0.905], [0.152, 0.952], [0.140, 1.012],
+    [0.128, 1.078], [0.150, 1.185], [0.182, 1.330], [0.206, 1.395],
+    [0.186, 1.448], [0.080, 1.474], [0.000, 1.480],
   ];
   const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 8);
   g.scale(1, 1, TORSO_Z);
@@ -225,19 +252,31 @@ function paint(geo, cfg) {
   _color.setHex(colorHex);
   const br = _color.r, bg = _color.g, bb = _color.b;
 
+  const posAttr = geo.attributes.position;
   for (let i = 0; i < count; i += 1) {
     let shade = 1;
     if (mode === 'npc' && normals) {
       _normal.fromBufferAttribute(normals, i);
       const diffuse = Math.max(0, _normal.dot(LIGHT_DIR));
-      shade = 0.60 + 0.40 * diffuse;
-      const spec = Math.pow(Math.max(0, _normal.dot(HALF_DIR)), 20);
-      if (finish === 'metal') shade += 0.78 * spec;
-      else if (finish === 'leather') shade += 0.26 * spec;
-      else if (finish === 'hair') shade += 0.20 * spec;
-      else if (finish === 'skin') shade += 0.08 * spec;
+      // 【提质】提高明暗对比：0.52 基底 + 0.48 漫反射（原 0.60+0.40），
+      // 让布料/皮肤的体积感更强，不再是一片平的剪纸色块。
+      shade = 0.52 + 0.48 * diffuse;
+      // 锐化高光：指数 20→28，金属/皮革亮点更集中，质感更硬朗。
+      const spec = Math.pow(Math.max(0, _normal.dot(HALF_DIR)), 28);
+      if (finish === 'metal') shade += 0.92 * spec;
+      else if (finish === 'leather') shade += 0.34 * spec;
+      else if (finish === 'hair') shade += 0.30 * spec;
+      else if (finish === 'skin') shade += 0.12 * spec;
+      // 【边缘补光】背光侧的轮廓提亮，模拟环境反射，把人物从背景里"抠"出来。
+      const rim = Math.pow(1 - Math.max(0, _normal.dot(_VIEW_DIR)), 3);
+      shade += (finish === 'fabric' ? 0.10 : 0.07) * rim;
+      // 【布料细纹】竖向微扰，让大面积衣料有织物层次（按局部 y 高频正弦）。
+      if (finish === 'fabric' && posAttr) {
+        const py = posAttr.getY(i);
+        shade *= 1 + 0.035 * Math.sin(py * 78.0);
+      }
       // 底部略暗，模拟地面环境遮蔽
-      shade *= 0.90 + 0.10 * Math.max(0, _normal.y * 0.5 + 0.5);
+      shade *= 0.86 + 0.14 * Math.max(0, _normal.y * 0.5 + 0.5);
     }
     if (mode === 'npc' && !fixed) {
       // 主色部件：仅烘焙亮度，调色板在 shader 中相乘

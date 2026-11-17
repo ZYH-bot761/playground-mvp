@@ -32,6 +32,15 @@
 6. **漫游↔驾驶集成修复**（用户实操 bug）。按 F 进入地面漫游后靠近车，因 `movementMode.isEngaged()=true` 使车辆扫描 `baseOk` 恒 false，按 E 完全无反应。修复：地面漫游允许扫车、飞行模式不扫；`getContext` 暴露 `driving` 标志让漫游层在驾驶中自动让位（保留 engaged 标志、下车恢复），避免与驾驶相机双写。新增 `verify-drive-roam.mjs` 7/7 锁定该行为。
 7. **预算口径澄清**。三角面硬红线 300,000；`config/default.json` 的 `drawCallBudget:900` 是**新增内容/新视图**的设计红线，**大厅全量俯瞰约 1,198 calls 是既有基数**，两者不可混用。验收以各脚本固定机位实测为准。
 
+## 3.5 视觉提质（2026-11-17 晚 · 守红线等量替换）
+
+用户要求"建筑/人物更精致、参考 GTA"。本机未装 Blender（`blender_exe=null`），且项目铁律是零外部资产 / 全程序化生成 → 走 Three.js 程序化提质，**不加面、不加 draw call**。
+
+- **人物（`procedural-character.js`）**：3 处零增面改造——① `headGeometry()` 加颧骨外扩 / 太阳穴内收 / 后脑后凸 / 额头前突的顶点塑形；② `paint()` 烘焙光照对比度 0.60+0.40→0.52+0.48、高光指数 20→28、加边缘补光与布料竖向细纹；③ `torsoGeometry()` profile 调肩宽腰收（仍 11 点 8 段）。**面数/人 1656 不变、1 draw call 不变、pivot/顶点属性结构不变**。
+- **都会区建筑（`city-textures.js` + `city-buildings.js`）**：新增 `makeGlassNormalMap()` / `makeGlassRoughness()` 两张程序化纹理挂到玻璃材质（窗框凹凸高光、玻璃镜面变化，告别塑料贴纸）；`makeNightWindows()` 改为有楼层节律、色温分区、窗帘遮挡、成簇亮灯的城市夜景。几何上给医院 / 商场 / 大裤衩 / 尖塔 / 退台塔加屋顶设备层（女儿墙、机房、冷却塔、观景环廊、天线阵列），全部并入已有 `detail.roof/accent` merge 分组 → **不增 draw call**。near 面数约 1028→1316（上限 3000）。
+- **实测**：verify-metropolis 19/19（maxTris 190,603）、redline 8/8（Δgeo=0/Δtex=0，双机位面数未涨）、m3-npc 7/7（1 draw call）、v4 13/13（面/人=1656）。
+- **天花板说明**：守 30 万红线 + 5 边胶囊 Body 的前提下，人物不可能达到 GTA 照片级；要更进一步必须放宽红线或引入外部高模（两者都与现有架构决策冲突）。
+
 ## 4. 当前验收基线（2026-11-17 实测）
 
 | 套件 | 结果 | 关键指标 |
@@ -43,6 +52,8 @@
 | verify-season | 16/16 PASS | 天气峰值 760，clear 后 freeTop=3000；8 次切换 Δ0/0 |
 | verify-driving | 21/21 PASS | 上车 14 刚体 → 下车 0；驾驶相机走受控直写正常 |
 | verify-drive-roam | 7/7 PASS | 漫游地面模式可按 E 上车；驾驶中漫游让位；下车自动恢复 |
+| verify-metropolis | 19/19 PASS | 都会区提质后 maxTris 190,603 / maxCalls 722；LOD 三级保留 |
+| verify-m3-npc | 7/7 PASS | 人物提质后仍 1 draw call、0 报错、900 帧 0 卡墙 |
 | verify-phase2 | 20/20 PASS | 生态扩张（历史记录） |
 | verify-m6-zoo | 8/8 PASS | 动物园回归（历史记录） |
 
