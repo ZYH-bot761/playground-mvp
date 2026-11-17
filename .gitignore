@@ -53,6 +53,14 @@ _rl.log
 private-info.txt
 本机私密信息.txt
 
+# 测试探针归档区：一次性调试脚本，保留本地可查但不入库
+tests/_archive/
+
+# 一次性探针截图 / 本地下载缓存 / 非规范命名的交接文档生成物（保留本地，不入库）
+docs/screenshots/_*.png
+下载/
+缓存/
+
 # 归档区：只保留清单文档入库，大体积中间产物不推远端
 _archive/*.zip
 _archive/tmp-blender/

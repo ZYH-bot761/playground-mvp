@@ -23,6 +23,7 @@
  */
 import * as THREE from 'three';
 import { buildCharacter } from '../../utils/helpers/procedural-character.js';
+import { PauseMenu } from '../../components/pause-menu.js';
 
 /* ----------------------------- 常量 ----------------------------- */
 const LANE_X = [-2.3, 0, 2.3];          // 三条轨道横向坐标（间距 2.3）
@@ -72,6 +73,7 @@ export class ParkourRun {
     this.root = null;
     this._disposed = false;
     this._ctx = null;
+    this._pauseMenu = null;
 
     // 运行状态
     this._state = 'ready';      // ready | countdown | running | dead | result
@@ -201,6 +203,15 @@ export class ParkourRun {
     this._buildObstaclePool();
     this._buildPowerupPool();
     this._buildUI();
+    // 【上线 QA】补齐 ESC / 手机暂停按钮 → 退出本局闭环（此前只能在死亡结算页返回）
+    this._pauseMenu = new PauseMenu({
+      onRestart: () => this._restart(),
+      onExit: () => {
+        this._pauseMenu?.dispose();
+        this._pauseMenu = null;
+        this._ctx?.onExitAttraction?.();
+      },
+    }).attach();
 
     // ⑤ 输入
     window.addEventListener('keydown', this._onKeyDown, { passive: false });
@@ -1055,6 +1066,8 @@ export class ParkourRun {
     if (this._disposed) return;
     this._disposed = true;
     clearTimeout(this._countTimer);
+    this._pauseMenu?.dispose();
+    this._pauseMenu = null;
 
     // 输入解绑
     window.removeEventListener('keydown', this._onKeyDown);

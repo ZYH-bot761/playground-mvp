@@ -17,8 +17,13 @@
  *   dispose() 彻底销毁本类。模块级单例 _lobbyMemory 保存 orbit 相机位置与目标点，
  *   dispose() 写入、init() 读回；JS 模块只求值一次，故跨重建持续存活。
  *
- * 【全程禁用 Rapier】本类不创建任何刚体 / collider，也不调用 world.step()。
- *   探索由 OrbitControls 驱动（旋转 / 缩放），不做第一人称行走。
+ * 【物理归属】本类本体不创建常驻刚体 / collider，也不调用 world.step()。
+ *   两项例外均由对应子系统按生命周期自管，不归本类台账：
+ *     - 小游戏设施（pumpkin-thrower / dummy）由 PhysicsManager 在各自 init 中按需创建；
+ *     - 都会区驾驶（CityDriving）在玩家上车时懒加载 Rapier 创建 1 fixed + 1 dynamic
+ *       + ≤12 kinematic 刚体，下车即 removeRigidBody / removeCollider 归零。
+ *   故「大厅活跃态」的 world.bodies 可以为 0，但「大厅内驾驶中」不为 0——
+ *   这是设计使然，不是泄漏。探索由 OrbitControls / WASD 驱动。
  *
  * 【阴影资源是本次重构的最大泄漏风险】
  *   DirectionalLight.castShadow = true 时，three 会为 light.shadow.map 分配
@@ -47,20 +52,29 @@ import { WASDController, WASD_EYE_HEIGHT, horizontalForward, MOVE_CODES } from '
 import { movementMode } from '../components/controllers/movement-mode-manager.js';
 import { IAttraction } from './attractions/i-attraction.js';
 import { Metropolis } from './metropolis/metropolis-scene.js';
+import { CityDriving } from './metropolis/city-driving.js';
+import { CITY } from './metropolis/city-layout.js';
 import { dayNightCycle, MODE_LABELS } from '../utils/helpers/day-night-cycle.js';
+import { seasonCycle, SEASONS, SEASON_LABELS } from '../utils/helpers/season-cycle.js';
 import { fireworkSystem, FIREWORK_COLORS } from '../utils/helpers/particle-system.js';
 import { npcManager } from '../utils/helpers/npc-manager.js';
 import { buildClockTower } from './attractions/century-clock.js';
 import { CoasterCarRuntime } from '../utils/helpers/coaster-car-runtime.js';
 import { buildZoo, ZOO_VIEW } from './zoo-scene.js';
+import { buildForestPark, FOREST_PARK } from './forest-park.js';
 import { buildDistricts, DISTRICT_VIEW, DISTRICT_GRID } from './districts.js';
 
 /* ========================================================================== */
 /* 模块级单例：跨「销毁重建」保存 orbit 相机位置与目标点                       */
 /* ========================================================================== */
 
+/** 动物园飞行 lerp 的复用位置向量（热路径零分配，供 cameraRig.writePose 读取） */
+const _TMP_FLY_POS = new THREE.Vector3();
+
 /** @type {{cam:{x:number,y:number,z:number}, tgt:{x:number,y:number,z:number}}} */
 const _lobbyMemory = {
+  mode: 'orbit',                // 退出设施后恢复进入前的输入模式
+  wasd: null,                   // { yaw, pitch }：第一人称进入设施时保留朝向
   cam: { x: 0, y: 30, z: 34 },  // 开局俯瞰机位：越过大门横梁，广场与七个入口尽收眼底
   tgt: { x: 0, y: 2, z: 0 },    // 轨道目标：广场中心
 };
@@ -155,6 +169,13 @@ const LOBBY_TRAIN_WHEEL_R = 0.3;   // 与 station-wheel 的 x/z scale 一致
  * 南瓜摩天轮与海盗船本体净距由原 12.6m 拉到 24.7m，彻底解决拥挤。
  */
 const TRIGGER_FRONT_GAP = 3.0;
+
+/** 【上线 QA】第一人称靠近入口的 E 交互半径（触发圈中心 3m 外，留 1.6m 容错） */
+const INTERACT_RADIUS = 4.6;
+/** E 进入防抖：与 pointer 的 200ms 共用同一意图，避免长按/重复触发 */
+const INTERACT_COOLDOWN = 320;
+/** 按 R 自救回到的出生点：南门内草坪中轴，朝北面向世纪钟/入口区 */
+const LOBBY_RESPAWN = Object.freeze({ x: 0, z: 24, yaw: 0 });
 
 const FACILITY_SPECS = Object.freeze([
   {
@@ -712,6 +733,54 @@ const UI_CSS = `
   font-size:12px;font-weight:700;color:#cdd9f2;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
 .lb-time-modes button[data-on='1']{color:#0c1322;background:#ffd24a;border-color:#ffd24a}
+.lb-time-seasons{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 10px}
+.lb-time-seasons button{padding:7px 0;border-radius:8px;cursor:pointer;pointer-events:auto;
+  font-size:12px;font-weight:800;color:#cdd9f2;background:rgba(255,255,255,.075);
+  border:1px solid rgba(255,255,255,.15);transition:background .18s,color .18s,transform .12s}
+.lb-time-seasons button:hover{transform:translateY(-1px)}
+.lb-time-seasons button[data-on='1']{color:#241804;background:linear-gradient(135deg,#ffe7a8,#8fd0ff);border-color:rgba(255,255,255,.62)}
+.lb-drive{position:fixed;left:50%;bottom:148px;transform:translate(-50%,12px);z-index:38;
+  min-width:220px;padding:9px 18px 10px;border-radius:13px;text-align:center;pointer-events:none;
+  color:#eaf2ff;background:rgba(8,14,28,.80);border:1px solid rgba(255,210,74,.55);
+  box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.05) inset;
+  opacity:0;transition:opacity .18s,transform .18s;backdrop-filter:blur(8px)}
+.lb-drive[data-on='1']{opacity:1;transform:translate(-50%,0);pointer-events:auto;cursor:pointer}
+.lb-drive[data-on='1']:active{transform:translate(-50%,1px) scale(.99)}
+.lb-drive[data-on='0']{visibility:hidden}
+.lb-drive b{display:block;font-size:14px;font-weight:900;letter-spacing:.02em;color:#ffd24a}
+.lb-drive span{display:block;margin-top:3px;font-size:11px;font-weight:600;color:#b9cbe8}
+.lb-drive[data-mode='driving']{border-color:rgba(111,214,255,.65)}
+.lb-drive[data-mode='driving'] b{color:#8fe0ff}
+/* 【上线 QA】统一 E 交互提示：与 F 驾驶提示同款毛玻璃 + 金色发光 */
+.lb-interact{position:fixed;left:50%;bottom:148px;transform:translate(-50%,12px);z-index:38;
+  min-width:236px;max-width:calc(100vw - 32px);padding:9px 18px 10px;border-radius:13px;
+  text-align:center;pointer-events:none;cursor:pointer;font-family:inherit;
+  color:#eaf2ff;background:rgba(8,14,28,.82);border:1px solid rgba(255,210,74,.58);
+  box-shadow:0 10px 30px rgba(0,0,0,.48),0 0 24px rgba(255,196,96,.12),
+    inset 0 1px 0 rgba(255,255,255,.10);opacity:0;visibility:hidden;
+  transition:opacity .18s,transform .18s;backdrop-filter:blur(10px) saturate(140%);
+  -webkit-backdrop-filter:blur(10px) saturate(140%)}
+.lb-interact[data-on='1']{opacity:1;visibility:visible;transform:translate(-50%,0);pointer-events:auto}
+.lb-interact b{display:block;font-size:14px;font-weight:900;letter-spacing:.02em;color:#ffd24a;
+  text-shadow:0 0 16px rgba(255,196,96,.28)}
+.lb-interact span{display:block;margin-top:3px;font-size:11px;font-weight:600;color:#b9cbe8}
+.lb-interact:active{transform:translate(-50%,1px) scale(.99)}
+.lb-drive[data-lift='1']{bottom:206px}
+/* 嵌入设施（摩天轮/木马/海盗船）没有独立 HUD，提供常驻出口，防“进得去出不来” */
+.lb-facility-exit{position:fixed;top:calc(62px + env(safe-area-inset-top,0px));
+  left:calc(16px + env(safe-area-inset-left,0px));z-index:45;display:none;
+  min-height:38px;padding:8px 15px;border-radius:999px;cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:800;letter-spacing:.5px;color:#fff2cf;
+  background:linear-gradient(155deg,rgba(40,28,22,.86),rgba(12,18,30,.88));
+  border:1px solid rgba(235,198,128,.55);box-shadow:0 10px 28px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,246,214,.16);backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%)}
+.lb-facility-exit[data-on='1']{display:inline-flex;align-items:center;gap:7px}
+.lb-facility-exit b{color:#ffd24a}
+.lb-facility-exit:hover{filter:brightness(1.08);transform:translateY(-1px)}
+/* 时间控制台展开时隐藏会与其重叠的移动提示；关闭后自动出现 */
+.lb-ui[data-time-open='1'] .lb-drive,
+.lb-ui[data-time-open='1'] .lb-interact{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
 .lb-time-auto{display:flex;align-items:center;justify-content:space-between;
   font-size:12px;color:#b9cbe8;margin-bottom:9px}
 .lb-time-auto button{padding:5px 12px;border-radius:8px;cursor:pointer;pointer-events:auto;
@@ -756,6 +825,21 @@ const UI_CSS = `
   .lb-zoo-btn{font-size:10px;padding:6px 9px}
   .lb-controls{top:calc(48px + env(safe-area-inset-top, 0px));
     max-width:calc(100vw - 20px);white-space:normal;text-align:center;line-height:1.35;padding:4px 9px}
+  .lb-drive,.lb-interact{bottom:calc(144px + env(safe-area-inset-bottom,0px));
+    min-width:0;width:min(238px,calc(100vw - 24px));padding:8px 14px 9px}
+  .lb-drive b,.lb-interact b{font-size:13px}
+  .lb-drive span,.lb-interact span{font-size:10px}
+  .lb-drive[data-lift='1']{bottom:calc(202px + env(safe-area-inset-bottom,0px))}
+  .lb-facility-exit{top:calc(48px + env(safe-area-inset-top,0px));
+    left:calc(8px + env(safe-area-inset-left,0px));font-size:11px;min-height:36px;padding:7px 12px}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .lb-drive,.lb-interact{bottom:calc(118px + env(safe-area-inset-bottom,0px));
+    width:min(210px,calc(100vw - 220px));min-width:0;padding:6px 12px 7px}
+  .lb-drive b,.lb-interact b{font-size:12px}
+  .lb-drive span,.lb-interact span{font-size:9px}
+  .lb-drive[data-lift='1']{bottom:calc(166px + env(safe-area-inset-bottom,0px))}
+  .lb-facility-exit{top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%)}
 }
 `;
 
@@ -821,9 +905,24 @@ export class Lobby extends IAttraction {
      *  花坛/街道道具（此前无碰撞数据，NPC 会从中穿模）。与玩家碰撞
      *  (_buildingBoxes) 分开维护，互不影响玩家步行口径。 */
     this._npcBoxes = [];
-    this._standaloneColliders = []; // 全程禁用 Rapier，恒为空；保留以完整履行契约
+    this._standaloneColliders = []; // Lobby 本体不注册常驻 collider；驾驶/小游戏刚体由各自子系统自管
     this._districts = null;            // 【M7】四宫格骨架 + 区域级 LOD
     this._city = null;                 // 【阶段五】北侧都会区
+    this._driving = null;             // 【阶段四】GTA 驾驶控制器
+    this._nearCar = null;             // 当前可上车的 AI 车
+    this._driveHintEl = null;         // 按 E 上车 / 驾驶 HUD
+    this._driveHintSig = '';          // HUD 文案签名，同值不写 DOM
+    this._driveHintMode = '';         // off / near / pending / driving
+    this._driveHudTimer = 0;
+    // 【上线 QA】统一 E 交互 / 嵌入设施出口 / R 自救
+    this._nearFacility = null;        // { key, name, distance }：第一人称最近入口
+    this._interactHintEl = null;      // 按 E 进入的毛玻璃提示（可点击）
+    this._interactHintMode = '';
+    this._interactHudTimer = 0;
+    this._lastInteractAt = 0;
+    this._facilityExitEl = null;      // 嵌入设施「返回大厅」常驻按钮
+    this._facilityExitOn = false;
+    this._pendingRespawn = false;     // 在嵌入设施里按 R：退出过渡结束后再落到出生点
 
     // ---- 动画对象（init 一次性创建，update 只改属性，绝不惰性新建资源） ----
     this._wheelGroup = null;
@@ -973,6 +1072,11 @@ export class Lobby extends IAttraction {
     // 绑定一次固定引用，保证 _addListener / removeEventListener 成对解绑
     this._onSitKey = this._onSitKey.bind(this);
     this._onModeKey = this._onModeKey.bind(this);
+    this._onVehicleKeyDown = this._onVehicleKeyDown.bind(this);
+    this._onVehicleKeyUp = this._onVehicleKeyUp.bind(this);
+    this._onInteractKey = this._onInteractKey.bind(this);
+    this._onEmbeddedExitKey = this._onEmbeddedExitKey.bind(this);
+    this._onResetKey = this._onResetKey.bind(this);
   }
 
   /* ------------------------------------------------------------------------ */
@@ -1061,6 +1165,9 @@ export class Lobby extends IAttraction {
     this._zooView = false;
     this._zooFly = null;
 
+    /* ---------- ④-a2 【阶段二】城市旁森林公园 ---------- */
+    this._forest = buildForestPark({ root: this.root });
+
     /* ---------- ④-b 资源上传防线：让资源计数与玩家所处视角无关 ----------
      * renderer.info.memory.geometries 只统计「已被渲染上传」的 geometry。
      * 玩家可能在任意位置 / 任意 yaw 退出小游戏；若重建后某种共享几何体的
@@ -1079,14 +1186,25 @@ export class Lobby extends IAttraction {
       shared: this._shared,
     });
     // 【阶段五】公园北侧都会区：城市 LOD 建筑 + InstancedMesh 交通/人群/路灯
-    this._city = new Metropolis({ root: this.root });
+    this._city = new Metropolis({
+      root: this.root,
+      anchors: { carousel: this._carouselFacadeSpin, train: this._stationTrain },
+    });
     this.root.userData.metropolis = this._city;
+    // 都会区建筑接入玩家步行碰撞：边界放开后不能靠“空气墙”阻止穿楼。
+    this._buildingBoxes.push(...this._city.walkColliders);
     this._applyShadowBudget();
     this.root.userData.districtView = DISTRICT_VIEW;
     this.root.userData.districtGrid = DISTRICT_GRID;
 
     /* ---------- ⑤ 相机 / UI / 输入 ---------- */
     const { camera, renderer } = ctx;
+    /* 【阶段四】驾驶控制器：物理懒加载，只有真正按 F 上车才会拉 Rapier。 */
+    this._driving = new CityDriving({
+      camera,
+      traffic: this._city.traffic,
+      getObstacles: () => this._buildingBoxes,
+    });
     this._controls = new OrbitControls(camera, renderer.domElement);
     this._controls.minDistance = ORBIT_MIN_DIST;
     this._controls.maxDistance = ORBIT_MAX_DIST;
@@ -1103,12 +1221,22 @@ export class Lobby extends IAttraction {
      * CameraRig 是全局单例，configure 幂等；owner 只在模式切换/过渡期间持有。
      * getObstacles/isEnabled 都是闭包，每帧读本实例的实时状态，天然跟随重建。 */
     cameraRig.configure({ camera });
+    /* 【相机写者契约】大厅内两处逐帧相机跟随（驾驶舱、动物园飞行）改走
+     * CameraRig.writePose 受控直写，必须在首帧前登记它们的 owner key。
+     * 不新增 owner 值（仍是 lobby / lobby-wasd），故所有既有门控判断不变；
+     * 登记的好处是：rig 成为唯一写入口，未登记的新写者会被拒并告警，
+     * 且每次写入计入审计（directWriteCount），可被验收脚本断言。 */
+    cameraRig.allowDirectWrite('lobby');
+    cameraRig.allowDirectWrite('lobby-wasd');
     this._wasd = new WASDController({
       camera,
       domElement: renderer.domElement,
       getObstacles: () => this._buildingBoxes,
+      getGroundHeight: (x, z) => this._walkGroundHeight(x, z),
       isEnabled: () => !this._disposed
         && this._inputMode === 'wasd'
+        && !this._driving?.active
+        && !this._driving?.pending
         && this._sitState === 'none'
         && !this._wasdBlendActive
         /* 【T03 集成修复】相机被嵌入视图 / 设施过渡接管时，WASD 必须让位，
@@ -1131,6 +1259,17 @@ export class Lobby extends IAttraction {
         && (this._inputMode === 'orbit' || this._inputMode === 'wasd'),
     });
     this._wasd.attach();
+    /* 【上线 QA】若玩家是从第一人称靠近入口进入设施，退出后恢复 WASD 姿态，
+     * 而不是强制跳回 orbit 并看向旧 target（“退出后视角偏移”）。 */
+    if (_lobbyMemory.mode === 'wasd' && _lobbyMemory.wasd) {
+      this._inputMode = 'wasd';
+      this._controls.enabled = false;
+      this._wasd.yaw = _lobbyMemory.wasd.yaw;
+      this._wasd.pitch = _lobbyMemory.wasd.pitch;
+      camera.rotation.order = 'YXZ';
+      camera.rotation.set(this._wasd.pitch, this._wasd.yaw, 0);
+      this._wasd._groundY = null;
+    }
 
     this._buildUI();
     this._bindInput();
@@ -1146,6 +1285,21 @@ export class Lobby extends IAttraction {
     dayNightCycle.setContext('lobby');
     dayNightCycle.applyImmediate();
     fireworkSystem.setContext('lobby');
+    // 【阶段三】四季材质：只注入既有标准材质；所有引用在下一次 dispose 前断开。
+    seasonCycle.setContext('lobby');
+    seasonCycle.registerMaterial(this._shared.matGround, 'ground');
+    seasonCycle.registerMaterial(this._shared.matLeaf, 'broad');
+    seasonCycle.registerMaterial(this._shared.matLeafConifer, 'conifer');
+    seasonCycle.registerMaterial(this._shared.matLeafShrub, 'shrub');
+    seasonCycle.registerMaterial(this._shared.matLeafGrass, 'grass');
+    if (this._forest?.seasonTargets) {
+      seasonCycle.registerMaterial(this._forest.seasonTargets.lawn, 'ground');
+      seasonCycle.registerMaterial(this._forest.seasonTargets.broad, 'broad');
+      seasonCycle.registerMaterial(this._forest.seasonTargets.conifer, 'conifer');
+      seasonCycle.registerMaterial(this._forest.seasonTargets.shrub, 'shrub');
+    }
+    if (this._zoo?.group) seasonCycle.registerCanopiesFrom(this._zoo.group);
+    seasonCycle.applyImmediate();
     // 【模块 8】把真实建筑 AABB + NPC 实体障碍注入 NPC 寻路（Lobby 每次重建都会换一批）
     npcManager.setObstacles(this._buildingBoxes.concat(this._npcBoxes));
     npcManager.setContext('lobby');
@@ -1154,7 +1308,7 @@ export class Lobby extends IAttraction {
     console.info(
       `[Lobby] init 完成 | OrbitControls 自由探索 | 设施=${FACILITIES.length} | 拾取体=${this._pickables.length} | ` +
       `AABB=${this._buildingBoxes.length} | 几何=${this._geometries.size} 材质=${this._materials.size} ` +
-      `纹理=${this._textures.size} | 全程禁用 Rapier`
+      `纹理=${this._textures.size} | Rapier：本体 0 刚体（驾驶按需懒加载）`
     );
   }
 
@@ -1303,10 +1457,22 @@ export class Lobby extends IAttraction {
       color: 0x8a6242, roughnessMap: texGrassRough, metalness: 0, roughness: 0.78,
       flatShading: true,
     }));
+    // 植被按季节语义拆成 4 个共享材质（阔叶 / 针叶 / 灌木 / 草丛）。
+    // 只多 3 个 material，不新增 geometry / texture / draw call；四季系统分别注入
+    // uniform，秋季阔叶橙红时针叶仍保持深绿。
     const matLeaf = this._trackMaterial(new THREE.MeshStandardMaterial({
       color: 0xffffff, metalness: 0, roughness: 0.92, flatShading: true,
       // 树冠只靠 instanceColor 上色，环境反射会把它冲成粉彩；压到 0.1 保留暗部
       envMapIntensity: 0.1,
+    }));
+    const matLeafConifer = this._trackMaterial(new THREE.MeshStandardMaterial({
+      color: 0xffffff, metalness: 0, roughness: 0.94, flatShading: true, envMapIntensity: 0.08,
+    }));
+    const matLeafShrub = this._trackMaterial(new THREE.MeshStandardMaterial({
+      color: 0xffffff, metalness: 0, roughness: 0.94, flatShading: true, envMapIntensity: 0.08,
+    }));
+    const matLeafGrass = this._trackMaterial(new THREE.MeshStandardMaterial({
+      color: 0xffffff, metalness: 0, roughness: 0.96, flatShading: true, envMapIntensity: 0.06,
     }));
     const matFlower = this._trackMaterial(new THREE.MeshStandardMaterial({
       color: 0xffd83a, emissive: 0x3a2600, emissiveIntensity: 0.076,
@@ -1419,7 +1585,7 @@ export class Lobby extends IAttraction {
       texWindowGlow, texCropLeaf,
       matGround, matPillar, matWheelFrame, matTrack,
       matNeonWarm, matNeonViolet, matNeonCyan, matNeonGold, matTrackLine,
-      matBark, matLeaf, matFlower,
+      matBark, matLeaf, matLeafConifer, matLeafShrub, matLeafGrass, matFlower,
       matCloudA, matCloudB, matCloudC, matCloudBand,
       matContactShadow, matShaft,
       matPumpkinOrange, matPumpkinViolet, matCoinGold,
@@ -1633,6 +1799,40 @@ export class Lobby extends IAttraction {
     return wave * amp * inner;
   }
 
+  /**
+   * 第一人称脚下高度：中央广场为 0；北部农家乐台地、森林公园、拱桥按实体抬升。
+   * 只读数值、零分配，由 WASDController 每帧调用。
+   */
+  _walkGroundHeight(x, z) {
+    let y = 0;
+    // 农家乐：整个南区台地 + 田垄顶面（作物从 1.12 起，避免眼位埋进田里）
+    const farm = DISTRICT_GRID.quadrants.farm;
+    const half = DISTRICT_GRID.cell.w / 2;
+    if (x >= farm.cx - half && x <= farm.cx + half && z >= farm.cz - half && z <= farm.cz + half) {
+      y = 1.10;
+      const inField = (x0, z0, w, d) => x >= x0 && x <= x0 + w && z >= z0 && z <= z0 + d;
+      const cx = farm.cx, cz = farm.cz;
+      if (inField(cx - 24, cz - 10, 18, 15) || inField(cx + 2, cz - 10, 20, 16)
+        || inField(cx - 24, cz + 12, 26, 12) || inField(cx + 6, cz + 12, 14, 10)) {
+        y = 1.26;
+      }
+    }
+    // 森林公园：步道/草地面
+    const F = FOREST_PARK;
+    if (x >= F.minX && x <= F.maxX && z >= F.minZ && z <= F.maxZ) y = Math.max(y, 1.23);
+    // 石拱桥：桥面高 1.72~2.44，t∈[0,1] 沿 x 方向
+    if (z >= F.bridgeZ - 1.6 && z <= F.bridgeZ + 1.6) {
+      const span = 14;
+      const x0 = F.riverX - span / 2;
+      const t = (x - x0) / span;
+      if (t >= 0 && t <= 1) y = Math.max(y, 1.14 + 0.58 + Math.sin(Math.PI * t) * 0.72 + 0.09);
+    }
+    // 都会区：整个城市基座抬高 1.16m，此前漏算会让玩家“沉进”城市地面。
+    if (x >= CITY.pad.minX && x <= CITY.pad.maxX
+      && z >= CITY.pad.minZ && z <= CITY.pad.maxZ) y = Math.max(y, CITY.pad.y);
+    return y;
+  }
+
   _buildGround() {
     const S = this._shared;
 
@@ -1787,9 +1987,9 @@ export class Lobby extends IAttraction {
     // ---- 针叶树：树干 + 3 层锥体（逐层收窄） ----
     const coniferTrunks = addInstanced('Lobby/tree-trunk-conifer', trunkGeo, S.matBark, conifers.length);
     const coniferCrown = [
-      addInstanced('Lobby/tree-conifer-0', S.geoCone, S.matLeaf, conifers.length),
-      addInstanced('Lobby/tree-conifer-1', S.geoCone, S.matLeaf, conifers.length),
-      addInstanced('Lobby/tree-conifer-2', S.geoCone, S.matLeaf, conifers.length),
+      addInstanced('Lobby/tree-conifer-0', S.geoCone, S.matLeafConifer, conifers.length),
+      addInstanced('Lobby/tree-conifer-1', S.geoCone, S.matLeafConifer, conifers.length),
+      addInstanced('Lobby/tree-conifer-2', S.geoCone, S.matLeafConifer, conifers.length),
     ];
     conifers.forEach((p, i) => {
       const scale = 0.95 + rnd() * 0.5;
@@ -1816,9 +2016,9 @@ export class Lobby extends IAttraction {
 
     // ---- 灌木 + 花：3 团小球 + 6 朵花 ----
     const shrubBlobs = [
-      addInstanced('Lobby/shrub-0', S.geoIco0, S.matLeaf, shrubs.length, false),
-      addInstanced('Lobby/shrub-1', S.geoIco0, S.matLeaf, shrubs.length, false),
-      addInstanced('Lobby/shrub-2', S.geoIco0, S.matLeaf, shrubs.length, false),
+      addInstanced('Lobby/shrub-0', S.geoIco0, S.matLeafShrub, shrubs.length, false),
+      addInstanced('Lobby/shrub-1', S.geoIco0, S.matLeafShrub, shrubs.length, false),
+      addInstanced('Lobby/shrub-2', S.geoIco0, S.matLeafShrub, shrubs.length, false),
     ];
     const flowerMesh = addInstanced('Lobby/shrub-flower', S.geoIco0, S.matFlower, shrubs.length * 4, false);
     let flowerIndex = 0;
@@ -1851,7 +2051,7 @@ export class Lobby extends IAttraction {
 
     // ---- 小草簇（手册 P5：草地 InstancedMesh 批量渲染）：300 株细锥，1 draw call ----
     const tufts = pick(16, 58, 300, 0.9);
-    const grassMesh = addInstanced('Lobby/grass-tufts', S.geoCone, S.matLeaf, tufts.length, false);
+    const grassMesh = addInstanced('Lobby/grass-tufts', S.geoCone, S.matLeafGrass, tufts.length, false);
     tufts.forEach((p, i) => {
       const h = 0.16 + rnd() * 0.14;
       dummy.position.set(p.x, h / 2, p.z);
@@ -2171,8 +2371,29 @@ export class Lobby extends IAttraction {
    *  这项每帧可回收约 3k 三角形，且不改变主光造型。 */
   _applyShadowBudget() {
     const SOFT = /(?:^|\/)(?:tree-|grass|shrub|flower|trigger-|entrance-arrow|contact-shadows|street-|lamp-|flowerbed-|arena-fence)/;
+    const seenMats = new Set();
     this.root.traverse((o) => {
       if ((o.isMesh || o.isInstancedMesh) && SOFT.test(o.name || '')) o.castShadow = false;
+      /* 【上线 QA】双面半透明材质默认会被 three 拆成“背面 + 正面”两次绘制。
+       * 大厅里有大量发光壳/光柱/叶片，单材质就吃掉 2 个 draw call；
+       * 这些薄片互相遮挡关系很弱，强制单 pass 后视觉效果不变但 calls 近腰斩。 */
+      const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+      for (const m of mats) {
+        if (!m || seenMats.has(m.uuid)) continue;
+        seenMats.add(m.uuid);
+        if (m.transparent && m.side === THREE.DoubleSide) m.forceSinglePass = true;
+        /* 【上线 QA·红线】只要有任一材质 transmission>0，three 会把【整个场景】
+         * 再渲染一遍到折射缓冲（renderTransmissionPass），大厅 draw calls 直接翻倍
+         * （实测 1252→约 630）。玻璃只需“半透明 + 高光”观感，不需要真实折射；
+         * 关闭 transmission 并转成普通透明，视觉几乎无差，预算却回到红线内。 */
+        if (m.transmission > 0) {
+          m.transmission = 0;
+          m.transparent = true;
+          m.opacity = Math.min(m.opacity ?? 1, 0.42);
+          m.roughness = Math.max(m.roughness ?? 0, 0.12);
+          m.needsUpdate = true;
+        }
+      }
     });
   }
 
@@ -3806,6 +4027,15 @@ export class Lobby extends IAttraction {
     this._addListener(window, 'keydown', this._onSitKey, 'input');
     // 【T02】M 键切换鼠标 / WASD；WASDController 自己的监听由其 dispose 回收
     this._addListener(window, 'keydown', this._onModeKey, 'input');
+    /* 【上线 QA】E 靠近进入 / Esc 退出嵌入设施 / R 自救。capture 阶段优先于坐姿 E，
+     * 且只在「最近入口 / 嵌入态 / 自救」条件成立时消费，不改变既有按键语义。 */
+    this._addListener(window, 'keydown', this._onInteractKey, 'input', { capture: true });
+    this._addListener(window, 'keydown', this._onEmbeddedExitKey, 'input', { capture: true });
+    this._addListener(window, 'keydown', this._onResetKey, 'input', { capture: true });
+    /* 【阶段四】F 上下车。capture 阶段抢在 MovementMode（同样用 F）之前，
+     * 只在「靠近车 / 正在驾驶」时消费 F，其余情况仍交给原有漫游模式切换。 */
+    this._addListener(window, 'keydown', this._onVehicleKeyDown, 'input', { capture: true });
+    this._addListener(window, 'keyup', this._onVehicleKeyUp, 'input', { capture: true });
 
     /* 【M1】orbit 模式下的 WASD / 方向键平移监听 --------------------------
      * 旧实现只在切到 wasd 第一人称后接管键盘 → 默认进大厅按 W 毫无反应；
@@ -3849,6 +4079,393 @@ export class Lobby extends IAttraction {
     if (this._sitState !== 'none' || event.key === 'Escape') return;
     const idx = this._hoveredBench();
     if (idx >= 0) this._sitDown(idx);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* 【上线 QA】E 进入 / Esc 退出嵌入设施 / R 自救                           */
+  /* ------------------------------------------------------------------------ */
+
+  /** 第一人称下最近的可进入入口（距离触发圈中心 ≤4.6m，取最近） */
+  _findNearFacility() {
+    if (this._disposed || this._inputMode !== 'wasd') return null;
+    const cam = this._ctx?.camera;
+    if (!cam) return null;
+    let best = null;
+    for (const f of FACILITIES) {
+      const dx = cam.position.x - f.trigger.x;
+      const dz = cam.position.z - f.trigger.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance <= INTERACT_RADIUS && (!best || distance < best.distance)) {
+        best = { key: f.key, name: f.label || f.name, distance };
+      }
+    }
+    return best;
+  }
+
+  _onInteractKey(event) {
+    if (event.code !== 'KeyE' || event.repeat || this._disposed) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (this._ctx?.isEmbedded?.()) return;
+    if (this._driving?.active || this._driving?.pending) return;
+    if (this._sitState !== 'none' || this._zooFly || this._wasdBlendActive) return;
+    if (movementMode.isEngaged() || cameraRig.isTransitioning) return;
+    // 用实时位置重算，避免「刚走到圈内、HUD 尚未刷新」时 E 无效
+    const near = this._findNearFacility();
+    if (!near) return;
+    const now = performance.now();
+    if (now - this._lastInteractAt < INTERACT_COOLDOWN) return;
+    this._lastInteractAt = now;
+    this._nearFacility = near;
+    event.preventDefault();
+    event.stopImmediatePropagation(); // 阻止 bubble 阶段的坐姿 E
+    this._tryEnter(near.key);
+  }
+
+  /** 嵌入设施没有独立 HUD：Esc / 常驻按钮都回大厅，避免“进得去出不来” */
+  _onEmbeddedExitKey(event) {
+    if (event.code !== 'Escape' || event.repeat || this._disposed) return;
+    if (!this._ctx?.isEmbedded?.()) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this._ctx?.onExitAttraction?.();
+  }
+
+  _onResetKey(event) {
+    if (event.code !== 'KeyR' || event.repeat || this._disposed) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (this._ctx?.isEmbedded?.()) {
+      this._pendingRespawn = true;
+      this._ctx?.onExitAttraction?.();
+      this._showToast('正在返回大厅出生点…');
+      return;
+    }
+    this._resetToSpawn();
+  }
+
+  /** R 键自救：清驾驶/坐姿/漫游/动物园飞行，落到南门内出生点 */
+  _resetToSpawn() {
+    if (this._disposed) return false;
+    const d = this._driving;
+    if (d?.pending) {
+      this._showToast('正在加载车辆物理，请稍后再按 R');
+      return false;
+    }
+    if (d?.active) this._exitVehicle();
+    if (this._sitState !== 'none') {
+      this._sitState = 'none';
+      this._sitSaved = null;
+      this._sitBench = null;
+      this._setSitUI(false);
+    }
+    if (movementMode.isEngaged()) movementMode.disengage();
+    movementMode.consumeRelease();
+    this._zooFly = null;
+    this._nearCar = null;
+    this._nearFacility = null;
+    this._wasd?.clearInput();
+    this._orbitKeys.clear();
+
+    const cam = this._ctx?.camera;
+    const controls = this._controls;
+    if (cam) {
+      cam.rotation.order = 'YXZ';
+      cam.position.set(LOBBY_RESPAWN.x, WASD_EYE_HEIGHT, LOBBY_RESPAWN.z);
+      cam.rotation.set(0, LOBBY_RESPAWN.yaw, 0);
+      cam.updateMatrixWorld(true);
+      if (this._inputMode === 'wasd') {
+        if (controls) controls.enabled = false;
+        this._wasd?.resetFromCamera(cam);
+      } else if (controls) {
+        controls.enabled = true;
+        controls.target.set(LOBBY_RESPAWN.x, 2, LOBBY_RESPAWN.z - 12);
+        controls.update();
+      }
+    }
+    const modeHud = document.querySelector('.pg-mode-hud');
+    if (modeHud) modeHud.style.display = '';
+    this._driveHintSig = '';
+    this._driveHintMode = '';
+    this._interactHintMode = '';
+    this._updateDriveHint(0, true);
+    this._updateInteractionHint(0, true);
+    this._showToast('已回到大厅出生点 · R 可随时自救');
+    console.info(`[Lobby] R 自救 → 出生点 (${LOBBY_RESPAWN.x}, ${LOBBY_RESPAWN.z})`);
+    return true;
+  }
+
+  /** 每帧刷新「按 E 进入」提示；仅第一人称靠近触发圈时出现 */
+  _updateInteractionHint(dt = 0, force = false) {
+    const el = this._interactHintEl;
+    if (!el) return;
+    const canScan = !this._disposed
+      && this._inputMode === 'wasd'
+      && !this._wasdBlendActive
+      && this._sitState === 'none'
+      && !movementMode.isEngaged()
+      && !cameraRig.isTransitioning
+      && !(this._ctx?.isEmbedded?.())
+      && !this._zooFly
+      && !this._driving?.active
+      && !this._driving?.pending;
+    this._nearFacility = canScan ? this._findNearFacility() : null;
+    const mode = this._nearFacility ? 'near' : 'off';
+    const sig = this._nearFacility
+      ? `${this._nearFacility.key}|${Math.max(1, Math.round(this._nearFacility.distance))}`
+      : '';
+    if (!force && mode === this._interactHintMode && sig === this._interactHintSig) {
+      this._interactHudTimer -= dt;
+      if (this._interactHudTimer > 0) return;
+    } else {
+      this._interactHintMode = mode;
+      this._interactHintSig = sig;
+    }
+    this._interactHudTimer = 0.2;
+    el.dataset.on = mode === 'near' ? '1' : '0';
+    // 同帧隐藏 F 提示，避免“刚靠近设施”这一帧 E/F 两枚提示重叠或抢占点击。
+    if (this._driveHintEl) {
+      this._driveHintEl.dataset.lift = '0';
+      if (mode === 'near') {
+        this._driveHintEl.dataset.on = '0';
+        this._driveHintMode = 'facility';
+      }
+    }
+    if (mode !== 'near') return;
+    const main = this._ui?.interactMain;
+    const sub = this._ui?.interactSub;
+    if (main) main.textContent = `按 E 进入 · ${this._nearFacility.name}`;
+    if (sub) {
+      const dist = Math.max(1, Math.round(this._nearFacility.distance));
+      sub.textContent = `距入口 ${dist}m · 手机可点击此处`;
+    }
+  }
+
+  /** 嵌入设施常驻出口按钮的显隐（每帧只在状态变化时写 DOM） */
+  _updateFacilityExitUI() {
+    const el = this._facilityExitEl;
+    if (!el) return;
+    const on = !!this._ctx?.isEmbedded?.();
+    if (on === this._facilityExitOn) return;
+    this._facilityExitOn = on;
+    el.dataset.on = on ? '1' : '0';
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* 【阶段四】E/点击 上下车 + 驾驶输入（驾驶态消费 E，避免与设施入口冲突）    */
+  /* ------------------------------------------------------------------------ */
+
+  /** 驾驶提示可点击/触摸：手机没有键盘时也能上车与下车。 */
+  _onDriveHintActivate() {
+    if (this._disposed) return;
+    const d = this._driving;
+    if (!d) return;
+    if (d.active) this._exitVehicle();
+    else if (!d.pending && this._nearCar) this._enterVehicle(this._nearCar);
+  }
+
+  _onVehicleKeyDown(event) {
+    if (this._disposed) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    const d = this._driving;
+    if (!d) return;
+    if (event.code === 'KeyE') {
+      // 与设施入口统一用 E；靠近车时上车优先，驾驶中 E 直接下车。
+      // 俯瞰/轨道模式下只要视线目标落在车旁，也能直接进入。
+      const canEnter = !d.active && !d.pending && this._nearCar;
+      if (d.active || d.pending || canEnter) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (event.repeat) return;
+        if (d.active) this._exitVehicle();
+        else if (d.pending) return;
+        else this._enterVehicle(this._nearCar);
+      }
+      return;
+    }
+    if (!d.active) return;
+    if (event.code === 'KeyC') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.repeat) return;
+      const view = d.toggleView();
+      this._showToast(view === 'third' ? '第三人称追车视角 · 按 C 切回驾驶位' : '驾驶位视角 · 按 C 切第三人称');
+      this._updateDriveHint(0, true);
+      return;
+    }
+    if (MOVE_CODES.has(event.code)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      d.setKey(event.code, true);
+      return;
+    }
+    // 驾驶时禁止 M 切输入模式 / E 坐下，避免相机与键盘双主控
+    if (event.code === 'KeyM' || event.code === 'KeyE') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }
+
+  _onVehicleKeyUp(event) {
+    if (this._disposed) return;
+    const d = this._driving;
+    if (!d) return;
+    if (d.active && MOVE_CODES.has(event.code)) {
+      event.stopImmediatePropagation();
+      d.setKey(event.code, false);
+    }
+  }
+
+  async _enterVehicle(candidate) {
+    const d = this._driving;
+    if (!d || !candidate || d.active || d.pending || this._disposed) return false;
+    this._nearCar = null;
+    this._wasd?.clearInput();
+    this._orbitKeys.clear();
+    this._controls && (this._controls.enabled = false);
+    this._driveHintSig = '';
+    this._updateDriveHint(0, true);
+    const ok = await d.enter(candidate);
+    if (this._disposed) return false;
+    if (!ok) {
+      this._showToast('上车失败，请稍后重试');
+      this._driveHintSig = '';
+      return false;
+    }
+    /* 【相机写者契约】驾驶期间相机由 CityDriving 经 CameraRig.writePose 逐帧直写。
+     * 确保此刻有一个已登记直写的 owner：初始 orbit 态 owner 可能为 null，
+     * 未持 owner 时 writePose 会被仲裁拒绝 → 驾驶视角冻结。这里补一次 setOwner。 */
+    if (cameraRig.owner === null || cameraRig.owner === 'lobby-wasd') {
+      cameraRig.setOwner('lobby');
+    }
+    // 轨道模式直接 F 上车时，退出后落到第一人称步行态，避免相机交给
+    // OrbitControls 时 target 还停在旧位置。
+    if (this._inputMode !== 'wasd') {
+      this._inputMode = 'wasd';
+      this._syncInputModeUI?.();
+    }
+    this._showToast('已上车 · W/S 加减速 · A/D 转向 · C 视角 · E 下车');
+    // 漫游 HUD 的「F 切换」在驾驶时会误导，暂时收起，下车恢复。
+    const modeHud = document.querySelector('.pg-mode-hud');
+    if (modeHud) modeHud.style.display = 'none';
+    this._driveHintSig = '';
+    this._driveHintMode = '';
+    this._updateDriveHint(0, true);
+    return true;
+  }
+
+  _exitVehicle() {
+    const d = this._driving;
+    if (!d || !d.active) return false;
+    const pose = d.exit();
+    if (!pose) return false;
+    // 清掉驾驶时残留的键盘/摇杆输入，避免下车瞬间被仍在推的摇杆带着走。
+    this._wasd?.clearInput();
+    const cam = this._ctx?.camera;
+    if (cam) {
+      const ground = this._walkGroundHeight(pose.x, pose.z);
+      cam.rotation.order = 'YXZ';
+      cam.position.set(pose.x, ground + WASD_EYE_HEIGHT, pose.z);
+      this._wasd?.resolveCollision(cam.position); // 落点若贴墙则推回可行区
+      cam.position.y = ground + WASD_EYE_HEIGHT;
+      cam.rotation.set(0, pose.yaw + Math.PI, 0);
+      this._wasd?.resetFromCamera(cam);
+    }
+    this._controls && (this._controls.enabled = this._inputMode === 'orbit');
+    const modeHud = document.querySelector('.pg-mode-hud');
+    if (modeHud) modeHud.style.display = '';
+    this._nearCar = null;
+    this._driveHintSig = '';
+    this._driveHintMode = '';
+    this._updateDriveHint(0, true);
+    this._showToast('已下车 · WASD 恢复步行漫游 · 靠近车按 E 可再次上车');
+    return true;
+  }
+
+  /** 每帧：驾驶物理/相机，或寻找最近车辆并刷新「按 E 上车」提示。 */
+  _updateVehicle(dt) {
+    const d = this._driving;
+    if (!d) return;
+    if (d.active) {
+      // 移动端摇杆与键盘共用同一驾驶控制器；摇杆 x 右推 = 右转（A/D 的 D 方向）。
+      const joystick = this._wasd;
+      d.setAnalog(joystick?.virtualY ?? 0, -(joystick?.virtualX ?? 0));
+      d.update(dt);
+      this._updateDriveHint(dt);
+      return;
+    }
+    if (d.pending) {
+      this._nearCar = null;
+      this._updateDriveHint(dt);
+      return;
+    }
+    const cam = this._ctx?.camera;
+    const baseOk = cam
+      && !this._wasdBlendActive
+      && this._sitState === 'none'
+      && !movementMode.isEngaged()
+      && !cameraRig.isTransitioning
+      && !(this._ctx?.isEmbedded?.())
+      && this._zooFly == null;
+    let scanPoint = null;
+    let scanRadius = 4.2;
+    if (baseOk && this._inputMode === 'wasd' && cam.position.y < 3.2) {
+      scanPoint = cam.position;
+    } else if (baseOk && this._inputMode === 'orbit' && this._controls?.target) {
+      // 轨道模式用“看向的地面点”找车。这样从公园俯瞰城市时，
+      // 把视线中心移到试驾车上就能直接 F 上车，无需先切 WASD。
+      scanPoint = this._controls.target;
+      scanRadius = 6.0;
+    }
+    this._nearCar = scanPoint
+      ? this._city?.traffic?.findNearestCar(scanPoint, scanRadius) ?? null
+      : null;
+    this._updateDriveHint(dt);
+  }
+
+  _updateDriveHint(dt = 0, force = false) {
+    const el = this._driveHintEl;
+    const d = this._driving;
+    if (!el || !d) return;
+    const mode = d.active ? 'driving' : d.pending ? 'pending' : (this._nearCar ? 'near' : 'off');
+    // E 入口提示优先：同时靠近设施与车辆时，只显示「按 E 进入」，避免两枚提示重叠。
+    if (mode !== 'driving' && this._nearFacility) {
+      el.dataset.on = '0';
+      this._driveHintMode = 'facility';
+      return;
+    }
+    if (!force && mode === this._driveHintMode) {
+      this._driveHudTimer -= dt;
+      if (this._driveHudTimer > 0) return;
+    } else {
+      this._driveHintMode = mode;
+    }
+    this._driveHudTimer = 0.2;
+    if (mode === 'off') {
+      el.dataset.on = '0';
+      return;
+    }
+    el.dataset.on = '1';
+    el.dataset.mode = mode;
+    const main = this._ui?.driveMain;
+    const sub = this._ui?.driveSub;
+    if (mode === 'driving') {
+      const speed = Math.max(0, Math.round(d.speedKmh));
+      if (main) main.textContent = `驾驶中 · ${speed} km/h`;
+      if (sub) sub.textContent = `W/S·摇杆 油门 · A/D 转向 · C ${d.viewMode === 'third' ? '驾驶位' : '第三人称'} · 点击/E 下车`;
+    } else if (mode === 'pending') {
+      if (main) main.textContent = '正在上车…';
+      if (sub) sub.textContent = '加载 Rapier 物理世界';
+    } else {
+      const dist = Math.max(1, Math.round(this._nearCar?.distance ?? 0));
+      if (main) main.textContent = '按 E 上车';
+      if (sub) sub.textContent = `距车 ${dist}m · 按 E 或点击此处直接上车`;
+    }
   }
 
   /* ------------------------------------------------------------------------ */
@@ -4027,6 +4644,18 @@ export class Lobby extends IAttraction {
         <span>休息中… · 拖拽环顾</span>
         <button data-role="sit-stand">起身</button>
       </div>
+      <button type="button" class="lb-interact" data-role="interact-hint" data-on="0">
+        <b data-role="interact-main">按 E 进入</b>
+        <span data-role="interact-sub">靠近发光入口 · 也可点击此处</span>
+      </button>
+      <div class="lb-drive" data-role="drive-hint" data-on="0" data-mode="near"
+        role="button" tabindex="0" aria-label="上车或下车">
+        <b data-role="drive-main">按 E 上车</b>
+        <span data-role="drive-sub">靠近车辆 · 按 E 或点击此处直接上车</span>
+      </div>
+      <button type="button" class="lb-facility-exit" data-role="facility-exit" data-on="0">
+        ← 返回大厅 <b>Esc</b>
+      </button>
       <div class="lb-time">
         <div class="lb-time-box" data-open="false" data-role="time-box">
           <div class="lb-time-title"><span>时间控制台</span><b data-role="time-mode">白天</b></div>
@@ -4034,6 +4663,9 @@ export class Lobby extends IAttraction {
             <button data-time="day" data-on="1">白天</button>
             <button data-time="sunset" data-on="0">黄昏</button>
             <button data-time="night" data-on="0">黑夜</button>
+          </div>
+          <div class="lb-time-seasons">
+            ${SEASONS.map((s) => `<button data-season="${s}" data-on="${s === 'spring' ? '1' : '0'}">${SEASON_LABELS[s]}</button>`).join('')}
           </div>
           <div class="lb-time-auto">
             <span>自动昼夜循环 · 8 分钟/轮</span>
@@ -4060,15 +4692,40 @@ export class Lobby extends IAttraction {
       sitHint: this._uiRoot.querySelector('[data-role="sit-hint"]'),
       sitBar: this._uiRoot.querySelector('[data-role="sit-bar"]'),
       sitVignette: this._uiRoot.querySelector('[data-role="sit-vignette"]'),
+      driveHint: this._uiRoot.querySelector('[data-role="drive-hint"]'),
+      driveMain: this._uiRoot.querySelector('[data-role="drive-main"]'),
+      driveSub: this._uiRoot.querySelector('[data-role="drive-sub"]'),
+      interactHint: this._uiRoot.querySelector('[data-role="interact-hint"]'),
+      interactMain: this._uiRoot.querySelector('[data-role="interact-main"]'),
+      interactSub: this._uiRoot.querySelector('[data-role="interact-sub"]'),
+      facilityExit: this._uiRoot.querySelector('[data-role="facility-exit"]'),
     };
+    this._driveHintEl = this._ui.driveHint;
+    this._ui.driveHint?.addEventListener('click', () => this._onDriveHintActivate());
+    this._ui.driveHint?.addEventListener('keydown', (event) => {
+      if (event.code !== 'Enter' && event.code !== 'Space') return;
+      event.preventDefault();
+      this._onDriveHintActivate();
+    });
+    this._interactHintEl = this._ui.interactHint;
+    this._facilityExitEl = this._ui.facilityExit;
 
     // 事件委托：一个 click 监听覆盖整个时间控制台，dispose 时统一解绑
     this._onTimeClick = (event) => {
-      const el = event.target.closest('[data-role], [data-time]');
+      const el = event.target.closest('[data-role], [data-time], [data-season]');
       if (!el || !this._uiRoot.contains(el)) return;
       const mode = el.dataset.time;
-      const role = el.dataset.role;
-      if (mode) {
+      const season = el.dataset.season;
+      const rawRole = el.dataset.role;
+      // 点击提示文字时 target 是内部 <b>/<span>；归一到按钮角色，避免“看得到点不进”。
+      const role = rawRole === 'interact-main' || rawRole === 'interact-sub'
+        ? 'interact-hint' : rawRole;
+      if (season) {
+        seasonCycle.setSeason(season);
+        this._uiRoot.querySelectorAll('[data-season]').forEach((b) => {
+          b.dataset.on = b.dataset.season === seasonCycle.season ? '1' : '0';
+        });
+      } else if (mode) {
         dayNightCycle.setMode(mode);
       } else if (role === 'time-toggle') {
         const box = this._ui.timeBox;
@@ -4083,6 +4740,10 @@ export class Lobby extends IAttraction {
         this._toggleInputMode();
       } else if (role === 'zoo-visit') {
         this._visitZoo();
+      } else if (role === 'interact-hint') {
+        if (this._nearFacility) this._tryEnter(this._nearFacility.key);
+      } else if (role === 'facility-exit') {
+        if (this._ctx?.isEmbedded?.()) this._ctx?.onExitAttraction?.();
       }
       this._syncTimePanel();
     };
@@ -4105,10 +4766,10 @@ export class Lobby extends IAttraction {
       : (compact ? '漫游 · WASD' : '鼠标漫游 · WASD 走动 · M 切第一人称');
     if (controlsHint) {
       controlsHint.textContent = compact
-        ? '左侧摇杆移动 · 拖拽转视角 · 点击入口进入'
+        ? '左侧摇杆移动 · 拖拽转视角 · E 进入 · R 自救'
         : (wasd
-          ? 'W / A / S / D 或方向键移动 · Shift 加速 · 按住画面拖拽环顾 · 点击入口进入'
-          : 'WASD / 方向键走动 · 拖拽旋转 · 滚轮缩放 · 点击设施入口标识进入');
+          ? 'WASD 移动 · Shift 加速 · E 进入 · F 上车 · R 回到出生点'
+          : 'WASD 走动 · 拖拽旋转 · 点击入口进入 · R 自救');
     }
     if (compassHint) {
       compassHint.textContent = wasd
@@ -4129,8 +4790,13 @@ export class Lobby extends IAttraction {
     timeBox.querySelectorAll('[data-time]').forEach((b) => {
       b.dataset.on = (!dayNightCycle.isAuto && b.dataset.time === dayNightCycle.mode) ? '1' : '0';
     });
+    timeBox.querySelectorAll('[data-season]').forEach((b) => {
+      b.dataset.on = b.dataset.season === seasonCycle.season ? '1' : '0';
+    });
     timeAuto.dataset.on = dayNightCycle.isAuto ? '1' : '0';
     timeAuto.textContent = dayNightCycle.isAuto ? '开' : '关';
+    // 面板展开时隐藏底部移动提示，避免手机窄屏与时间控制台互相遮挡
+    if (this._uiRoot) this._uiRoot.dataset.timeOpen = timeBox.dataset.open === 'true' ? '1' : '0';
   }
 
   /** 大厅内快速放一束烟花（不必进入观礼台） */
@@ -4310,6 +4976,10 @@ export class Lobby extends IAttraction {
   _handleClick(event) {
     const canvas = this._ctx?.renderer?.domElement;
     if (!canvas) return;
+    // 【上线 QA 误触保护】拖拽已由 pointer 位移判定；这里再封死所有非漫游态
+    if (this._driving?.active || this._driving?.pending) return;
+    if (this._ctx?.isEmbedded?.() || this._sitState !== 'none' || this._zooFly) return;
+    if (movementMode.isEngaged() || cameraRig.isTransitioning) return;
     const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     this._ndc.set(
@@ -4342,6 +5012,11 @@ export class Lobby extends IAttraction {
 
   /** 进入设施：两个项目都已开放，统一走 ctx.onEnterAttraction(key) */
   _tryEnter(key) {
+    // 【上线 QA 误触保护】驾驶 / 坐姿 / 嵌入设施 / 相机过渡中一律拒绝，避免抢相机
+    if (this._disposed || this._driving?.active || this._driving?.pending) return;
+    if (this._sitState !== 'none' || this._zooFly) return;
+    if (this._ctx?.isEmbedded?.() || cameraRig.isTransitioning) return;
+    if (movementMode.isEngaged()) return;
     const now = performance.now();
     if (now - this._lastEnterAt < CLICK_DEBOUNCE) return; // 防抖：E + 点击不重复触发
     this._lastEnterAt = now;
@@ -4517,9 +5192,12 @@ export class Lobby extends IAttraction {
     f.t = Math.min(f.t + dt, f.dur);
     const k = f.t / f.dur;
     const e = k * k * (3 - 2 * k);          // smoothstep
-    cam.position.lerpVectors(f.fromCam, f.toCam, e);
+    // 【相机写者契约】飞行相机走 CameraRig 受控直写：owner 已在 _toggleZooView
+    // 收敛为 'lobby'（登记过受控直写），逐帧 lerp 用 pose 一次写入。
+    // controls.target 是 OrbitControls 内部状态（非相机），继续单独 lerp。
+    _TMP_FLY_POS.lerpVectors(f.fromCam, f.toCam, e);
     controls.target.lerpVectors(f.fromTgt, f.toTgt, e);
-    cam.lookAt(controls.target);
+    cameraRig.writePose({ position: _TMP_FLY_POS, lookAt: controls.target });
     controls.enabled = false;
     if (k >= 1) {
       this._zooFly = null;
@@ -4535,6 +5213,8 @@ export class Lobby extends IAttraction {
 
     // 动物园：32 只动物 / 四区循环动画（只写 instanceMatrix，零新建 GPU 资源）
     this._zoo?.update(t);
+    // 森林公园：市民、狗、河面波纹；只写已有矩阵与 uniform
+    this._forest?.update(t, dt);
 
     // 手册 P6：远处物体动画暂停 —— LOD 已切到中/远景（外观被隐藏）时跳过装饰动画
     const lodOn = (key) => {
@@ -4714,6 +5394,9 @@ export class Lobby extends IAttraction {
        * cameraRig.update(dt)——否则一次过渡被推进两次、时长腰斩、切回不跳变失真。
        * 本分支只检测过渡是否已由 FacilityRuntime 收尾。 */
       if (!cameraRig.isTransitioning) this._finishWASDBlend();
+    } else if (this._driving?.active) {
+      // 【阶段四】驾驶时相机由 CityDriving 唯一持有，OrbitControls / WASD 全部让位
+      this._controls.enabled = false;
     } else if (this._inputMode === 'wasd') {
       this._controls.enabled = false;
       this._wasd?.update(dt);
@@ -4736,9 +5419,20 @@ export class Lobby extends IAttraction {
 
     // 【M7】四宫格区域级 LOD：THREE.LOD 由 renderer 投影阶段自动 update，
     // 热路径只做一次 O(1) 的主矿区查询供 UI/测试读取，零新建 GPU 资源。
-    this._districts?.update(this._ctx?.camera);
+    this._districts?.update(this._ctx?.camera, dt);
     this._city?.setNightMode(dayNightCycle.mode);
     this._city?.update(dt, this._ctx?.camera);
+    this._driving?.setNight(this._city?.night ?? 0);
+
+    // 【阶段四】按 F 上/下车 + 车辆物理与驾驶相机（唯一写相机点，位于控制仲裁之后）
+    this._updateVehicle(dt);
+    // 【上线 QA】E 入口提示 + 嵌入设施出口按钮 + 延迟自救落地
+    this._updateInteractionHint(dt);
+    this._updateFacilityExitUI();
+    if (this._pendingRespawn && !this._ctx?.isEmbedded?.() && !cameraRig.isTransitioning) {
+      this._pendingRespawn = false;
+      this._resetToSpawn();
+    }
 
     this._updateAnimations(dt);
 
@@ -4823,6 +5517,10 @@ export class Lobby extends IAttraction {
       if (camera && controls && this._inputMode === 'wasd') {
         controls.target.copy(this._orbitTargetFromPose(camera));
       }
+      _lobbyMemory.mode = this._inputMode;
+      _lobbyMemory.wasd = this._inputMode === 'wasd' && this._wasd
+        ? { yaw: this._wasd.yaw, pitch: this._wasd.pitch }
+        : null;
       const target = controls?.target;
       if (camera) {
         _lobbyMemory.cam.x = camera.position.x;
@@ -4918,6 +5616,7 @@ export class Lobby extends IAttraction {
       this._offTimeChange = null;
       dayNightCycle.unregisterSky();
       dayNightCycle.clearLobbyMaterials();
+      seasonCycle.clearTargets();
       // 【模块 8】清空本轮 AABB 引用，避免悬挂到已释放的场景对象
       npcManager.setObstacles([]);
       this._uiRoot?.remove();
@@ -4930,22 +5629,33 @@ export class Lobby extends IAttraction {
       this._zoo = null;
       this._zooFly = null;
       this._zooView = false;
+      this._forest?.dispose();
+      this._forest = null;
       // 【M7】四宫格骨架：移除 group + 释放 instanceMatrix / 自建材质（幂等）
       this._districts?.dispose();
       this._districts = null;
       this._orbitKeys.clear();   // 【M1】orbit 平移按键状态随实例一起释放
     });
 
-    /* ---------- 步骤 4：Rapier 刚体（本类全程禁用，确认为 0） ---------- */
+    /* ---------- 步骤 4：Lobby 本体 Rapier 资源（常驻 collider，正常为 0） ---------- */
     this._step('物理刚体', () => {
       for (const c of this._standaloneColliders || []) {
         this._ctx?.world?.removeCollider(c, true);
       }
       this._standaloneColliders = [];
-      console.info('[Lobby] 物理资源：全程禁用 Rapier，刚体数 0');
+      // 驾驶刚体不归本步骤：由步骤 5「驾驶系统」的 CityDriving.dispose() 清理。
+      // 两者分列避免重复 remove；world.bodies 在二者完成后归零。
+      console.info('[Lobby] 本体常驻 collider 已清 0；驾驶刚体由 CityDriving.dispose() 单独回收');
     });
 
     /* ---------- 步骤 5：GPU 资源（几何 / 材质 / 纹理 + uniforms 扫描） ---------- */
+    // 【阶段四】先释放驾驶刚体并交还 AI 车，再释放城市几何/材质。
+    this._step('驾驶系统', () => { this._driving?.dispose(); });
+    this._driving = null;
+    const modeHud = document.querySelector('.pg-mode-hud');
+    if (modeHud) modeHud.style.display = '';
+    this._nearCar = null;
+    this._driveHintEl = null;
     this._city?.dispose();
     this._city = null;
     this._step('GPU 资源', () => this._disposeThreeResources());

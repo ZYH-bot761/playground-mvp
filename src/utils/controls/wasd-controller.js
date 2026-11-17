@@ -9,8 +9,8 @@
  *     两者永不同时响应同一次拖拽（互斥由 Lobby._inputMode 仲裁）。
  *   - 碰撞复用 Lobby._buildingBoxes（AABB，2D 圆-矩形，玩家半径 0.5m）。
  *     noBlock:true（可穿行门廊 / 帐篷）按 Lobby 既有语义跳过。
- *   - 边界 ±110m clamp（M8 后与 MovementMode/草坪半径对齐，可步行到城堡/农场区），
- *     速度 6m/s，Shift 1.8×加速。
+ *   - 边界按轴拆分：x ±110m、z -110…252m。都会区北端到 z=245，
+ *     不能再被旧的统一 ±110 空气墙拦住；速度 6m/s，Shift 1.8×加速。
  *
  * 【生命周期】attach() / dispose() 成对绑定 window+canvas 监听；clearInput()
  * 在失焦时清空按键，避免"切走窗口回来还在走"。所有监听都由本类自己回收，
@@ -29,13 +29,16 @@ export const WASD_WALK_SPEED = 6;
 export const WASD_SPRINT_MULTIPLIER = 1.8;
 /** 玩家碰撞半径（m）；_buildingBoxes 本身已按 AABB_PAD=1 外扩 */
 export const WASD_PLAYER_RADIUS = 0.5;
-/** 大厅水平边界（m）——与 MovementMode.WORLD_BOUND、草坪半径 110 统一口径 */
+/** 大厅水平边界（m）——x 轴保持草坪/城堡范围，z 轴延伸到都会区北端。 */
 export const WASD_WORLD_BOUND = 110;
+export const WASD_WORLD_MIN_Z = -110;
+export const WASD_WORLD_MAX_Z = 252;
 
 const LOOK_SENSITIVITY = 0.0026;
 const PITCH_LIMIT = 1.45; // ≈83°，不翻过头顶
-/** orbit 模式水平平移的世界边界（四宫格扩建后仍够用） */
+/** orbit 模式水平平移的世界边界：x 留给四宫格，z 覆盖都会区。 */
 export const ORBIT_PAN_BOUND = 120;
+export const ORBIT_PAN_MAX_Z = 252;
 
 /** 移动键白名单（Lobby 的 orbit 平移监听与 WAController 共用，避免两处各写一份） */
 export const MOVE_CODES = new Set([
@@ -75,6 +78,7 @@ export class WASDController {
   constructor({
     camera = null, domElement = null, getObstacles = () => [], isEnabled = () => false,
     isJoystickEnabled = null, joystick = true, joystickForce = false,
+    getGroundHeight = null,
   } = {}) {
     /** @type {THREE.Camera|null} */
     this.camera = camera;
@@ -84,6 +88,9 @@ export class WASDController {
     this.getObstacles = getObstacles;
     /** @type {() => boolean} */
     this.isEnabled = isEnabled;
+    /** @type {((x:number,z:number)=>number)|null} 地面高度解析（农田/拱桥等抬高区域） */
+    this.getGroundHeight = typeof getGroundHeight === 'function' ? getGroundHeight : null;
+    this._groundY = null; // 平滑后的脚下地面高度
     /** 摇杆显隐与 orbit/wasd 两种相机模式解耦；默认跟随 isEnabled */
     this.isJoystickEnabled = typeof isJoystickEnabled === 'function' ? isJoystickEnabled : null;
 
@@ -202,6 +209,10 @@ export class WASDController {
     this._joystick?.reset();
   }
 
+  /** 当前虚拟摇杆轴（只读；x 右正、y 前正），供驾驶等非步行控制器复用。 */
+  get virtualX() { return this._virtualX; }
+  get virtualY() { return this._virtualY; }
+
   /** 直接写入归一化轴（测试 / 外部辅助输入共用；x 右正、y 前正） */
   setVirtualInput(x = 0, y = 0) {
     this._virtualX = Number.isFinite(x) ? THREE.MathUtils.clamp(x, -1, 1) : 0;
@@ -228,6 +239,7 @@ export class WASDController {
     this.yaw = _TMP_EULER.y;
     this.pitch = THREE.MathUtils.clamp(_TMP_EULER.x, -PITCH_LIMIT, PITCH_LIMIT);
     cam.rotation.order = 'YXZ';
+    this._groundY = null; // 位置已变，下一帧重新采样地面，禁止从旧高度缓动
     cam.position.y = WASD_EYE_HEIGHT;
     this.clearInput();
     return this;
@@ -275,7 +287,7 @@ export class WASDController {
       }
     }
     position.x = THREE.MathUtils.clamp(position.x, -WASD_WORLD_BOUND, WASD_WORLD_BOUND);
-    position.z = THREE.MathUtils.clamp(position.z, -WASD_WORLD_BOUND, WASD_WORLD_BOUND);
+    position.z = THREE.MathUtils.clamp(position.z, WASD_WORLD_MIN_Z, WASD_WORLD_MAX_Z);
     return position;
   }
 
@@ -303,7 +315,11 @@ export class WASDController {
     // 摇杆轴向叠加（模拟量：推杆距离决定速度）
     forward += this._virtualY;
     right += this._virtualX;
-    if (forward === 0 && right === 0) return false;
+    if (forward === 0 && right === 0) {
+      // 站立时也要贴合当前地面（农田/拱桥），否则切区后会悬空或穿模
+      this._applyEyeHeight(cam, dt);
+      return false;
+    }
 
     // 斜向归一化，避免对角线加速；纯摇杆输入保留模拟量
     const rawLen = Math.hypot(forward, right);
@@ -320,9 +336,21 @@ export class WASDController {
     const cos = Math.cos(this.yaw);
     cam.position.x += (-sin * forward + cos * right) * step;
     cam.position.z += (-cos * forward - sin * right) * step;
-    cam.position.y = WASD_EYE_HEIGHT;
+    this._applyEyeHeight(cam, dt);
     this.resolveCollision(cam.position);
     return true;
+  }
+
+  /** 脚下高度 + 眼高；跨区台阶指数平滑，无解析器时保持 1.6m。热路径零分配。 */
+  _applyEyeHeight(cam, dt) {
+    let target = 0;
+    if (this.getGroundHeight) {
+      const h = this.getGroundHeight(cam.position.x, cam.position.z);
+      if (Number.isFinite(h)) target = h;
+    }
+    if (this._groundY == null) this._groundY = target;
+    else this._groundY += (target - this._groundY) * (1 - Math.exp(-12 * Math.max(0, dt)));
+    cam.position.y = this._groundY + WASD_EYE_HEIGHT;
   }
 
   /**
@@ -379,7 +407,7 @@ export class WASDController {
     const dz = (fz * forward + fx * right) * step;
 
     const nx = THREE.MathUtils.clamp(cam.position.x + dx, -ORBIT_PAN_BOUND, ORBIT_PAN_BOUND);
-    const nz = THREE.MathUtils.clamp(cam.position.z + dz, -ORBIT_PAN_BOUND, ORBIT_PAN_BOUND);
+    const nz = THREE.MathUtils.clamp(cam.position.z + dz, -WASD_WORLD_MIN_Z, ORBIT_PAN_MAX_Z);
     const ax = nx - cam.position.x;
     const az = nz - cam.position.z;
     if (ax === 0 && az === 0) return false;

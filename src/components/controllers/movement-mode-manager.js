@@ -45,8 +45,10 @@ const FLY_SPEED = 16;
 const BLEND_TIME = 0.5;
 /** 飞行模式的默认巡航高度 */
 const FLIGHT_CRUISE_Y = 14;
-/** 水平漫游边界——与 WASD_WORLD_BOUND / 草坪半径 110 统一口径（M8 修复边界分裂） */
+/** 水平漫游边界——x 保持 110，z 延伸到都会区北端 z=252（修复 z=110 空气墙） */
 const WORLD_BOUND = 110;
+const WORLD_MIN_Z = -110;
+const WORLD_MAX_Z = 252;
 
 const MOVE_CODES = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD',
@@ -489,7 +491,7 @@ class MovementModeManager {
         cam.position.y = THREE.MathUtils.clamp(cam.position.y, 1.2, 160);
       }
       cam.position.x = THREE.MathUtils.clamp(cam.position.x, -WORLD_BOUND, WORLD_BOUND);
-      cam.position.z = THREE.MathUtils.clamp(cam.position.z, -WORLD_BOUND, WORLD_BOUND);
+      cam.position.z = THREE.MathUtils.clamp(cam.position.z, WORLD_MIN_Z, WORLD_MAX_Z);
     }
 
     // ④ 地面模式：BVH 精筛 + AABB 兜底，关闭于飞行模式（自由漫游无约束）

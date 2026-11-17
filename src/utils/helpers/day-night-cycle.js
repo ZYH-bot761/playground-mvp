@@ -186,6 +186,8 @@ class DayNightCycleImpl {
     this._autoPeriod = 480;      // 8 分钟一轮（5~10 分钟区间内）
     this._autoElapsed = 0;
     this._time = 0;
+    /** 四季光照倍率：只乘主光强度，不改变昼夜预设本身 */
+    this._seasonSunScale = 1;
 
     this._active = true;         // 只在 lobby / fireworks-deck 生效
     this._contextKey = 'lobby';
@@ -493,6 +495,15 @@ class DayNightCycleImpl {
     return this;
   }
 
+  /** 四季系统每帧写入的太阳强度倍率（春 1.02 / 夏 1.20 / 秋 0.98 / 冬 0.82） */
+  setSeasonLightScale(scale) {
+    const v = Number(scale);
+    if (Number.isFinite(v)) this._seasonSunScale = Math.min(1.35, Math.max(0.65, v));
+    return this;
+  }
+
+  get seasonLightScale() { return this._seasonSunScale; }
+
   /** 立刻吸附到当前目标（上下文切换时用，避免一帧白天闪回） */
   applyImmediate() {
     if (!this._inited) return this;
@@ -566,7 +577,7 @@ class DayNightCycleImpl {
     }
     if (directional) {
       directional.color.copy(s.sunLight);
-      directional.intensity = s.sunIntensity;
+      directional.intensity = s.sunIntensity * this._seasonSunScale;
       this._setLightDirection(directional.position, s.lightElevation, s.azimuth, 32);
     }
 

@@ -13,6 +13,7 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { buildFarmWorkers } from './farm-workers.js';
 
 /** 图集 UV 子矩形（Canvas 左上 → Three UV 左下） */
 const CELL = {
@@ -258,6 +259,7 @@ export function buildFarm(detail, S, center) {
     im.name = `Districts/farm/crop-${type}`;
     const xStep = f.w / f.cols;
     const zStep = f.d / f.rows;
+    const bases = [];
     let idx = 0;
     for (let row = 0; row < f.rows; row += 1) {
       for (let col = 0; col < f.cols; col += 1) {
@@ -272,6 +274,10 @@ export function buildFarm(detail, S, center) {
         const shade = 0.88 + rnd(type.length * 61 + idx * 9.1) * 0.2;
         color.setScalar(shade);
         im.setColorAt(idx, color);
+        bases.push({
+          x: f.x0 + (col + 0.5) * xStep, z: f.z0 + (row + 0.5) * zStep,
+          yaw, wide, h, jitter: rnd(type.length * 71 + idx * 4.7) * 0.12,
+        });
         idx += 1;
       }
     }
@@ -282,6 +288,7 @@ export function buildFarm(detail, S, center) {
     im.userData = {
       crop: type, heightRange: spec.h, rows: f.rows, cols: f.cols,
       rowGap: zStep, colGap: xStep, walkable: true, instanceCount: count,
+      instances: bases,
     };
     detail.add(im);
     cropMeshes.push(im);
@@ -307,6 +314,7 @@ export function buildFarm(detail, S, center) {
   vegFruits.name = 'Districts/farm/crop-veg-fruits';
   const vx = f.w / f.cols;
   const vz = f.d / f.rows;
+  const vegBases = [];
   let vi = 0;
   for (let row = 0; row < f.rows; row += 1) {
     const t = vegTypes[row % vegTypes.length];
@@ -319,6 +327,7 @@ export function buildFarm(detail, S, center) {
       dummy.scale.set(wide, 0.9 + rnd(vi * 5.9) * 0.3, wide);
       dummy.updateMatrix();
       vegLeaves.setMatrixAt(vi, dummy.matrix);
+      const leafYaw = dummy.rotation.y;
       color.setScalar(0.9 + rnd(vi * 9.3) * 0.18);
       vegLeaves.setColorAt(vi, color);
       dummy.position.set(x, baseY + t.y, z);
@@ -328,6 +337,10 @@ export function buildFarm(detail, S, center) {
       vegFruits.setMatrixAt(vi, dummy.matrix);
       color.setHex(t.color);
       vegFruits.setColorAt(vi, color);
+      vegBases.push({
+        x, z, leafYaw, leafWide: wide,
+        fruitYaw: dummy.rotation.y, kind: t, jitter: rnd(vi * 13.7) * 0.1,
+      });
       vi += 1;
     }
   }
@@ -341,12 +354,83 @@ export function buildFarm(detail, S, center) {
   vegLeaves.userData = {
     crop: 'veg-leaves', heightRange: [0.3, 0.5], rows: f.rows, cols: f.cols,
     rowGap: vz, colGap: vx, walkable: true, instanceCount: vegCount,
+    instances: vegBases,
   };
-  vegFruits.userData = { crop: 'veg-fruits', kinds: vegTypes.map((v) => v.name), instanceCount: vegCount };
+  vegFruits.userData = {
+    crop: 'veg-fruits', kinds: vegTypes.map((v) => v.name), instanceCount: vegCount,
+    instances: vegBases,
+  };
   cropMeshes.push(vegLeaves, vegFruits);
   instCount += vegCount * 2;
 
+  // 【阶段二】弯腰插秧 / 挥锄头农民：分关节 InstancedMesh，动作全部写矩阵。
+  const workers = buildFarmWorkers(detail, center, owned);
+
+  /* ---------------- 农事循环：生长 → 成熟 → 收割 → 空地 → 再播种 ---------------- */
+  // 玩家一进农场就能看到接近成熟的田，之后每隔二十多秒真的会收割空一垄，
+  // 再慢慢长回来；不是永远一片“塑料庄稼”占着地。
+  const CYCLE = 28;
+  const fieldPhase = {
+    rice: 0.58, corn: 0.66, wheat: 0.73, veg: 0.61,
+  };
+  const growthAt = (t, offset, jitter) => {
+    const p = (((t / CYCLE) + offset + jitter) % 1 + 1) % 1;
+    if (p < 0.52) return { g: 0.06 + 0.94 * (p / 0.52), phase: 'grow' };
+    if (p < 0.76) return { g: 1, phase: 'ripe' };
+    if (p < 0.90) return { g: Math.max(0.02, 1 - (p - 0.76) / 0.14), phase: 'harvest' };
+    return { g: 0.02, phase: 'fallow' };
+  };
+  let lastT = -1;
+  let farmAccum = 0;
+  let lastPhase = 'ripe';
+  const updateFarm = (t) => {
+    const dt = lastT < 0 ? 0 : Math.max(0, Math.min(0.25, t - lastT));
+    lastT = t;
+    farmAccum += dt;
+    workers.update(t); // 农民动作每帧连续，不抽帧
+    if (farmAccum < 0.12) return;
+    farmAccum = 0;
+
+    for (const im of [cropMeshes[0], cropMeshes[1], cropMeshes[2]]) {
+      if (!im?.userData?.instances) continue;
+      const off = fieldPhase[im.userData.crop] ?? 0.6;
+      im.userData.instances.forEach((b, i) => {
+        const st = growthAt(t, off, b.jitter);
+        lastPhase = st.phase;
+        const g = st.g;
+        dummy.position.set(b.x, baseY, b.z);
+        dummy.rotation.set(0, b.yaw, 0);
+        const sc = Math.max(0.0001, g);
+        dummy.scale.set(b.wide * (0.35 + 0.65 * sc), Math.max(0.0001, b.h * (0.10 + 0.90 * sc)), b.wide * (0.35 + 0.65 * sc));
+        dummy.updateMatrix();
+        im.setMatrixAt(i, dummy.matrix);
+      });
+      im.instanceMatrix.needsUpdate = true;
+    }
+
+    const bases = vegLeaves.userData.instances;
+    bases?.forEach((b, i) => {
+      const st = growthAt(t, fieldPhase.veg, b.jitter);
+      const g = st.g;
+      dummy.position.set(b.x, baseY, b.z);
+      dummy.rotation.set(0, b.leafYaw, 0);
+      dummy.scale.set(b.leafWide * (0.3 + 0.7 * g), 0.9 * (0.12 + 0.88 * g), b.leafWide * (0.3 + 0.7 * g));
+      dummy.updateMatrix();
+      vegLeaves.setMatrixAt(i, dummy.matrix);
+      const t2 = b.kind;
+      dummy.position.set(b.x, baseY + t2.y * (0.2 + 0.8 * g), b.z);
+      dummy.rotation.set(0, b.fruitYaw, 0);
+      const fs = g > 0.82 ? Math.min(1, (g - 0.82) / 0.16) : 0.0001;
+      dummy.scale.set(t2.s[0] * fs, t2.s[1] * fs, t2.s[2] * fs);
+      dummy.updateMatrix();
+      vegFruits.setMatrixAt(i, dummy.matrix);
+    });
+    vegLeaves.instanceMatrix.needsUpdate = true;
+    vegFruits.instanceMatrix.needsUpdate = true;
+  };
+
   const dispose = () => {
+    workers.dispose();
     for (const im of cropMeshes) {
       try { im.dispose(); } catch (e) { /* noop */ }
     }
@@ -360,5 +444,11 @@ export function buildFarm(detail, S, center) {
     owned.materials.length = 0;
     cropMeshes.length = 0;
   };
-  return { dispose, instCount };
+  return {
+    dispose,
+    instCount,
+    update: updateFarm,
+    workers: { ...workers.stats, cropCycleSeconds: CYCLE, cropPhase: () => lastPhase },
+    stats: { cropCycleSeconds: CYCLE, fieldsWithGrowth: 4 },
+  };
 }

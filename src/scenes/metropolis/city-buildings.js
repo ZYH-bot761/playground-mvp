@@ -1,7 +1,12 @@
-/** 都会区建筑：18 座塔楼 + 医院 + 学校，三级 LOD 全部合并顶点。 */
+/**
+ * 北侧街区建筑（第一阶段）：
+ * 9 个原始街块重组为 6 座建筑——医院 / 学校 / 商场（各合并 2 块）
+ * + 大裤衩 / 尖塔 / 退台塔（3 座异形地标）。
+ * 三级 LOD；近景按材质合并，细节只保留入口、红十字、跑道、招牌。
+ */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { CITY, TOWER_SLOTS, HOSPITAL, SCHOOL } from './city-layout.js';
+import { CITY, CITY_BLOCKS, TOWER_SLOTS, HOSPITAL, SCHOOL, MALL } from './city-layout.js';
 import { makeGlassFacade, makeNightWindows, makeTrackTexture } from './city-textures.js';
 
 const Y0 = CITY.pad.y;
@@ -18,18 +23,40 @@ function boxGeo(w, h, d, x, y, z, uv = 1) {
   return g;
 }
 
-function labelTexture(text, accent) {
+function cylinderGeo(rt, rb, h, seg, x, y, z) {
+  const g = new THREE.CylinderGeometry(rt, rb, h, seg, 1, false);
+  g.translate(x, y, z);
+  return g;
+}
+
+function labelTexture(text, accent, sub = '') {
   const c = document.createElement('canvas');
-  c.width = 512; c.height = 96;
+  c.width = 512; c.height = 112;
   const g = c.getContext('2d');
-  g.fillStyle = 'rgba(8,18,24,.72)'; g.fillRect(0, 0, 512, 96);
-  g.strokeStyle = accent; g.lineWidth = 4; g.strokeRect(3, 3, 506, 90);
-  g.fillStyle = '#fff'; g.font = 'bold 46px "Microsoft YaHei", sans-serif';
+  g.fillStyle = 'rgba(8,18,24,.78)'; g.fillRect(0, 0, 512, 112);
+  g.strokeStyle = accent; g.lineWidth = 4; g.strokeRect(3, 3, 506, 106);
+  g.fillStyle = '#fff'; g.font = 'bold 44px "Microsoft YaHei", sans-serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, 256, 50);
+  g.fillText(text, 256, sub ? 44 : 56);
+  if (sub) {
+    g.fillStyle = 'rgba(235,245,250,.78)';
+    g.font = '22px "Microsoft YaHei", sans-serif';
+    g.fillText(sub, 256, 84);
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
+}
+
+function makeSign(text, accent, sub, w, h, x, y, z) {
+  const tex = labelTexture(text, accent, sub);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = Math.PI; // 立面朝南（公园方向），避免招牌朝北看不见
+  mesh.name = `City/sign-${text}`;
+  return { mesh, geo, mat, tex };
 }
 
 export function buildCityBuildings({ group, owned }) {
@@ -38,112 +65,178 @@ export function buildCityBuildings({ group, owned }) {
   const mapTrack = makeTrackTexture();
   owned.textures.push(mapGlass, mapNight, mapTrack);
 
-  const mkGlass = (color) => {
+  const mkGlass = (color, emissiveIntensity = 0) => {
     const m = new THREE.MeshStandardMaterial({
       color, map: mapGlass, emissive: 0xffc38a, emissiveMap: mapNight,
-      emissiveIntensity: 0.0, roughness: 0.52, metalness: 0.16,
+      emissiveIntensity, roughness: 0.52, metalness: 0.16,
     });
     owned.materials.push(m);
     return m;
   };
   const glassA = mkGlass(0xffffff);
-  const glassB = mkGlass(0x9ed0cc);
-  const glassC = mkGlass(0xb9c6cf);
+  const glassB = mkGlass(0xa8d4d0);
+  const glassC = mkGlass(0xc0ccd4);
   const roof = new THREE.MeshStandardMaterial({ color: 0x33454f, roughness: 0.82, metalness: 0.1 });
   const white = new THREE.MeshStandardMaterial({ color: 0xe4eef2, roughness: 0.7 });
-  const red = new THREE.MeshStandardMaterial({ color: 0xb8403a, roughness: 0.65 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xc23b34, roughness: 0.6 });
   const beige = new THREE.MeshStandardMaterial({ color: 0xe6dcc2, roughness: 0.85 });
+  const accent = new THREE.MeshStandardMaterial({ color: 0x7d8e96, roughness: 0.5, metalness: 0.35 });
   const trackMat = new THREE.MeshStandardMaterial({ map: mapTrack, roughness: 0.95 });
-  const glow = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.55 });
-  owned.materials.push(roof, white, red, beige, trackMat, glow);
+  const glow = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.25 });
+  owned.materials.push(roof, white, red, beige, accent, trackMat, glow);
 
-  const detail = {
-    a: [], b: [], c: [], roof: [], white: [], red: [], beige: [], glow: [],
-  };
-  const mid = { a: [], b: [], c: [], white: [], beige: [] };
+  const detail = { a: [], b: [], c: [], roof: [], white: [], red: [], beige: [], accent: [], glow: [] };
+  const mid = { a: [], b: [], c: [], white: [], beige: [], accent: [] };
   const far = [];
-  const nearExtras = [];
   const cx = CITY.center.x, cz = CITY.center.z;
   const glassMats = [glassA, glassB, glassC];
   const glassKeys = ['a', 'b', 'c'];
+  const nearExtras = [];
 
-  // ---- 18 座塔楼：三段收分 + 屋顶 + 部分天线，近距离为合并几何 ----
-  TOWER_SLOTS.forEach((t, i) => {
-    const x = t.x - cx, z = t.z - cz;
-    const h = t.h, w = t.w, d = t.d;
-    const h1 = h * 0.55, h2 = h * 0.30, h3 = h * 0.15;
-    const w2 = w * 0.76, w3 = w * 0.52;
-    const key = glassKeys[i % 3];
-    detail[key].push(boxGeo(w, h1, d, x, Y0 + h1 / 2, z));
-    detail[key].push(boxGeo(w2, h2, w2 * (d / w), x, Y0 + h1 + h2 / 2, z));
-    detail[key].push(boxGeo(w3, h3, w3 * (d / w), x, Y0 + h1 + h2 + h3 / 2, z));
-    detail.roof.push(boxGeo(w3 * 1.12, 1.7, w3 * 1.12, x, Y0 + h + 0.85, z));
-    // 立面竖向遮阳肋：只给近景 6 座最高塔，保持细节但不爆面
-    if (h > 90) {
-      for (let k = -2; k <= 2; k++) {
-        detail.roof.push(boxGeo(0.32, h1, 0.5, x + k * (w / 5), Y0 + h1 / 2, z + d / 2 - 0.1));
-      }
-    }
-    if (i % 4 === 0) {
-      const ant = new THREE.CylinderGeometry(0.22, 0.34, 7 + (i % 3) * 3, 5);
-      ant.translate(x, Y0 + h + 4.5, z);
-      detail.roof.push(ant);
-    }
-    mid[key].push(boxGeo(w, h, d, x, Y0 + h / 2, z));
-    far.push(boxGeo(w, h, d, x, Y0 + h / 2, z));
-  });
+  const addSign = (cfg) => {
+    nearExtras.push(cfg.mesh);
+    owned.geometries.push(cfg.geo);
+    owned.materials.push(cfg.mat);
+    owned.textures.push(cfg.tex);
+  };
 
-  // ---- 医院：白体量 + 玻璃带 + 屋顶红十字 + 停机坪 ----
+  // ---- 医院：双翼合并体量 + 中央连廊 + 红十字 + 入口雨棚 ----
   {
     const x = HOSPITAL.x - cx, z = HOSPITAL.z - cz, w = HOSPITAL.w, d = HOSPITAL.d;
-    detail.white.push(boxGeo(w, 27, d, x, Y0 + 13.5, z));
-    detail.white.push(boxGeo(w * 0.46, 19, d * 1.35, x - w * 0.39, Y0 + 9.5, z + 1));
-    detail.a.push(boxGeo(w - 1.4, 22, 0.3, x, Y0 + 12.5, z + d / 2 + 0.17, 0.5));
-    detail.red.push(boxGeo(4.2, 1.15, 0.42, x, Y0 + 24.2, z + d / 2 + 0.38));
-    detail.red.push(boxGeo(1.15, 4.2, 0.42, x, Y0 + 24.2, z + d / 2 + 0.38));
-    const pad = new THREE.CylinderGeometry(5, 5, 0.3, 12);
-    pad.translate(x, Y0 + 27.2, z);
-    detail.white.push(pad);
-    mid.white.push(boxGeo(w, 27, d, x, Y0 + 13.5, z));
-    far.push(boxGeo(w, 27, d, x, Y0 + 13.5, z));
-
-    const tex = labelTexture('市人民医院', '#e25b52');
-    owned.textures.push(tex);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 1.6), new THREE.MeshBasicMaterial({
-      map: tex, transparent: true, depthWrite: false,
-    }));
-    owned.materials.push(sign.material);
-    sign.position.set(x, Y0 + 19.2, z + d / 2 + 0.48);
-    nearExtras.push(sign);
-    owned.geometries.push(sign.geometry);
+    detail.white.push(boxGeo(11, 32, d, x - 8.2, Y0 + 16, z));
+    detail.white.push(boxGeo(11, 29, d, x + 8.2, Y0 + 14.5, z));
+    detail.white.push(boxGeo(7, 18, d * 0.72, x, Y0 + 9, z + 1));
+    detail.a.push(boxGeo(w - 1.2, 22, 0.36, x, Y0 + 15.5, z - d / 2 - 0.18, 0.6));
+    // 屋顶红十字 + 入口红十字（朝南）
+    detail.red.push(boxGeo(7.4, 1.35, 0.55, x - 8.2, Y0 + 34.2, z - d / 2 - 0.36));
+    detail.red.push(boxGeo(1.35, 7.4, 0.55, x - 8.2, Y0 + 34.2, z - d / 2 - 0.36));
+    detail.red.push(boxGeo(3.2, 0.75, 0.32, x, Y0 + 15.5, z - d / 2 - 0.44));
+    detail.red.push(boxGeo(0.75, 3.2, 0.32, x, Y0 + 15.5, z - d / 2 - 0.44));
+    // 入口雨棚与落客区
+    detail.accent.push(boxGeo(9, 0.28, 4.2, HOSPITAL.entrance.x - cx, Y0 + 4.1, HOSPITAL.entrance.z - cz));
+    detail.glow.push(boxGeo(7.4, 0.14, 2.9, HOSPITAL.entrance.x - cx, Y0 + 0.08, HOSPITAL.entrance.z - cz));
+    mid.white.push(boxGeo(w, 31, d, x, Y0 + 15.5, z));
+    far.push(boxGeo(w, 31, d, x, Y0 + 15.5, z));
+    addSign(makeSign(
+      '市人民医院', '#e25b52', '急诊 · 门诊 · 住院',
+      10.5, 2.1, x - 8.2, Y0 + 25.2, z - d / 2 - 0.42,
+    ));
   }
 
-  // ---- 学校：教学楼 + 体育馆 + 标准跑道/球场 ----
+  // ---- 学校：教学楼 + 体育馆 + 标准跑道（前场朝南） ----
   {
     const x = SCHOOL.x - cx, z = SCHOOL.z - cz;
-    detail.white.push(boxGeo(21, 13, 9, x - 2, Y0 + 6.5, z + 4));
-    detail.beige.push(boxGeo(11, 9, 10, x + 9, Y0 + 4.5, z - 3));
-    detail.a.push(boxGeo(20, 4.2, 0.3, x - 2, Y0 + 5.6, z + 8.7, 0.5));
-    const track = new THREE.PlaneGeometry(27, 16);
+    // 教学楼在东侧，体育馆在西侧，跑道放在南侧前场
+    detail.white.push(boxGeo(14, 11, 7, x + 5, Y0 + 5.5, z + 2));
+    detail.beige.push(boxGeo(9, 8, 8, x - 8, Y0 + 4, z + 3));
+    detail.a.push(boxGeo(13.4, 3.2, 0.3, x + 5, Y0 + 5.2, z - 1.62, 0.55));
+    // 入口雨棚
+    detail.accent.push(boxGeo(7.5, 0.24, 3.4, SCHOOL.entrance.x - cx, Y0 + 3.5, SCHOOL.entrance.z - cz));
+    // 跑道贴图：放在校园南侧前场，避免和教学楼重叠
+    const track = new THREE.PlaneGeometry(17, 7);
     track.rotateX(-Math.PI / 2);
-    track.translate(x, Y0 + 0.035, z - 2);
+    track.translate(x - 8, Y0 + 0.045, z - 9.4);
     const trackMesh = new THREE.Mesh(track, trackMat);
+    trackMesh.name = 'City/school-track';
     nearExtras.push(trackMesh);
     owned.geometries.push(track);
-    mid.white.push(boxGeo(21, 13, 9, x - 2, Y0 + 6.5, z + 4));
-    mid.beige.push(boxGeo(11, 9, 10, x + 9, Y0 + 4.5, z - 3));
-    far.push(boxGeo(21, 13, 9, x - 2, Y0 + 6.5, z + 4));
-    far.push(boxGeo(11, 9, 10, x + 9, Y0 + 4.5, z - 3));
+    mid.white.push(boxGeo(14, 11, 7, x + 5, Y0 + 5.5, z + 2));
+    mid.beige.push(boxGeo(9, 8, 8, x - 8, Y0 + 4, z + 3));
+    far.push(boxGeo(14, 11, 7, x + 5, Y0 + 5.5, z + 2));
+    far.push(boxGeo(9, 8, 8, x - 8, Y0 + 4, z + 3));
+    // 校牌贴入口雨棚前沿，不再挂到操场/跑道上方。
+    addSign(makeSign(
+      '实验学校', '#4da3d8', '小学 · 初中 · 体育馆',
+      5.2, 1.0, x, Y0 + 4.25, z - 9.86,
+    ));
+  }
 
-    const tex = labelTexture('实验学校', '#4da3d8');
-    owned.textures.push(tex);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 1.35), new THREE.MeshBasicMaterial({
-      map: tex, transparent: true, depthWrite: false,
-    }));
-    owned.materials.push(sign.material);
-    sign.position.set(x - 2, Y0 + 10.5, z + 8.72);
-    nearExtras.push(sign);
-    owned.geometries.push(sign.geometry);
+  // ---- 商场：整面玻璃幕墙 + 入口中庭 + 屋顶招牌（朝南） ----
+  {
+    const x = MALL.x - cx, z = MALL.z - cz, w = MALL.w, d = MALL.d;
+    detail.b.push(boxGeo(w, 28, d, x, Y0 + 14, z));
+    // 正面玻璃幕墙（比主体外凸 0.3m，朝公园）
+    detail.b.push(boxGeo(w - 1.8, 25, 0.34, x, Y0 + 13.2, z - d / 2 - 0.2, 0.7));
+    detail.white.push(boxGeo(w + 1.2, 3.6, d + 1.2, x, Y0 + 1.8, z));
+    detail.accent.push(boxGeo(13.2, 0.32, 4.8, MALL.entrance.x - cx, Y0 + 4.25, MALL.entrance.z - cz));
+    // 中庭玻璃穹顶（半球，8×5 段）
+    const dome = new THREE.SphereGeometry(4.2, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+    dome.translate(x, Y0 + 28, z + 1);
+    detail.b.push(dome);
+    // 立面竖梃，只加在正面，形成商场辨识度
+    for (let k = -5; k <= 5; k++) {
+      detail.accent.push(boxGeo(0.12, 24, 0.42, x + k * 2.15, Y0 + 13.2, z - d / 2 - 0.48));
+    }
+    detail.glow.push(boxGeo(10.6, 0.18, 3.2, MALL.entrance.x - cx, Y0 + 0.09, MALL.entrance.z - cz));
+    mid.b.push(boxGeo(w, 28, d, x, Y0 + 14, z));
+    far.push(boxGeo(w, 28, d, x, Y0 + 14, z));
+    addSign(makeSign(
+      '大都会广场', '#d8a54a', '购物 · 餐饮 · 影院',
+      10.8, 2.2, x, Y0 + 23.3, z - d / 2 - 0.55,
+    ));
+  }
+
+  // ---- 大裤衩：两条斜腿在顶部连成悬挑环 ----
+  {
+    const b = CITY_BLOCKS.find((v) => v.role === 'cctv');
+    const x = b.x - cx, z = b.z - cz;
+    // 每侧 6 段，逐段向中轴内收，形成两条连续斜腿
+    for (let side = -1; side <= 1; side += 2) {
+      const baseX = x + side * 8.7;
+      for (let s = 0; s < 6; s++) {
+        const h = 10.5;
+        const y = Y0 + s * h + h / 2;
+        const shift = -side * s * 0.72;
+        detail.c.push(boxGeo(6.4, h + 0.18, 8.6 + s * 0.28, baseX + shift, y, z));
+        detail.accent.push(boxGeo(0.38, h, 8.95 + s * 0.28, baseX + shift + side * 3.1, y, z));
+      }
+    }
+    // 悬挑连廊 / 顶冠
+    detail.c.push(boxGeo(22.5, 8.2, 9.8, x, Y0 + 67.2, z));
+    detail.accent.push(boxGeo(23.2, 0.7, 10.4, x, Y0 + 71.6, z));
+    detail.roof.push(boxGeo(6.2, 1.0, 6.2, x, Y0 + 73.6, z));
+    // 中间留空的“裤裆”由两条腿自然形成，不填实
+    mid.c.push(boxGeo(23, 63, 10, x, Y0 + 31.5, z));
+    far.push(boxGeo(23, 63, 10, x, Y0 + 31.5, z));
+  }
+
+  // ---- 尖塔：八边形收分塔身 + 高耸锥顶 ----
+  {
+    const b = CITY_BLOCKS.find((v) => v.role === 'spire');
+    const x = b.x - cx, z = b.z - cz;
+    detail.a.push(cylinderGeo(6.0, 9.2, 70, 8, x, Y0 + 35, z));
+    detail.a.push(cylinderGeo(4.2, 6.0, 22, 8, x, Y0 + 81, z));
+    const crown = new THREE.ConeGeometry(4.2, 17, 8);
+    crown.translate(x, Y0 + 100.5, z);
+    detail.white.push(crown);
+    detail.accent.push(cylinderGeo(0.22, 0.42, 11, 5, x, Y0 + 112.5, z));
+    detail.roof.push(cylinderGeo(9.5, 9.9, 1.5, 8, x, Y0 + 1, z));
+    mid.a.push(cylinderGeo(6.8, 9.2, 82, 8, x, Y0 + 41, z));
+    far.push(boxGeo(15, 82, 15, x, Y0 + 41, z));
+  }
+
+  // ---- 退台塔：三段退台 + 空中花园 + 斜切屋顶 ----
+  {
+    const b = CITY_BLOCKS.find((v) => v.role === 'terrace');
+    const x = b.x - cx, z = b.z - cz;
+    const levels = [
+      { w: 26, d: 20, h: 21, y: 10.5 },
+      { w: 20.5, d: 16, h: 17, y: 29.5 },
+      { w: 15, d: 12, h: 14, y: 45 },
+    ];
+    levels.forEach((l, i) => {
+      detail[i === 1 ? 'b' : 'c'].push(boxGeo(l.w, l.h, l.d, x, Y0 + l.y, z));
+      detail.accent.push(boxGeo(l.w + 0.8, 0.55, l.d + 0.8, x, Y0 + l.y + l.h / 2, z));
+      // 退台边缘绿化带
+      detail.glow.push(boxGeo(l.w + 0.3, 0.22, l.d + 0.3, x, Y0 + l.y + l.h / 2 + 0.42, z));
+    });
+    const cap = new THREE.BoxGeometry(15, 4.5, 12);
+    cap.applyMatrix4(new THREE.Matrix4().makeRotationX(-0.14));
+    cap.translate(x, Y0 + 54.2, z);
+    detail.white.push(cap);
+    detail.roof.push(boxGeo(1.1, 14, 1.1, x, Y0 + 62, z));
+    mid.c.push(boxGeo(25, 50, 18, x, Y0 + 25, z));
+    far.push(boxGeo(25, 50, 18, x, Y0 + 25, z));
   }
 
   const addMerged = (geos, material, name) => {
@@ -159,24 +252,26 @@ export function buildCityBuildings({ group, owned }) {
     return mesh;
   };
 
-  // LOD：近景全部（3 + 屋顶 + 医院 + 学校），中景单盒，远景纯色体块
   const lod = new THREE.LOD();
   lod.name = 'City/LOD';
   const near = new THREE.Group();
   near.name = 'City/near';
   for (const e of nearExtras) near.add(e);
   for (const k of glassKeys) {
-    const m = addMerged(detail[k], glassMats[glassKeys.indexOf(k)], `City/tower-${k}`);
+    const m = addMerged(detail[k], glassMats[glassKeys.indexOf(k)], `City/block-${k}`);
     if (m) near.add(m);
   }
-  const roofMesh = addMerged(detail.roof, roof, 'City/roofs');
-  if (roofMesh) near.add(roofMesh);
-  const whiteMesh = addMerged(detail.white, white, 'City/hospital-school');
-  if (whiteMesh) near.add(whiteMesh);
-  const redMesh = addMerged(detail.red, red, 'City/hospital-cross');
-  if (redMesh) near.add(redMesh);
-  const beigeMesh = addMerged(detail.beige, beige, 'City/school-wing');
-  if (beigeMesh) near.add(beigeMesh);
+  for (const [key, material, name] of [
+    ['roof', roof, 'City/roofs'],
+    ['white', white, 'City/public-white'],
+    ['red', red, 'City/hospital-cross'],
+    ['beige', beige, 'City/school-wing'],
+    ['accent', accent, 'City/facade-trim'],
+    ['glow', glow, 'City/warm-trim'],
+  ]) {
+    const m = addMerged(detail[key], material, name);
+    if (m) near.add(m);
+  }
 
   const midGroup = new THREE.Group();
   midGroup.name = 'City/mid';
@@ -184,10 +279,12 @@ export function buildCityBuildings({ group, owned }) {
     const m = addMerged(mid[k], glassMats[glassKeys.indexOf(k)], `City/mid-${k}`);
     if (m) midGroup.add(m);
   }
-  const mw = addMerged(mid.white, white, 'City/mid-hospital');
+  const mw = addMerged(mid.white, white, 'City/mid-white');
   if (mw) midGroup.add(mw);
-  const mb = addMerged(mid.beige, beige, 'City/mid-school');
+  const mb = addMerged(mid.beige, beige, 'City/mid-beige');
   if (mb) midGroup.add(mb);
+  const ma = addMerged(mid.accent, accent, 'City/mid-accent');
+  if (ma) midGroup.add(ma);
 
   const farMat = new THREE.MeshStandardMaterial({
     color: 0x8fb3b5, map: mapGlass, emissive: 0xffc38a, emissiveMap: mapNight,
@@ -200,21 +297,30 @@ export function buildCityBuildings({ group, owned }) {
   if (fm) farGroup.add(fm);
 
   lod.addLevel(near, 0);
-  lod.addLevel(midGroup, 95);
-  lod.addLevel(farGroup, 185);
+  lod.addLevel(midGroup, 160);
+  lod.addLevel(farGroup, 260);
   lod.position.set(cx, 0, cz);
   group.add(lod);
   owned.lod = lod;
 
   return {
-    materials: { glassA, glassB, glassC, roof, white, red, beige, farMat },
+    materials: { glassA, glassB, glassC, roof, white, red, beige, accent, farMat },
     setNight(f) {
-      const e = 0.015 + f * 3.5;
+      // 柔和窗光：夜间单窗亮度约 0.74，不过曝；远景色块更暗
+      const e = 0.012 + f * 0.73;
       for (const m of glassMats) m.emissiveIntensity = e;
-      glow.opacity = 0.25 + f * 0.7;
-      farMat.emissiveIntensity = e * 0.8;
-      farMat.color.setHex(f > 0.5 ? 0x506a72 : 0x8fb3b5);
+      farMat.emissiveIntensity = e * 0.68;
+      farMat.color.setHex(f > 0.5 ? 0x40555c : 0x8fb3b5);
+      glow.opacity = 0.18 + f * 0.30;
     },
-    stats: { towers: TOWER_SLOTS.length, detailTriangles: 0 },
+    stats: {
+      towers: TOWER_SLOTS.length,
+      blocks: CITY_BLOCKS.reduce((n, b) => n + b.lots, 0),
+      buildings: CITY_BLOCKS.length,
+      roles: CITY_BLOCKS.map((b) => b.role),
+      hospital: true, school: true, mall: true,
+      hospitalCross: true, schoolTrack: true, mallGlass: true,
+      detailTriangles: 0,
+    },
   };
 }

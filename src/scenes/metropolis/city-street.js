@@ -1,6 +1,6 @@
 /** 都会区地面 / 路网 / 路灯 / 红绿灯 / 公交站：路灯与信号灯全部 InstancedMesh。 */
 import * as THREE from 'three';
-import { CITY, CITY_ROADS, PARKING_DRIVE, BUS_STOP } from './city-layout.js';
+import { CITY, CITY_ROADS, CITY_INTERSECTIONS, PARKING_DRIVE, BUS_STOP } from './city-layout.js';
 import { makeParkingTexture } from './city-textures.js';
 
 function planeGeo(w, d) {
@@ -51,8 +51,8 @@ export function buildCityBase({ group, owned }) {
   const items = [];
   const add = (x, z, w, d, color, yy = y + 0.01) => items.push({ x, z, w, d, color, y: yy });
 
-  // 基座 / 人行道 / 车道
-  add(0, 170, 190, 151, 0x6d756d, y);
+  // 基座 / 人行道 / 车道（一直铺到 z=252，避免北端步行到天际线脚下踩空）
+  add(0, (CITY.pad.minZ + CITY.pad.maxZ) / 2, 190, CITY.pad.maxZ - CITY.pad.minZ, 0x6d756d, y);
   for (const r of CITY_ROADS) {
     if (r.axis === 'z') {
       add(r.center, (r.min + r.max) / 2, r.width, r.max - r.min, 0x30373d, y + 0.025);
@@ -110,12 +110,36 @@ export function buildCityBase({ group, owned }) {
       }
     }
   }
-  // 公园入口 / 城市主交叉口四组斑马线
-  for (const z of [20, 104, 112, 150]) {
-    for (let k = -3; k <= 3; k++) {
-      if (Math.abs(k * 2.2) > 7) continue;
-      marks.push({ x: 24 + k * 2.2, z, w: 1.1, d: 4.4, c: 0xf0eddc });
+  // 9 个路口的四边斑马线；斑马线放在路口外沿，避免与转弯车流重叠
+  for (const it of CITY_INTERSECTIONS) {
+    const zEdge = it.halfZ + 1.75;
+    const xEdge = it.halfX + 1.75;
+    for (const s of [-1, 1]) {
+      // 横穿南北向道路（行人沿 x 走）
+      for (let k = -Math.floor(it.halfX / 1.05); k <= Math.floor(it.halfX / 1.05); k++) {
+        const x = it.x + k * 1.05;
+        if (Math.abs(x - it.x) > it.halfX - 0.4) continue;
+        marks.push({ x, z: it.z + s * zEdge, w: 0.62, d: 3.4, c: 0xf0eddc });
+      }
+      // 横穿东西向道路（行人沿 z 走）
+      for (let k = -Math.floor(it.halfZ / 1.05); k <= Math.floor(it.halfZ / 1.05); k++) {
+        const z = it.z + k * 1.05;
+        if (Math.abs(z - it.z) > it.halfZ - 0.4) continue;
+        marks.push({ x: it.x + s * xEdge, z, w: 3.4, d: 0.62, c: 0xf0eddc });
+      }
     }
+  }
+  // 公园入口斑马线
+  for (let k = -3; k <= 3; k++) {
+    marks.push({ x: 24 + k * 2.2, z: 20, w: 1.1, d: 4.4, c: 0xf0eddc });
+  }
+  // 都会区入口斑马线：玩家从公园跨入城市时先看到人行横道，而不是硬切路缘。
+  for (let k = -3; k <= 3; k++) {
+    marks.push({ x: 24 + k * 2.2, z: 91.2, w: 1.1, d: 4.0, c: 0xf0eddc });
+  }
+  // 公交站黄色停靠带
+  for (let z = 34; z <= 43; z += 1.2) {
+    marks.push({ x: 31.9, z, w: 0.18, d: 0.8, c: 0xe6c454 });
   }
   const markGeo = planeGeo(1, 1);
   const markMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -148,8 +172,9 @@ export function buildCityBase({ group, owned }) {
   // ---- 路灯：杆 / 横臂 / 灯头 / 地面光斑，全部 InstancedMesh ----
   const polePos = [];
   for (let z = 100; z <= 216; z += 18) {
-    polePos.push({ x: 24 - 7.3, z, side: -1 });
-    polePos.push({ x: 24 + 7.3, z, side: 1 });
+    // 8.55m = 路缘外 0.55m：旧值 7.3m 把灯杆插进了 16m 主干道。
+    polePos.push({ x: 24 - 8.55, z, side: -1 });
+    polePos.push({ x: 24 + 8.55, z, side: 1 });
   }
   for (const z of CITY.crossZ) {
     for (let x = -84; x <= 84; x += 22) {
@@ -209,33 +234,7 @@ export function buildCityBase({ group, owned }) {
   owned.geometries.push(poolGeo);
   owned.materials.push(poolMat);
 
-  // ---- 红绿灯：4 个路口 × 2 个灯头，灯头颜色随时间切换 ----
-  const sigPos = [];
-  for (const z of [112, 150]) {
-    sigPos.push({ x: 24 - 8.6, z: z - 6.8 });
-    sigPos.push({ x: 24 + 8.6, z: z + 6.8 });
-  }
-  const sigPoleGeo = new THREE.CylinderGeometry(0.1, 0.13, 4.4, 5);
-  const sigHeadGeo = new THREE.BoxGeometry(0.55, 1.35, 0.5);
-  const sigMat = new THREE.MeshStandardMaterial({ color: 0x2d3538, roughness: 0.8 });
-  const sigHeadMat = new THREE.MeshBasicMaterial({ color: 0x49e07b });
-  const sigPole = new THREE.InstancedMesh(sigPoleGeo, sigMat, sigPos.length);
-  const sigHead = new THREE.InstancedMesh(sigHeadGeo, sigHeadMat, sigPos.length);
-  sigPole.name = 'City/signal-pole';
-  sigHead.name = 'City/signal-head';
-  sigPole.frustumCulled = false;
-  sigHead.frustumCulled = false;
-  sigPos.forEach((p, i) => {
-    d.position.set(p.x, y + 2.2, p.z); d.rotation.set(0, 0, 0); d.scale.set(1, 1, 1); d.updateMatrix();
-    sigPole.setMatrixAt(i, d.matrix);
-    d.position.set(p.x, y + 4.7, p.z); d.updateMatrix();
-    sigHead.setMatrixAt(i, d.matrix);
-    sigHead.setColorAt(i, new THREE.Color(0xffffff));
-  });
-  if (sigHead.instanceColor) sigHead.instanceColor.needsUpdate = true;
-  group.add(sigPole, sigHead);
-  owned.geometries.push(sigPoleGeo, sigHeadGeo);
-  owned.materials.push(sigMat, sigHeadMat);
+  // ---- 红绿灯由 city-signals.js 统一构建：9 路口 × 4 方向 + 倒计时 ----
 
   // ---- 公交站：顶棚 / 立柱 / 长椅 / 站牌 ----
   const stop = new THREE.Group();
@@ -263,13 +262,18 @@ export function buildCityBase({ group, owned }) {
 
   return {
     polePos,
+    roadMat: padMesh.material,
+    markMat: markMesh.material,
+    horizonMat,
     setNight(f) {
-      headMat.emissiveIntensity = 0.15 + f * 4.2;
-      poolMat.opacity = f * 0.55;
-      sigHeadMat.color.setHex(f > 0.4 ? 0x7dffb0 : 0x49e07b);
-    },
-    setSignal(phase) {
-      sigHeadMat.color.setHex(phase === 'green' ? 0x49e07b : 0xff5a4e);
+      // 夜间路面与标线一起压暗，只让路灯/车灯叠加光斑发亮
+      const road = 1 - f * 0.82;
+      padMesh.material.color.setRGB(road, road, road);
+      const mark = 1 - f * 0.84;
+      markMesh.material.color.setRGB(mark, mark, mark);
+      horizonMat.color.setHex(f > 0.45 ? 0x1a2620 : 0x4e6c46);
+      headMat.emissiveIntensity = 0.15 + f * 2.1;
+      poolMat.opacity = f * 0.52;
     },
   };
 }

@@ -93,6 +93,8 @@ export class Districts {
     this._lods = [];
     this._anchors = {};
     this._zoneDisposers = []; // 【M8/M9】新区内容模块（Castle/Farm）的自释放钩子
+    this._zoneUpdates = {};   // 【阶段二】Farm 农活动画更新器
+    this._time = 0;
     this._disposed = false;
     this._dummy = new THREE.Object3D();
     this._color = new THREE.Color();
@@ -336,8 +338,14 @@ export class Districts {
     silhouette.name = `Districts/${key}/silhouette`;
 
     // 近景地标造型（M8 城堡 / M9 农家宝，均为正式内容）
-    if (key === 'castle') this._zoneDisposers.push(buildCastle(detail, S, Q.castle).dispose);
-    else this._zoneDisposers.push(buildFarm(detail, S, Q.farm).dispose);
+    if (key === 'castle') {
+      this._zoneDisposers.push(buildCastle(detail, S, Q.castle).dispose);
+    } else {
+      const farm = buildFarm(detail, S, Q.farm);
+      this._zoneDisposers.push(farm.dispose);
+      this._zoneUpdates.farm = farm.update;
+      detail.userData.farmWorkers = farm.workers;
+    }
 
     /* 【六项升级·阶段四】城堡区抬高地形：一块 42×42 的石质台地（顶 y=2.2），
      * 城堡 detail 整体抬到台地顶面，形成「依山而建」的层次。台地挂在 zone
@@ -416,8 +424,9 @@ export class Districts {
    * 相机朝向与区中心方向做一次点积，背向且距离 >15m 时整区隐藏；
    * 玩家转身后下一帧立即恢复。热路径零新建。
    */
-  update(camera) {
+  update(camera, dt = 0) {
     if (!camera) return;
+    this._time += Math.min(0.1, Math.max(0, dt));
     camera.getWorldDirection(this._camDir);
     for (const z of this._lods) {
       const q = Q[z.key];
@@ -426,6 +435,11 @@ export class Districts {
       const dist = Math.hypot(vx, vz);
       const dot = dist > 0.001 ? (vx * this._camDir.x + vz * this._camDir.z) / dist : 0;
       z.lod.visible = !(dist > 15 && dot < -0.15);
+    }
+    // 【阶段二】农活循环只在农家乐 detail 真正上屏时推进，背向时零成本。
+    const farmLod = this._lods.find((z) => z.key === 'farm')?.lod;
+    if (farmLod && farmLod.visible && farmLod.getCurrentLevel() === 0) {
+      this._zoneUpdates.farm?.(this._time);
     }
   }
 
@@ -452,6 +466,7 @@ export class Districts {
     }
     this._textures.length = 0;
     this._lods.length = 0;
+    this._zoneUpdates = {};
     this._zones = {};
     this._anchors = {};
     this.group = null;

@@ -42,13 +42,33 @@
  *   若声明的 owner 与当前 owner 不符 → 拒绝（返回 false + console.warn）。
  *   任何写操作在【当前无 owner】时一律拒绝。
  *
+ * 【两条写入通道，都受 owner 仲裁】
+ *   - blendTo / restore：带 0.8s smoothstep 过渡，用于"进入/退出"这类一次性机位切换；
+ *   - writePose：立即直写、无过渡，用于"每帧跟随"型 owner（驾驶舱跟随刚体、飞行动画）。
+ *     直写者必须先 allowDirectWrite(key) 登记，未登记者被拒并告警；写入计入
+ *     directWriteCount 审计。项目生产代码中所有相机写操作必须经本类这两条通道，
+ *     禁止在子系统里裸写 camera.position / lookAt。
+ *
  * 【生命周期】configure/attach 幂等；update 幂等；dispose 幂等，清槽位与 owner。
  * ============================================================================
  */
 import * as THREE from 'three';
 
-/** 复用的临时矩阵（lookAt → quaternion），模块级单例，零 GPU 资源 */
+/** 复用的临时数学对象，模块级单例，零 GPU 资源 / 热路径零分配 */
 const _TMP_MAT = new THREE.Matrix4();
+const _TMP_V1 = new THREE.Vector3();
+const _TMP_V2 = new THREE.Vector3();
+const _TMP_Q = new THREE.Quaternion();
+const _TMP_E = new THREE.Euler();
+
+/**
+ * 零分配读取向量：支持 [x,y,z] 与 {x,y,z}；缺省值沿用调用方给的数。
+ * 不 new 任何对象，可直接用于每帧路径。
+ */
+function _readVec3(value, out, dx, dy, dz) {
+  if (Array.isArray(value)) return out.set(value[0] ?? dx, value[1] ?? dy, value[2] ?? dz);
+  return out.set(value?.x ?? dx, value?.y ?? dy, value?.z ?? dz);
+}
 
 /** 把位置入参统一转成 Vector3（Vector3 / [x,y,z] / {x,y,z}） */
 function toVector3(value) {
@@ -86,6 +106,9 @@ export class CameraRig {
     this._slots = new Map();
     /** @type {{from:Object,to:Object,elapsed:number,duration:number}|null} */
     this._transition = null;
+    /** 受控直写审计：哪些 owner 用过 writePose、累计次数（调试面板/验收读取） */
+    this._directWriters = new Set();
+    this._directWriteCount = 0;
     this._disposed = false;
   }
 
@@ -97,6 +120,9 @@ export class CameraRig {
   get isTransitioning() { return this._transition !== null; }
   /** 已登记的槽位数量（调试用） */
   get slotCount() { return this._slots.size; }
+  /** 审计：累计受控直写次数 / 使用过的 owner 列表 */
+  get directWriteCount() { return this._directWriteCount; }
+  get directWriters() { return [...this._directWriters]; }
 
   /**
    * 注入相机单例（幂等）。重复调用可换相机（如测试重配）。
@@ -202,6 +228,71 @@ export class CameraRig {
     if (!this._canWrite(ownerHint)) return false;
     const target = this._resolveTarget(pose);
     return this._startTransition(target, duration);
+  }
+
+  /**
+   * 登记一个允许「受控直写」的 owner key。必须在首帧 writePose 之前调用（幂等）。
+   * 未登记者调用 writePose 会被拒绝并告警——从机制上杜绝"偷偷多一个相机写者"。
+   * @param {string} key 与 setOwner 同一个 key（如 'lobby-driving'）
+   */
+  allowDirectWrite(key) {
+    if (typeof key !== 'string' || key.length === 0) { this._warn('allowDirectWrite: key 必须是非空字符串'); return false; }
+    this._directWriters.add(key);
+    return true;
+  }
+
+  /**
+   * 【受控直写】立即把位姿写到相机，不产生过渡——专供"每帧跟随"型 owner：
+   * 驾驶舱逐帧跟随 Rapier 刚体、动物园飞行逐帧 lerp。这类场景若走 blendTo
+   * 会因 0.8s 过渡严重滞后目标，故提供这条受仲裁的即时通道。
+   *
+   * 与「裸写 camera.position / lookAt」的区别（这正是本方法存在的意义）：
+   *   ① 必须持有 owner 且已 allowDirectWrite 登记，否则拒绝并告警；
+   *   ② pose.owner 必须与实际 owner 一致（双重校验，防错写）；
+   *   ③ 全部向量/四元数走模块级临时对象，热路径零分配；
+   *   ④ 每次写入记入审计（directWriteCount / directWriters），可验收。
+   *
+   * pose 字段：position（必须）、quaternion | lookAt（二选一）、up、fov、
+   * rotationOrder。与 blendTo 的 pose 同构，缺省字段沿用相机当前值。
+   * @param {{position:*,quaternion?:*,lookAt?:*,up?:*,fov?:number,rotationOrder?:string,owner?:string}} pose
+   * @returns {boolean} 是否被接受
+   */
+  writePose(pose = {}) {
+    if (!pose || typeof pose !== 'object') { this._warn('writePose: pose 必须是对象'); return false; }
+    const ownerHint = pose.owner ?? null;
+    if (!this._canWrite(ownerHint)) return false;
+    if (!this._directWriters.has(this._owner)) {
+      this._warn(`受控直写被拒：当前 owner "${this._owner}" 未调用 allowDirectWrite 登记`);
+      return false;
+    }
+
+    const cam = this.camera;
+    if (pose.position != null && typeof pose.position !== 'function') {
+      _readVec3(pose.position, _TMP_V1, cam.position.x, cam.position.y, cam.position.z);
+      cam.position.copy(_TMP_V1);
+    }
+    if (pose.up != null && typeof pose.up !== 'function') {
+      _readVec3(pose.up, _TMP_V2, cam.up.x, cam.up.y, cam.up.z);
+      if (_TMP_V2.lengthSq() > 1e-8) cam.up.copy(_TMP_V2).normalize();
+    }
+    if (pose.rotationOrder && cam.rotation.order !== pose.rotationOrder) cam.rotation.order = pose.rotationOrder;
+    if (pose.fov != null && Math.abs(cam.fov - pose.fov) > 1e-6) { cam.fov = pose.fov; cam.updateProjectionMatrix(); }
+    // 朝向：quaternion 优先，其次 lookAt（相机 -Z 指向目标）。零分配，复用模块级临时对象。
+    if (pose.quaternion != null && typeof pose.quaternion !== 'function') {
+      if (Array.isArray(pose.quaternion)) {
+        _TMP_Q.set(pose.quaternion[0] ?? 0, pose.quaternion[1] ?? 0, pose.quaternion[2] ?? 0, pose.quaternion[3] ?? 1);
+      } else {
+        _TMP_Q.set(pose.quaternion.x ?? 0, pose.quaternion.y ?? 0, pose.quaternion.z ?? 0, pose.quaternion.w ?? 1);
+      }
+      if (_TMP_Q.lengthSq() > 1e-8) cam.quaternion.copy(_TMP_Q.normalize());
+    } else if (pose.lookAt != null && typeof pose.lookAt !== 'function') {
+      _readVec3(pose.lookAt, _TMP_V2, cam.position.x, cam.position.y, cam.position.z - 1);
+      _TMP_Q.setFromRotationMatrix(_TMP_MAT.lookAt(cam.position, _TMP_V2, cam.up));
+      cam.quaternion.copy(_TMP_Q);
+    }
+
+    this._directWriteCount += 1;
+    return true;
   }
 
   /**

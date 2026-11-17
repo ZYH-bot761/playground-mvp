@@ -91,8 +91,11 @@ import { PirateShip } from './scenes/attractions/pirate-ship.js';
 import { Lobby } from './scenes/lobby-scene.js';
 import { FireworksDeck } from './scenes/attractions/fireworks-deck.js';
 import { CenturyClock } from './scenes/attractions/century-clock.js';
+import { cameraRig } from './core/camera-rig.js';
 import { dayNightCycle } from './utils/helpers/day-night-cycle.js';
+import { seasonCycle } from './utils/helpers/season-cycle.js';
 import { fireworkSystem } from './utils/helpers/particle-system.js';
+import { graphicsGuard } from './utils/helpers/graphics-guard.js';
 import { npcManager } from './utils/helpers/npc-manager.js';
 /* 【六项升级】移动双模式 / 渲染优化 / 区域标签 / lil-gui 调试面板 */
 import { movementMode } from './components/controllers/movement-mode-manager.js';
@@ -254,21 +257,27 @@ function logMemory(tag, ref = baseline) {
 /* ========================================================================== */
 
 /**
- * 设施切换时同步全局昼夜/烟花的生效上下文。
+ * 设施切换时同步全局昼夜/烟花/四季/人群的生效上下文。
  * 【v4 T03】嵌入视图虽有自己的 key（如 demo-embed），但相机仍在大厅场景里，
- * 天空 / NPC / 烟花必须继续可见 → 统一映射成 LOBBY_KEY 给三个全局单例。
+ * 天空 / NPC / 烟花 / 天气必须继续可见 → 统一映射成 LOBBY_KEY 给全部全局单例。
  * 这样也避免改 NPCManager.js / ParticleSystem.js（它们是其它工程师的文件），
  * 它们的白名单只认 'lobby' / 'fireworks-deck'。DayNightCycle 另外也登记了
  * 嵌入 key，双重保险。
+ *
+ * 【阶段五·接线收敛】四个全局单例（dayNight / firework / npc / season）统一在此
+ * 收敛，避免四季此前只靠 Lobby.init()/dispose() 隐式管理：独立设施卸载 Lobby 后
+ * 天气系统不会自行挂起，季节切换按钮残留的 emitter 会继续占用粒子池。
+ * setContext(null)（完全卸载态）会把四者一并挂起并归还资源。
  */
 function syncGlobalContext(key) {
   // 触发环别名（pumpkin-thrower → ferris-wheel）统一在这里收敛，
-  // 保证「旧 key 进入」与「新 key 进入」得到完全相同的昼夜上下文。
+  // 保证「旧 key 进入」与「新 key 进入」得到完全相同的全局上下文。
   const normalizedKey = TRIGGER_KEY_ALIASES[key] ?? key;
   const effectiveKey = EMBEDDED_KEYS.has(normalizedKey) ? LOBBY_KEY : normalizedKey;
   dayNightCycle.setContext(effectiveKey);
   fireworkSystem.setContext(effectiveKey);
   npcManager.setContext(effectiveKey);
+  seasonCycle.setContext(effectiveKey);
 }
 
 /**
@@ -417,6 +426,16 @@ function startBackgroundPrewarm() {
       window.setTimeout(step, 600);
       return;
     }
+    // 【驾驶/交互互斥】上车加载 / 驾驶期间 prewarm 会把 Lobby（含车辆物理世界）整个 dispose，
+    // 玩家会被强制踢下车并回到步行态；站在车旁或设施入口时也会因 DOM 重建丢失点击。
+    // 此时整轮让路，600ms 后重试，离开交互区/下车后继续预热。
+    const activeLobby = attractionManager.active;
+    if (activeLobby?._driving?.active || activeLobby?._driving?.pending
+        || activeLobby?._nearCar || activeLobby?._nearFacility
+        || (activeLobby?._sitState && activeLobby._sitState !== 'none')) {
+      window.setTimeout(step, 600);
+      return;
+    }
     while (index < BACKGROUND_PREWARM_KEYS.length &&
            prewarmedKeys.has(BACKGROUND_PREWARM_KEYS[index])) {
       index += 1;
@@ -559,6 +578,7 @@ const onPageHide = (event) => {
   try { districtLabels.dispose(); } catch (err) { console.warn('[六项升级] 标签释放失败：', err); }
   try { debugPanel.dispose(); } catch (err) { console.warn('[六项升级] 面板释放失败：', err); }
   try { movementMode.dispose(); } catch (err) { console.warn('[六项升级] 移动控制器释放失败：', err); }
+  try { graphicsGuard.dispose(); } catch (err) { console.warn('[基座] 图形兜底 UI 释放失败：', err); }
 };
 window.addEventListener('pagehide', onPageHide);
 
@@ -575,6 +595,13 @@ async function bootstrap() {
     renderer: sceneManager.renderer,
   });
   console.info('[基座] SceneContext 世界骨架已注入（worldRoot / propsRoot / facilityAnchors）');
+
+  /* 弱网 / GPU 上下文丢失 / 低性能设备兜底：只建 DOM，不占 GPU 资源。 */
+  graphicsGuard.install({
+    renderer: sceneManager.renderer,
+    sceneManager,
+    qualityTier: sceneManager.qualityTier,
+  });
 
   /* ---------- ⓪-b 【六项升级】全局装配 ----------------------------------
    * 必须在 Lobby 预热（④-b 读取 baseline）之前创建常驻资源，让它们的 GPU
@@ -755,6 +782,8 @@ async function bootstrap() {
     camera: sceneManager.camera,
     renderer: sceneManager.renderer,
   });
+  // 四季只驱动既有材质 uniform 与粒子对象池，不创建新的 GPU 几何/纹理。
+  seasonCycle.init({ camera: sceneManager.camera });
   npcManager.init({ scene: sceneManager.scene, camera: sceneManager.camera });
   dayNightCycle.warmUp();    // 临时点亮全部天体 → 一次性上传所有几何（不可删，否则夜间星空首帧缺失）
   sceneManager.renderOnce(); // 上传全局单例资源 → 计入基线
@@ -775,6 +804,7 @@ async function bootstrap() {
       facilityRuntime.update(dt);
       dayNightCycle.update(dt);
       fireworkSystem.update(dt);
+      seasonCycle.update(dt);
       npcManager.update(dt);
       // 【六项升级·阶段三】Lobby 重建后惰性重扫 LOD / 包围体 / mipmap；
       // 平时只有一次引用比较，热路径零新建 GPU 资源。
@@ -952,10 +982,13 @@ async function bootstrap() {
     audioManager,
     modelLoader,
     dayNightCycle,
+    seasonCycle,
     fireworkSystem,
     npcManager,
+    cameraRig,
     sceneContext,
     facilityRuntime,
+    graphicsGuard,
     /* 【六项升级】验收脚本用只读句柄 */
     movementMode,
     renderOptimizer,
@@ -967,6 +1000,8 @@ async function bootstrap() {
     /** T04b 验收用：触发环 key → 嵌入 key 的兼容映射（只读副本） */
     get triggerKeyAliases() { return { ...TRIGGER_KEY_ALIASES }; },
     get startScreen() { return startScreen; },
+    /** 阶段四验收：当前大厅的驾驶控制器（未激活设施时为 null） */
+    get vehicleSystem() { return attractionManager.active?._driving ?? null; },
     get bootReady() { return bootReady; },
     get loopStarted() { return loopStarted; },
     startGameplayLoop,
