@@ -22,14 +22,15 @@
 
 ## 3. 本轮工程底座优化（2026-11-17）
 
-按优先级六项，全部有验收证据：
+按优先级七项，全部有验收证据：
 
 1. **相机写者契约统一**。`CameraRig` 成为所有生产相机写入的唯一通道：一次性切换走 `blendTo/restore`（带过渡），逐帧跟随走新增的 `writePose`（受控直写、零分配）。直写者必须 `allowDirectWrite(key)` 登记，无 owner / 未登记一律拒绝并告警；写入计入 `directWriteCount` 审计。原先绕过 rig 的两处——`CityDriving._syncVisual` 与 `Lobby._updateZooFly`——已改走 `writePose`。新增验收 `tests/verify-camera-contract.mjs`（7/7 PASS）。
 2. **全局系统上下文收敛**。`main.js syncGlobalContext()` 统一同步 dayNight / firework / npc / season 四个单例；此前四季只靠 Lobby 生命周期隐式管理，独立设施卸载后天气不挂起。
 3. **粒子池按类型隔离回收**。天气（kind≥4）与烟花/文字（kind=0）互不误杀；天气 palette 提为模块级常量，热路径零 JS 分配。
 4. **失真声明修正**。Lobby 中"全程禁用 Rapier / 刚体数 0"改为准确描述：Lobby 本体常驻 0 刚体，驾驶与小游戏按需懒加载、下车/退出归零。
-5. **联合回归门禁**。新增 `tests/verify-all.mjs`，串行跑 build+camera+redline+v4+season+driving+phase2+m6zoo，任一失败整体非零退出；支持 `--only camera,redline` 缩跑。45 个一次性 `_*.mjs` 探针归档到 `tests/_archive/`（gitignore 排除，本地可查）。
-6. **预算口径澄清**。三角面硬红线 300,000；`config/default.json` 的 `drawCallBudget:900` 是**新增内容/新视图**的设计红线，**大厅全量俯瞰约 1,198 calls 是既有基数**，两者不可混用。验收以各脚本固定机位实测为准。
+5. **联合回归门禁**。新增 `tests/verify-all.mjs`，串行跑 build+camera+redline+v4+season+driving+drive-roam+phase2+m6zoo，任一失败整体非零退出；支持 `--only camera,redline` 缩跑。45 个一次性 `_*.mjs` 探针归档到 `tests/_archive/`（gitignore 排除，本地可查）。
+6. **漫游↔驾驶集成修复**（用户实操 bug）。按 F 进入地面漫游后靠近车，因 `movementMode.isEngaged()=true` 使车辆扫描 `baseOk` 恒 false，按 E 完全无反应。修复：地面漫游允许扫车、飞行模式不扫；`getContext` 暴露 `driving` 标志让漫游层在驾驶中自动让位（保留 engaged 标志、下车恢复），避免与驾驶相机双写。新增 `verify-drive-roam.mjs` 7/7 锁定该行为。
+7. **预算口径澄清**。三角面硬红线 300,000；`config/default.json` 的 `drawCallBudget:900` 是**新增内容/新视图**的设计红线，**大厅全量俯瞰约 1,198 calls 是既有基数**，两者不可混用。验收以各脚本固定机位实测为准。
 
 ## 4. 当前验收基线（2026-11-17 实测）
 
@@ -41,6 +42,7 @@
 | verify-v4 | 13/13 PASS | 5 轮往返 Δgeo=−31 / Δtex=−16（负值=视角缓存释放）；0 报错 |
 | verify-season | 16/16 PASS | 天气峰值 760，clear 后 freeTop=3000；8 次切换 Δ0/0 |
 | verify-driving | 21/21 PASS | 上车 14 刚体 → 下车 0；驾驶相机走受控直写正常 |
+| verify-drive-roam | 7/7 PASS | 漫游地面模式可按 E 上车；驾驶中漫游让位；下车自动恢复 |
 | verify-phase2 | 20/20 PASS | 生态扩张（历史记录） |
 | verify-m6-zoo | 8/8 PASS | 动物园回归（历史记录） |
 
@@ -50,6 +52,7 @@
 
 - 阅读顺序：`docs/project-map.md` → `src/main.js` → `src/core/{scene-manager,attraction-manager,camera-rig,physics-manager}.js` → `src/scenes/districts.js` + `metropolis/city-layout.js` → `src/scenes/lobby-scene.js`（按需读段）→ 全局系统三件套 → 交通/驾驶 → tests。
 - 相机铁律（本轮强化）：**禁止在子系统裸写 `camera.position` / `lookAt`**；一切写入经 CameraRig 的 `blendTo/restore/writePose`；新写者先 `allowDirectWrite` 登记。
+- 相机接管互斥铁律：任何新增「接管相机」的移动 / 玩法系统（如驾驶），必须在 `movementMode.getContext()` 暴露占位标志（如 `driving`），让漫游层经 `isEngaged()` 自动让位；不要靠各系统各自的门控约定——漫游与驾驶曾因此互斥导致按 E 无法上车。
 - 性能铁律：三角面 ≤300,000；新增内容 calls ≤900（大厅全量 1,198 是既有基数）；热路径不 new GPU 资源；重复物件用 InstancedMesh；不新增常驻灯；AI 车保持 kinematic；粒子池上限 760；不改基线让测试变绿。
 - 坐标铁律：`DISTRICT_GRID` / `CITY` / `ZOO_LAYOUT` / `FOREST_PARK` 是单一真相源；"南门"是建筑名不是 +z 方向；北区几何世界坐标烘焙，移动用 `_rebase`。
 - 验证：`node tests/verify-all.mjs`（全套，约 15–20 分钟）；dev server 须先在 5173 运行。
