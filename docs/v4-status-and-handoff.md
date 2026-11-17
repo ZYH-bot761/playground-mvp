@@ -1,5 +1,7 @@
 # v4 真实一体化重构 —— 收官状态与交接（2026-11-11 19:45 更新）
 
+> **⚠️ 时效提示（2026-11-17）**：本文是 v4 时点（2026-11-11）的收官快照。后续阶段 1–5 已落地四季天气 / 驾驶 / 都会区扩展，并完成相机写者契约统一（`CameraRig.writePose` 受控直写 + 登记审计）。**当前唯一权威现状见 `docs/current-status.md`**。下方 §坑 7「cameraRig 唯一驱动点」在今天仍成立且被强化：新增 `writePose` Channel，禁止子系统裸写相机。
+
 ## TL;DR（最终，结论以本节为准）
 **13 项需求全部实现并真机验收通过：`13 PASS / 0 FAIL / 0 SKIP`**。`npm run build` 通过（1.16s），`PORT=5177 node tests/verify-v4.mjs` 全量验收 15 张截图全唯一 hash，`0 pageerror / 0 console.error / 0 consoleWarning / 0 404 / 0 failedRequest`。5 轮往返稳态 Δgeo=0 / Δtex=0（62 geo / 30 tex），全场景 253,676 三角面（≤30 万预算）。
 

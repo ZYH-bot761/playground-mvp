@@ -1,0 +1,6 @@
+{
+  "note": "M0 历史容量基线（归档）。由 tests/verify-redline.mjs 在固定双机位实测落盘；保留用于追溯 Phase 1 之前的大厅容量。当前增量断言已切换到 redline-baseline.json。",
+  "at": "2026-11-12T12:05:00+08:00",
+  "overview": { "camera": [0, 30, 34], "lookAt": [0, 2, 0], "calls": 1041, "triangles": 294856 },
+  "standard": { "camera": [0, 9.4, 25], "lookAt": [0, 12.4, 0], "calls": 1011, "triangles": 283352 }
+}

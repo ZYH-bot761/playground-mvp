@@ -714,7 +714,7 @@ try {
     'offscreen:4实例排排站近景+preserveDrawingBuffer');
   const checks = [
     sub('NPC 1 draw call', calls <= 2 ? S.PASS : S.FAIL, `calls=${calls} InstancedMesh=${npc.renderMeshCount}`),
-    sub('10 NPC / 4 态 / 2 迎宾', npc.count === 10 && npc.greeters === 2 && npc.states.length >= 3 ? S.PASS : S.FAIL,
+    sub('10 NPC / 4 态 / 4 迎宾', npc.count === 10 && npc.greeters === 4 && npc.states.length >= 3 ? S.PASS : S.FAIL,
       `count=${npc.count} greeters=${npc.greeters} states=${npc.states.join(',')} wavePeak=${npc.wavePeak}`),
     sub('minDist≥0.5', npc.minDist >= 0.5 ? S.PASS : S.FAIL, `minDist=${npc.minDist}`),
     sub('穿墙=0', npc.inBox === 0 ? S.PASS : S.FAIL, `穿墙=${npc.inBox} 障碍=${npc.obstacles}`),
@@ -1351,9 +1351,12 @@ try {
     sub('惰性资源一次性上传（信息项，非泄漏）', S.SKIP,
       `首次激活全部设施一次性 +${lazyDelta.geo} geo / +${lazyDelta.tex} tex；之后 5 轮完全持平即证明无泄漏`,
       lazyDelta, true),
-    sub('5轮 Δgeo=0（稳态基线）', dGeo === 0 ? S.PASS : S.FAIL,
+    // 【口径修正】跨设施遍历时，嵌入视图的相机近距离会一次性上传大厅近景几何，
+    // 随后进入独立设施会 dispose Lobby 并释放这批“当前已上传”资源 → 负值是释放，
+    // 不是泄漏。真正要防的是资源单调增长，因此判据为「无正增长」。
+    sub('5轮无 Δgeo 正增长（负值=视角缓存释放）', dGeo <= 0 ? S.PASS : S.FAIL,
       `Δgeo=${dGeo} steady=${steady.geometries} final=${finalMem.geometries}`),
-    sub('5轮 Δtex=0（稳态基线）', dTex === 0 ? S.PASS : S.FAIL,
+    sub('5轮无 Δtex 正增长（负值=视角缓存释放）', dTex <= 0 ? S.PASS : S.FAIL,
       `Δtex=${dTex} steady=${steady.textures} final=${finalMem.textures}`),
     sub('全场景 ≤30万三角面', budget.triangles <= 300000 ? S.PASS : S.FAIL, `triangles=${budget.triangles}`),
     sub('0 pageerror', errs.pageerror.length === 0 ? S.PASS : S.FAIL, `count=${errs.pageerror.length}`, errs.pageerror.slice(0, 3)),
@@ -1362,7 +1365,7 @@ try {
       `404=${errs.badResponse.length} failed=${errs.failedRequest.length}`, [...errs.badResponse, ...errs.failedRequest].slice(0, 3)),
     sub('末帧非空白', shot.bytes > 6000 ? S.PASS : S.FAIL, `PNG=${shot.bytes}B`),
   ];
-  pushItem('⑬', '全量回归（5轮 Δ0/0 + 预算 + 0 报错）', decide(checks),
+  pushItem('⑬', '全量回归（5轮无正增长 + 预算 + 0 报错）', decide(checks),
     `Δgeo=${dGeo} Δtex=${dTex} (steady ${steady.geometries}geo/${steady.textures}tex, 惰性 +${lazyDelta.geo}) calls=${budget.calls} tris=${budget.triangles} err=${errs.pageerror.length}/${errs.consoleError.length}`,
     { baseline, steady, lazyDelta, rounds, dGeo, dTex, budget }, checks, [shot]);
 } catch (err) {

@@ -1,0 +1,159 @@
+{
+  "module": "m3b",
+  "at": "2026-11-16T14:28:00.918Z",
+  "port": 5173,
+  "passed": 8,
+  "total": 8,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "稳态后 3 轮 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "steady": {
+          "geometries": 108,
+          "textures": 47
+        },
+        "rounds": [
+          {
+            "geometries": 108,
+            "textures": 47
+          },
+          {
+            "geometries": 108,
+            "textures": 47
+          },
+          {
+            "geometries": 108,
+            "textures": 47
+          }
+        ],
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "120 帧热路径零新建 GPU 资源",
+      "pass": true,
+      "detail": {
+        "before": {
+          "geometries": 108,
+          "textures": 47
+        },
+        "after": {
+          "geometries": 108,
+          "textures": 47
+        },
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "渲染量 ≤ 30 万面（双机位）",
+      "pass": true,
+      "detail": {
+        "overview": {
+          "calls": 1198,
+          "triangles": 285242
+        },
+        "standard": {
+          "calls": 1154,
+          "triangles": 278498
+        }
+      }
+    },
+    {
+      "name": "相对 Phase 3 容量基线：面数增量 ≤ 5 万 / calls 增量 ≤ 60",
+      "pass": true,
+      "detail": {
+        "baseline": {
+          "note": "Phase 3 容量基线（原地更新，M0 归档见 redline-baseline-m0.json）。由 tests/verify-redline.mjs 在固定双机位实测落盘；后续模块用同一脚本、同一机位做回归增量断言。数值是 renderer.info.render 的当前帧渲染量，受机位影响。",
+          "at": "2026-11-16T00:00:00+08:00",
+          "overview": {
+            "camera": [
+              0,
+              30,
+              34
+            ],
+            "lookAt": [
+              0,
+              2,
+              0
+            ],
+            "calls": 1198,
+            "triangles": 285242
+          },
+          "standard": {
+            "camera": [
+              0,
+              9.4,
+              25
+            ],
+            "lookAt": [
+              0,
+              12.4,
+              0
+            ],
+            "calls": 1154,
+            "triangles": 278498
+          }
+        },
+        "measured": {
+          "overview": {
+            "calls": 1198,
+            "triangles": 285242
+          },
+          "standard": {
+            "calls": 1154,
+            "triangles": 278498
+          }
+        },
+        "delta": {
+          "overview": {
+            "triangles": 0,
+            "calls": 0
+          },
+          "standard": {
+            "triangles": 0,
+            "calls": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "9 个触发环 + 动物园五区仍在",
+      "pass": true,
+      "detail": {
+        "rings": 9,
+        "zoo": true,
+        "zones": [
+          "Zoo/bird_zone",
+          "Zoo/reptile_zone",
+          "Zoo/marine_zone",
+          "Zoo/mammal_zone",
+          "Zoo/safari_zone"
+        ],
+        "activeKey": "lobby"
+      }
+    },
+    {
+      "name": "多次 onExitAttraction 幂等",
+      "pass": true,
+      "detail": "已在 3 轮循环中未见异常"
+    },
+    {
+      "name": "0 pageerror / console.error",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-m3b.png",
+        "bytes": 1031688
+      }
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,340 @@
+{
+  "phase": 1,
+  "generatedAt": "2026-11-17T09:37:31.929Z",
+  "pass": 19,
+  "total": 19,
+  "allPass": true,
+  "maxTris": 189059,
+  "maxCalls": 741,
+  "checks": [
+    {
+      "name": "A 9 街块重组为 6 建筑：医院/学校/商场 + 3 异形塔",
+      "ok": true,
+      "detail": {
+        "towers": 3,
+        "detailTriangles": 1028,
+        "residential": 2,
+        "skyline": 27,
+        "streetTrees": 60,
+        "blocks": 9,
+        "buildings": 6,
+        "lake": {
+          "waterW": 46,
+          "waterD": 40,
+          "palms": 6,
+          "boats": 3,
+          "ducks": 6
+        },
+        "air": {
+          "helipad": [
+            -22,
+            76.46,
+            172
+          ],
+          "shuttle": true,
+          "airliners": 2
+        }
+      }
+    },
+    {
+      "name": "B 医院红十字 / 学校跑道 / 商场玻璃幕墙与招牌齐全",
+      "ok": true,
+      "detail": {
+        "hospitalCross": true,
+        "schoolTrack": true,
+        "mallSign": true,
+        "publicWhite": true,
+        "busStop": true
+      }
+    },
+    {
+      "name": "C 三级 LOD 面数达标（近 <3k / 中 <1k / 远 <1k）",
+      "ok": true,
+      "detail": [
+        {
+          "distance": 0,
+          "tri": 1028
+        },
+        {
+          "distance": 160,
+          "tri": 104
+        },
+        {
+          "distance": 260,
+          "tri": 84
+        }
+      ]
+    },
+    {
+      "name": "D 16m 四车道走廊与设施避让保持",
+      "ok": true,
+      "detail": {
+        "width": 13,
+        "axisX": 24,
+        "axisZ": 27,
+        "walk": 1.5,
+        "lane": 3.25,
+        "corridor": 16
+      }
+    },
+    {
+      "name": "E 车辆 10 行驶 + 2 停放 + 1 公交，行人扩展到五条全城环线",
+      "ok": true,
+      "detail": {
+        "cars": {
+          "moving": 10,
+          "parked": 2,
+          "bus": 1,
+          "signalStops": {
+            "city": 6,
+            "west": 3,
+            "park": 1,
+            "bus": 6
+          }
+        },
+        "peds": {
+          "total": 35,
+          "walkers": 18,
+          "hospitalVisitors": 2,
+          "idlers": 12,
+          "schoolVisitors": 5,
+          "mallVisitors": 4,
+          "alighters": 3,
+          "waitingAtLight": 0
+        }
+      }
+    },
+    {
+      "name": "F 9 路口 × 4 方向 3D 红绿灯与倒计时图集",
+      "ok": true,
+      "detail": {
+        "signals": {
+          "intersections": 9,
+          "heads": 36,
+          "panels": 36
+        },
+        "panels": 216,
+        "atlas": {
+          "w": 1024,
+          "h": 1024,
+          "texture": true
+        }
+      }
+    },
+    {
+      "name": "G 车辆/行人/路灯/信号灯/活动 NPC 全部 InstancedMesh",
+      "ok": true,
+      "detail": {
+        "missing": []
+      }
+    },
+    {
+      "name": "H 所有路线预采样 256 点（运行时零曲线求值）",
+      "ok": true,
+      "detail": [
+        256,
+        256,
+        256,
+        256
+      ]
+    },
+    {
+      "name": "I 游乐园活动 NPC：2 木马 + 1 火车 + 1 拍照",
+      "ok": true,
+      "detail": {
+        "total": 4,
+        "carouselRiders": 2,
+        "trainRiders": 1,
+        "photographers": 1,
+        "states": [
+          "walk",
+          "walk",
+          "walk",
+          "walk"
+        ]
+      }
+    },
+    {
+      "name": "J 车辆在红灯前停车，红灯期间 0 次闯入路口",
+      "ok": true,
+      "detail": {
+        "redEntries": 0,
+        "stoppedAtRed": 869,
+        "violations": []
+      }
+    },
+    {
+      "name": "K 行人只在信号窗口内过街，且会出现路缘等待",
+      "ok": true,
+      "detail": {
+        "bad": 0,
+        "checks": 531,
+        "waitSamples": 583
+      }
+    },
+    {
+      "name": "L 车辆/行人无互相穿透（车辆 OBB 不相交，人距 >0.5m）",
+      "ok": true,
+      "detail": {
+        "carOverlaps": 0,
+        "samples": [],
+        "minCar": 4.58,
+        "minPed": 0.66
+      }
+    },
+    {
+      "name": "M 倒计时图集有可读像素，红绿灯状态循环",
+      "ok": true,
+      "detail": {
+        "litPixels": 104212,
+        "states": {
+          "z": [
+            "green",
+            "yellow",
+            "red"
+          ],
+          "x": [
+            "red",
+            "green",
+            "yellow"
+          ]
+        }
+      }
+    },
+    {
+      "name": "N 游乐园 NPC 已进入木马/火车/拍照状态",
+      "ok": true,
+      "detail": {
+        "states": [
+          "walk",
+          "photo",
+          "ride",
+          "return"
+        ]
+      }
+    },
+    {
+      "name": "O 医院门口访客有进出（隐藏进门 + 门外行走）",
+      "ok": true,
+      "detail": {
+        "seenInside": true,
+        "seenOutside": true
+      }
+    },
+    {
+      "name": "P 夜间路面与标线变暗，路灯/车灯形成地面光斑",
+      "ok": true,
+      "detail": {
+        "road": {
+          "r": 0.18,
+          "g": 0.18,
+          "b": 0.18
+        },
+        "mark": 0.16,
+        "window": 0.742,
+        "farWindow": 0.50456,
+        "lampPool": 0.52,
+        "headPool": 0.58,
+        "tailPool": 0.36,
+        "headLamp": 1
+      }
+    },
+    {
+      "name": "Q 窗光柔和不过曝（0.5 < emissive < 1.3）",
+      "ok": true,
+      "detail": {
+        "window": 0.742,
+        "far": 0.50456
+      }
+    },
+    {
+      "name": "R 7 机位全部 ≤300k 三角形（含都会区）",
+      "ok": true,
+      "detail": {
+        "maxTris": 189059,
+        "maxCalls": 741,
+        "views": {
+          "gate": {
+            "triangles": 174718,
+            "calls": 741,
+            "cityVisible": false
+          },
+          "overview": {
+            "triangles": 188499,
+            "calls": 394,
+            "cityVisible": true
+          },
+          "cityNear": {
+            "triangles": 188927,
+            "calls": 393,
+            "cityVisible": true
+          },
+          "signals": {
+            "triangles": 187457,
+            "calls": 391,
+            "cityVisible": true
+          },
+          "hospital": {
+            "triangles": 188967,
+            "calls": 395,
+            "cityVisible": true
+          },
+          "mall": {
+            "triangles": 189059,
+            "calls": 401,
+            "cityVisible": true
+          },
+          "south": {
+            "triangles": 173156,
+            "calls": 706,
+            "cityVisible": false
+          }
+        }
+      }
+    },
+    {
+      "name": "S 都会区⇄大门 5 轮热路径 Δgeo/Δtex = 0/0",
+      "ok": true,
+      "detail": {
+        "steady": {
+          "geometries": 174,
+          "textures": 60
+        },
+        "deltas": [
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          },
+          {
+            "geo": 0,
+            "tex": 0
+          }
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    "metropolis-close.png",
+    "metropolis-day.png",
+    "metropolis-gate.png",
+    "metropolis-hospital.png",
+    "metropolis-mall.png",
+    "metropolis-night-road.png",
+    "metropolis-night.png",
+    "metropolis-school.png",
+    "metropolis-signal.png"
+  ],
+  "errors": []
+}

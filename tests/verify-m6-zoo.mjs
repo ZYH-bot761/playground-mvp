@@ -2,10 +2,10 @@
  * tests/verify-m6-zoo.mjs —— M6 动物园真实游览区专项
  * 运行：node tests/verify-m6-zoo.mjs
  *
- * A 四区 + 围栏 + 标牌 + 水体齐全，围栏高度 ≤1.3m（不挡近距离观看）
+ * A 五区（含南侧非洲草原）+ 围栏 + 标牌 + 水体齐全，围栏高度 ≤1.3m
  * B 具体物种资产：鸡/鸭/鹅（鸟区）、狗（哺乳区）、龟（爬行区）、鱼（海洋区）
  * C 物种造型差异可验证：鸡有红冠、鸭有扁喙、鹅有长颈、狗有竖耳与尾
- * D 动物总数 8/4/15/5，全部 InstancedMesh（≤16 draw call）
+ * D 动物全部按关节拆分为 InstancedMesh，实例网格数量与总面数受控
  * E 动画：受控推进 300 帧后动物位移 > 0，且 240 帧闭环首尾位置一致
  * F 鱼始终在水体内、鸟在飞行包络内
  * G 可近距离观看：相机移到栏边 3m 处，动物在视锥内且可见（截图像素验证）
@@ -72,8 +72,9 @@ try {
       fenceHeight: mod.ZOO_FENCE_HEIGHT ?? null };
   });
 
-  add('A 四区 + 地面 + 标牌 + 围栏',
-    Object.keys(d.zones).length === 4
+  add('A 五区 + 地面 + 标牌 + 围栏',
+    Object.keys(d.zones).length === 5
+    && d.zones.safari_zone
     && Object.values(d.zones).every((z) => z.ground && z.fence && z.sign),
     Object.fromEntries(Object.entries(d.zones).map(([k, z]) => [k,
       { ground: z.ground, fence: z.fence, sign: z.sign }])));
@@ -92,11 +93,12 @@ try {
     traitKeys.includes('鸡') && traitKeys.includes('鸭')
     && traitKeys.includes('鹅') && traitKeys.includes('狗'), traits);
 
-  // 12 个动物实例网格（4 类 × body/head/limb/feature）+ 2 个围栏实例网格 = 18
-  add('D 动物 8/4/15/5 且 InstancedMesh ≤18 draw call',
-    d.inst >= 12 && d.inst <= 18 && d.tris < 200000,
+  // 阶段二起大型动物与躯干/颈/腿/尾按关节拆分：不再用固定 12 个部件做上限，
+  // 但仍要求全部实例化、总 draw 与总面数受控（避免退回逐只 Mesh）。
+  add('D 动物分关节 InstancedMesh 且总面数受控',
+    d.inst >= 30 && d.inst <= 80 && d.tris < 290000,
     { instancedMeshes: d.inst, zooTriangles: d.tris,
-      animalParts: 12, fenceParts: 2 });
+      zones: Object.keys(d.zones), mode: 'per-joint-instanced' });
 
   // E 动画：位移 + 240 帧闭环
   const motion = await page.evaluate(() => {
@@ -104,7 +106,7 @@ try {
     const zoo = pg._zoo || pg.attractionManager.active?._zoo;
     if (!zoo) return null;
     const read = () => {
-      const im = zoo.group.getObjectByName('Zoo/bird/part-0');
+      const im = zoo.group.getObjectByName('Zoo/chicken/part-0');
       const a = im.instanceMatrix.array;
       return [a[12], a[13], a[14]];
     };
@@ -138,7 +140,7 @@ try {
     for (let f = 0; f < 240; f += 24) {
       zoo.update(f * 0.05);
       const fm = zoo.group.getObjectByName('Zoo/fish/part-0').instanceMatrix.array;
-      const bm = zoo.group.getObjectByName('Zoo/bird/part-0').instanceMatrix.array;
+      const bm = zoo.group.getObjectByName('Zoo/chicken/part-0').instanceMatrix.array;
       for (let i = 0; i < 15; i += 1) {
         const b = i * 16;
         const x = fm[b + 12] - 45, y = fm[b + 13] - 1.1, z = fm[b + 14] + 14;
@@ -147,12 +149,13 @@ try {
       for (let i = 0; i < 8; i += 1) {
         const b = i * 16;
         const x = bm[b + 12], y = bm[b + 13], z = bm[b + 14];
-        if (x < 34 || x > 56 || z < 5 || z > 23 || y < 4 || y > 12) birdBad += 1;
+        // 阶段二后鸟区家禽为地面游走（不再悬空飞行），包围盒与鸟区地面高度对齐。
+        if (x < 32 || x > 58 || z < 2 || z > 24 || y < 1.2 || y > 3.2) birdBad += 1;
       }
     }
     return { fishBad, birdBad };
   });
-  add('F 鱼不穿水 / 鸟不飞出包络',
+  add('F 鱼不穿水 / 家禽不越出鸟区',
     bounds && bounds.fishBad === 0 && bounds.birdBad === 0, bounds);
 
   // G 近距离观看：相机移到鸟区栏边，截图

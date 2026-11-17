@@ -1,0 +1,287 @@
+{
+  "module": "phase3-season",
+  "at": "2026-11-17T11:23:57.751Z",
+  "passed": 16,
+  "total": 16,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "四季按钮齐全且默认春季选中",
+      "pass": true,
+      "detail": [
+        {
+          "s": "spring",
+          "t": "春",
+          "on": "1"
+        },
+        {
+          "s": "summer",
+          "t": "夏",
+          "on": "0"
+        },
+        {
+          "s": "autumn",
+          "t": "秋",
+          "on": "0"
+        },
+        {
+          "s": "winter",
+          "t": "冬",
+          "on": "0"
+        }
+      ]
+    },
+    {
+      "name": "地面/阔叶/针叶材质已注入且角色分离",
+      "pass": true,
+      "detail": {
+        "targets": 9,
+        "roles": [
+          "broad",
+          "conifer"
+        ]
+      }
+    },
+    {
+      "name": "点击「秋」切换季节并同步按钮选中态",
+      "pass": true,
+      "detail": {
+        "season": "autumn",
+        "on": [
+          [
+            "spring",
+            "0"
+          ],
+          [
+            "summer",
+            "0"
+          ],
+          [
+            "autumn",
+            "1"
+          ],
+          [
+            "winter",
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "材质颜色按帧 lerp（非瞬切）",
+      "pass": true,
+      "detail": {
+        "start": "7fbf62",
+        "mid": "83bd61",
+        "target": "b2a34b",
+        "end": "b2a34b",
+        "midDifferent": true,
+        "settled": true
+      }
+    },
+    {
+      "name": "秋季配色：草地黄、阔叶橙红、针叶保持深绿",
+      "pass": true,
+      "detail": "b2a34b"
+    },
+    {
+      "name": "秋季针叶不与阔叶一起变橙",
+      "pass": true,
+      "detail": {
+        "ground": "b2a34b",
+        "broad": "d65b24",
+        "conifer": "3c6937"
+      }
+    },
+    {
+      "name": "春/秋/冬分别发射花瓣/落叶/雪花",
+      "pass": true,
+      "detail": {
+        "spring": {
+          "count": 16,
+          "kind": "petal",
+          "freeTop": 2984,
+          "batches": [
+            4
+          ]
+        },
+        "autumn": {
+          "count": 16,
+          "kind": "leaf",
+          "freeTop": 2984,
+          "batches": [
+            5
+          ]
+        },
+        "winter": {
+          "count": 24,
+          "kind": "snow",
+          "freeTop": 2976,
+          "batches": [
+            6
+          ]
+        },
+        "summer": {
+          "count": 36,
+          "kind": "rain",
+          "freeTop": 2964,
+          "batches": [
+            7
+          ],
+          "rainUniform": 0.8294020863255922,
+          "countLater": 144
+        },
+        "cleared": {
+          "count": 0,
+          "freeTop": 3000
+        }
+      }
+    },
+    {
+      "name": "夏季阵雨开启地面波纹并发射雨滴",
+      "pass": true,
+      "detail": {
+        "count": 36,
+        "kind": "rain",
+        "freeTop": 2964,
+        "batches": [
+          7
+        ],
+        "rainUniform": 0.8294020863255922,
+        "countLater": 144
+      }
+    },
+    {
+      "name": "clearWeather 后天气粒子与槽位全部归还对象池",
+      "pass": true,
+      "detail": {
+        "count": 0,
+        "freeTop": 3000
+      }
+    },
+    {
+      "name": "天气粒子复用对象池且峰值 ≤760",
+      "pass": true,
+      "detail": {
+        "peak": 760,
+        "cleared": 0,
+        "freeTop": 3000
+      }
+    },
+    {
+      "name": "截图 spring（petal）",
+      "pass": true,
+      "detail": {
+        "weather": "petal",
+        "count": 84,
+        "mem": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "calls": 1,
+        "cam": [
+          -20,
+          22,
+          104
+        ]
+      }
+    },
+    {
+      "name": "截图 summer（rain）",
+      "pass": true,
+      "detail": {
+        "weather": "rain",
+        "count": 84,
+        "mem": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "calls": 1,
+        "cam": [
+          -20,
+          22,
+          104
+        ]
+      }
+    },
+    {
+      "name": "截图 autumn（leaf）",
+      "pass": true,
+      "detail": {
+        "weather": "leaf",
+        "count": 84,
+        "mem": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "calls": 1,
+        "cam": [
+          -20,
+          22,
+          104
+        ]
+      }
+    },
+    {
+      "name": "截图 winter（snow）",
+      "pass": true,
+      "detail": {
+        "weather": "snow",
+        "count": 84,
+        "mem": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "calls": 1,
+        "cam": [
+          -20,
+          22,
+          104
+        ]
+      }
+    },
+    {
+      "name": "8 次季节切换后 Δgeo=0 / Δtex=0（无泄漏）",
+      "pass": true,
+      "detail": {
+        "before": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "after": {
+          "geometries": 152,
+          "textures": 51
+        },
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "name": "运行期零 console error / pageerror",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "screenshots": [
+    "docs/screenshots/phase3-spring.png",
+    "docs/screenshots/phase3-summer.png",
+    "docs/screenshots/phase3-autumn.png",
+    "docs/screenshots/phase3-winter.png"
+  ],
+  "memory": {
+    "before": {
+      "geometries": 152,
+      "textures": 51
+    },
+    "after": {
+      "geometries": 152,
+      "textures": 51
+    },
+    "dGeo": 0,
+    "dTex": 0
+  },
+  "bootMem": {
+    "geometries": 152,
+    "textures": 51
+  }
+}

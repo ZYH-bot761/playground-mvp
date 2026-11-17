@@ -1,11 +1,11 @@
 {
-  "at": "2026-11-15T10:46:44.480Z",
+  "at": "2026-11-17T08:07:01.245Z",
   "passed": 8,
   "total": 8,
   "allPass": true,
   "checks": [
     {
-      "name": "A 四区 + 地面 + 标牌 + 围栏",
+      "name": "A 五区 + 地面 + 标牌 + 围栏",
       "pass": true,
       "detail": {
         "bird_zone": {
@@ -27,6 +27,11 @@
           "ground": true,
           "fence": true,
           "sign": true
+        },
+        "safari_zone": {
+          "ground": true,
+          "fence": true,
+          "sign": true
         }
       }
     },
@@ -40,7 +45,11 @@
           "鹅",
           "狗",
           "龟",
-          "鱼"
+          "鱼",
+          "大象",
+          "长颈鹿",
+          "狮子",
+          "老虎"
         ],
         "missing": []
       }
@@ -51,26 +60,26 @@
       "detail": {
         "鸡": {
           "zone": "bird_zone",
-          "count": 3,
-          "feature": "红冠 + 短喙 + 短尾",
+          "count": 5,
+          "feature": "红冠 + 黄羽 + 短喙",
           "color": 16765503
         },
         "鸭": {
           "zone": "bird_zone",
-          "count": 3,
-          "feature": "扁喙 + 圆头 + 白羽",
+          "count": 4,
+          "feature": "扁喙 + 长颈 + 白羽",
           "color": 15923199
         },
         "鹅": {
           "zone": "bird_zone",
-          "count": 2,
+          "count": 3,
           "feature": "长颈 + 橙喙 + 大体型",
           "color": 15398143
         },
         "狗": {
           "zone": "mammal_zone",
           "count": 5,
-          "feature": "竖耳 + 上翘尾 + 项圈",
+          "feature": "竖耳 + 摇尾 + 间歇停顿",
           "color": 12155199
         },
         "龟": {
@@ -84,17 +93,47 @@
           "count": 15,
           "feature": "流线体 + 尾鳍集群",
           "color": 5884402
+        },
+        "大象": {
+          "zone": "safari_zone",
+          "count": 1,
+          "feature": "整根长鼻摆动 + 大耳 + 象牙",
+          "color": 9277332
+        },
+        "长颈鹿": {
+          "zone": "safari_zone",
+          "count": 2,
+          "feature": "长颈摆动 + 斑纹 + 高腿",
+          "color": 14066776
+        },
+        "狮子": {
+          "zone": "safari_zone",
+          "count": 2,
+          "feature": "鬃毛 + 摆尾 + 漫步",
+          "color": 13146706
+        },
+        "老虎": {
+          "zone": "safari_zone",
+          "count": 2,
+          "feature": "橙色虎纹 + 白吻 + 长尾",
+          "color": 14711338
         }
       }
     },
     {
-      "name": "D 动物 8/4/15/5 且 InstancedMesh ≤18 draw call",
+      "name": "D 动物分关节 InstancedMesh 且总面数受控",
       "pass": true,
       "detail": {
-        "instancedMeshes": 18,
-        "zooTriangles": 4718,
-        "animalParts": 12,
-        "fenceParts": 2
+        "instancedMeshes": 68,
+        "zooTriangles": 28952,
+        "zones": [
+          "bird_zone",
+          "reptile_zone",
+          "marine_zone",
+          "mammal_zone",
+          "safari_zone"
+        ],
+        "mode": "per-joint-instanced"
       }
     },
     {
@@ -102,41 +141,41 @@
       "pass": true,
       "detail": {
         "p0": [
-          52.442955017089844,
-          7.126585006713867,
-          18.1144962310791
+          38.312225341796875,
+          1.7302095890045166,
+          8.593188285827637
         ],
         "p1": [
-          45,
-          4.199999809265137,
-          21
+          38.34843444824219,
+          1.7302095890045166,
+          8.066431999206543
         ],
         "pBefore": [
-          52.442955017089844,
-          7.126585006713867,
-          18.1144962310791
+          38.06464385986328,
+          1.7302095890045166,
+          8.300710678100586
         ],
         "pAfter": [
-          50.407623291015625,
-          6.163525581359863,
-          19.663118362426758
+          38.04490280151367,
+          1.7302095890045166,
+          8.317008972167969
         ],
         "pRef": [
-          50.407623291015625,
-          6.163525581359863,
-          19.663118362426758
+          38.04490280151367,
+          1.7302095890045166,
+          8.317008972167969
         ],
         "pEnd": [
-          47.84295654296875,
-          4.81832218170166,
-          20.65739631652832
+          37.84008026123047,
+          1.7302095890045166,
+          8.48609733581543
         ],
-        "move": 7.982713284772263,
+        "move": 0.527999322806774,
         "loopErr": 0
       }
     },
     {
-      "name": "F 鱼不穿水 / 鸟不飞出包络",
+      "name": "F 鱼不穿水 / 家禽不越出鸟区",
       "pass": true,
       "detail": {
         "fishBad": 0,
@@ -148,7 +187,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m6-closeup.png",
-        "bytes": 1034101
+        "bytes": 886550
       }
     },
     {

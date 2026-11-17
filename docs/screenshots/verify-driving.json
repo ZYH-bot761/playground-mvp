@@ -1,0 +1,409 @@
+{
+  "module": "phase4-driving",
+  "at": "2026-11-17T11:30:23.092Z",
+  "passed": 21,
+  "total": 21,
+  "allPass": true,
+  "checks": [
+    {
+      "name": "靠近 AI 车出现「按 E 上车」",
+      "pass": true,
+      "detail": {
+        "on": "1",
+        "text": "按 E 上车 距车 2m · 按 E 或点击此处直接上车"
+      }
+    },
+    {
+      "name": "上车前无物理刚体（Rapier 仍懒加载）",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "name": "截图：车旁上车提示",
+      "pass": true,
+      "detail": "docs/screenshots/phase4-board.png"
+    },
+    {
+      "name": "E 上车成功并生成完整动态刚体",
+      "pass": true,
+      "detail": {
+        "state": {
+          "active": true,
+          "pending": false,
+          "speedKmh": 0,
+          "bodyCount": 14,
+          "aiBodies": 12,
+          "hasCar": true,
+          "claim": {
+            "index": 0,
+            "parked": true,
+            "x": -30,
+            "z": 98,
+            "yaw": 3.141592653589793
+          }
+        },
+        "bodyType": 0,
+        "mass": 321.4848327636719,
+        "colliders": 1,
+        "worldColliders": 24,
+        "cam": [
+          -30,
+          2.530000023841858,
+          97.88
+        ],
+        "carPos": [
+          -30,
+          1.850000023841858,
+          98
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "carVisible": true,
+        "claimed": {
+          "index": 0,
+          "parked": true
+        },
+        "text": "驾驶中 · 0 km/h W/S·摇杆 油门 · A/D 转向 · C 第三人称 · 点击/E 下车",
+        "wasdEnabled": false
+      }
+    },
+    {
+      "name": "AI 车冻结隐藏，玩家车视觉启用",
+      "pass": true,
+      "detail": {
+        "claimed": {
+          "index": 0,
+          "parked": true
+        },
+        "carVisible": true
+      }
+    },
+    {
+      "name": "第一人称驾驶相机（高于步行眼高）",
+      "pass": true,
+      "detail": {
+        "camY": 2.530000023841858,
+        "bodyY": 1.850000023841858
+      }
+    },
+    {
+      "name": "12 个 AI 简化包围盒 + 地面/建筑静态 collider 已建立",
+      "pass": true,
+      "detail": {
+        "aiBodies": 12,
+        "bodies": 14,
+        "colliders": 24
+      }
+    },
+    {
+      "name": "W 键被驾驶系统捕获",
+      "pass": true,
+      "detail": [
+        "KeyW"
+      ]
+    },
+    {
+      "name": "W 加速：车辆明显位移且速度 > 35km/h",
+      "pass": true,
+      "detail": {
+        "speed": 40.35804634094239,
+        "distance": 18.202346801757812,
+        "from": [
+          -30,
+          1.850000023841858,
+          98
+        ],
+        "to": [
+          -30,
+          1.4799821376800537,
+          79.79765319824219
+        ],
+        "vy": 3.5946265408703937e-10,
+        "keys": [
+          "KeyW"
+        ]
+      }
+    },
+    {
+      "name": "地面碰撞生效：车辆未穿透地面",
+      "pass": true,
+      "detail": {
+        "y": 1.4799821376800537
+      }
+    },
+    {
+      "name": "A 键转向：偏航角与横向轨迹发生变化",
+      "pass": true,
+      "detail": {
+        "y0": 3.141592653589793,
+        "y1": -1.364647452924936,
+        "dx": -7.976402282714844,
+        "dz": -8.900314331054688,
+        "speed": 38.175785531966824
+      }
+    },
+    {
+      "name": "截图：第一人称驾驶位",
+      "pass": true,
+      "detail": "docs/screenshots/phase4-drive-first.png"
+    },
+    {
+      "name": "截图：第三人称车辆与城市",
+      "pass": true,
+      "detail": "docs/screenshots/phase4-drive-third.png"
+    },
+    {
+      "name": "玩家车复用主体几何 6 部件；车灯为一次性新增资源",
+      "pass": true,
+      "detail": {
+        "reusedGeo": true,
+        "coreParts": 6,
+        "parts": 11
+      }
+    },
+    {
+      "name": "驾驶循环 + 渲染后 Δgeo=0 / Δtex=0",
+      "pass": true,
+      "detail": {
+        "before": {
+          "geometries": 176,
+          "textures": 60
+        },
+        "after": {
+          "geometries": 176,
+          "textures": 60
+        },
+        "dGeo": 0,
+        "dTex": 0,
+        "reusedGeo": true,
+        "coreParts": 6,
+        "parts": 11
+      }
+    },
+    {
+      "name": "E 下车：物理刚体与临时 collider 全部清空",
+      "pass": true,
+      "detail": {
+        "active": false,
+        "pending": false,
+        "speedKmh": 0,
+        "bodyCount": 0,
+        "aiBodies": 0,
+        "hasCar": true,
+        "claim": null
+      }
+    },
+    {
+      "name": "下车后 AI 车归还、玩家车隐藏",
+      "pass": true,
+      "detail": {
+        "claimed": null,
+        "carVisible": false
+      }
+    },
+    {
+      "name": "恢复第一人称步行：城市地面 1.16m + 眼高 1.6m + WASD 重新启用",
+      "pass": true,
+      "detail": {
+        "state": {
+          "active": false,
+          "pending": false,
+          "speedKmh": 0,
+          "bodyCount": 0,
+          "aiBodies": 0,
+          "hasCar": true,
+          "claim": null
+        },
+        "cam": [
+          -45.72750072164547,
+          2.83,
+          73.36724370964993
+        ],
+        "input": "wasd",
+        "wasdEnabled": true,
+        "carVisible": false,
+        "claimed": null,
+        "promptOn": "1",
+        "promptText": "按 E 上车 距车 2m · 按 E 或点击此处直接上车",
+        "carY": null
+      }
+    },
+    {
+      "name": "下车后相机回到车旁且重新出现上车提示",
+      "pass": true,
+      "detail": {
+        "promptOn": "1",
+        "promptText": "按 E 上车 距车 2m · 按 E 或点击此处直接上车",
+        "cam": [
+          -45.72750072164547,
+          2.83,
+          73.36724370964993
+        ]
+      }
+    },
+    {
+      "name": "二次上下车幂等：无重复刚体残留",
+      "pass": true,
+      "detail": {
+        "second": {
+          "active": true,
+          "pending": false,
+          "speedKmh": 0,
+          "bodyCount": 14,
+          "aiBodies": 12,
+          "hasCar": true,
+          "claim": {
+            "index": 0,
+            "parked": true,
+            "x": -46.3767204284668,
+            "z": 71.3701171875,
+            "yaw": -1.256494872197826
+          }
+        },
+        "secondExit": {
+          "active": false,
+          "pending": false,
+          "speedKmh": 0,
+          "bodyCount": 0,
+          "aiBodies": 0,
+          "hasCar": true,
+          "claim": null
+        }
+      }
+    },
+    {
+      "name": "运行期零 console error / pageerror",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "screenshots": [
+    "docs/screenshots/phase4-board.png",
+    "docs/screenshots/phase4-drive-first.png",
+    "docs/screenshots/phase4-drive-third.png"
+  ],
+  "ready": {
+    "p": {
+      "x": -30,
+      "z": 98,
+      "yaw": 3.141592653589793
+    },
+    "prompt": {
+      "on": "1",
+      "text": "按 E 上车 距车 2m · 按 E 或点击此处直接上车"
+    },
+    "near": {
+      "index": 0,
+      "parked": true,
+      "x": -30,
+      "z": 98,
+      "yaw": 3.141592653589793,
+      "d2": 2.25,
+      "distance": 1.5
+    },
+    "bodyCount": 0,
+    "mem": {
+      "geometries": 152,
+      "textures": 51
+    },
+    "cam": [
+      -28.5,
+      2.76,
+      98
+    ]
+  },
+  "seated": {
+    "state": {
+      "active": true,
+      "pending": false,
+      "speedKmh": 0,
+      "bodyCount": 14,
+      "aiBodies": 12,
+      "hasCar": true,
+      "claim": {
+        "index": 0,
+        "parked": true,
+        "x": -30,
+        "z": 98,
+        "yaw": 3.141592653589793
+      }
+    },
+    "bodyType": 0,
+    "mass": 321.4848327636719,
+    "colliders": 1,
+    "worldColliders": 24,
+    "cam": [
+      -30,
+      2.530000023841858,
+      97.88
+    ],
+    "carPos": [
+      -30,
+      1.850000023841858,
+      98
+    ],
+    "vel": [
+      0,
+      0,
+      0
+    ],
+    "carVisible": true,
+    "claimed": {
+      "index": 0,
+      "parked": true
+    },
+    "text": "驾驶中 · 0 km/h W/S·摇杆 油门 · A/D 转向 · C 第三人称 · 点击/E 下车",
+    "wasdEnabled": false
+  },
+  "drive": {
+    "speed": 40.35804634094239,
+    "distance": 18.202346801757812,
+    "from": [
+      -30,
+      1.850000023841858,
+      98
+    ],
+    "to": [
+      -30,
+      1.4799821376800537,
+      79.79765319824219
+    ],
+    "vy": 3.5946265408703937e-10,
+    "keys": [
+      "KeyW"
+    ]
+  },
+  "steer": {
+    "y0": 3.141592653589793,
+    "y1": -1.364647452924936,
+    "dx": -7.976402282714844,
+    "dz": -8.900314331054688,
+    "speed": 38.175785531966824
+  },
+  "exited": {
+    "state": {
+      "active": false,
+      "pending": false,
+      "speedKmh": 0,
+      "bodyCount": 0,
+      "aiBodies": 0,
+      "hasCar": true,
+      "claim": null
+    },
+    "cam": [
+      -45.72750072164547,
+      2.83,
+      73.36724370964993
+    ],
+    "input": "wasd",
+    "wasdEnabled": true,
+    "carVisible": false,
+    "claimed": null,
+    "promptOn": "1",
+    "promptText": "按 E 上车 距车 2m · 按 E 或点击此处直接上车",
+    "carY": null
+  }
+}

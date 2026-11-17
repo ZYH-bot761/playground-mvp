@@ -1,0 +1,1454 @@
+{
+  "schema": "launch-qa/1.0",
+  "at": "2026-11-17T09:35:06.383Z",
+  "url": "http://127.0.0.1:5173/",
+  "summary": {
+    "total": 70,
+    "pass": 70,
+    "fail": 0,
+    "warn": 0
+  },
+  "budget": {
+    "overview": {
+      "calls": 740,
+      "triangles": 174808,
+      "mem": {
+        "geometries": 151,
+        "textures": 53
+      }
+    },
+    "final": {
+      "calls": 731,
+      "triangles": 217565,
+      "mem": {
+        "geometries": 180,
+        "textures": 74
+      }
+    }
+  },
+  "facilityEvidence": [
+    {
+      "key": "pumpkin-thrower",
+      "label": "南瓜投手（摩天轮）",
+      "prompt": "按 E 进入 · 南瓜摩天轮 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "embedded",
+        "changed": true,
+        "camMoved": 12.49,
+        "ok": true,
+        "a": {
+          "angle": 0.40615899999999855,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -19.785671938115303,
+            1.9724868479621738,
+            -8.7265625
+          ]
+        },
+        "b": {
+          "angle": 0.6011589999999971,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -15.49465303113523,
+            11.175389632466107,
+            -16
+          ]
+        }
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "parkour-run",
+      "label": "金币小径（跑酷）",
+      "prompt": "按 E 进入 · 跑酷跑道 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": {
+          "state": "running",
+          "distance": 7.0096875,
+          "speed": 14.0375
+        },
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "memory-match",
+      "label": "记忆翻牌",
+      "prompt": "按 E 进入 · 魔法牌屋 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": "playing",
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "dance-hall",
+      "label": "跳舞厅",
+      "prompt": "按 E 进入 · 跳舞厅 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": {
+          "time": 1.0455333333333319
+        },
+        "ok": true
+      },
+      "posDiff": 3.552713678800501e-15,
+      "rotDiff": 0
+    },
+    {
+      "key": "carousel",
+      "label": "旋转木马",
+      "prompt": "按 E 进入 · 旋转木马 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "embedded",
+        "changed": true,
+        "camMoved": 4.507,
+        "ok": true,
+        "a": {
+          "angle": 0.9959016666666716,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            9,
+            1.6,
+            -0.2
+          ]
+        },
+        "b": {
+          "angle": 1.5209016666666737,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            9.32174037000341,
+            2.487,
+            4.207339312561753
+          ]
+        }
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "pirate-ship",
+      "label": "海盗船",
+      "prompt": "按 E 进入 · 海盗船 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "embedded",
+        "changed": false,
+        "camMoved": 6.869,
+        "ok": true,
+        "a": {
+          "angle": null,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -7,
+            1.6,
+            -0.8
+          ]
+        },
+        "b": {
+          "angle": null,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -6.669773236777518,
+            4.259376260357472,
+            5.525
+          ]
+        }
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "train-ride",
+      "label": "高空环游",
+      "prompt": "按 E 进入 · 小火车站台 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": {
+          "state": "riding",
+          "t": 0.042697530117011356
+        },
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    },
+    {
+      "key": "fireworks-deck",
+      "label": "烟花甲板",
+      "prompt": "按 E 进入 · 烟花观礼台 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": {
+          "fired": true
+        },
+        "ok": true
+      },
+      "posDiff": 3.552713678800501e-15,
+      "rotDiff": 0
+    },
+    {
+      "key": "century-clock",
+      "label": "世纪钟",
+      "prompt": "按 E 进入 · 世纪钟 距入口 1m · 手机可点击此处",
+      "op": {
+        "kind": "game",
+        "state": {
+          "hands": true
+        },
+        "ok": true
+      },
+      "posDiff": 0,
+      "rotDiff": 0
+    }
+  ],
+  "checks": [
+    {
+      "id": "A0",
+      "name": "启动：bootReady / 点击可玩 / 预热完成",
+      "status": "PASS",
+      "detail": {
+        "clickToPlayMs": 6717
+      }
+    },
+    {
+      "id": "A0b",
+      "name": "启动期 0 pageerror / 0 console.error",
+      "status": "PASS",
+      "detail": {
+        "errors": []
+      }
+    },
+    {
+      "id": "A0c",
+      "name": "红线上限：draw calls ≤ 900 且 triangles ≤ 300000",
+      "status": "PASS",
+      "detail": {
+        "calls": 740,
+        "triangles": 174808,
+        "mem": {
+          "geometries": 151,
+          "textures": 53
+        }
+      }
+    },
+    {
+      "id": "A1-pumpkin-thrower",
+      "name": "南瓜投手（摩天轮）：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "pumpkin-thrower",
+          "name": "南瓜摩天轮"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 南瓜摩天轮 距入口 1m · 手机可点击此处",
+        "cam": [
+          -20,
+          1.6,
+          -8.4
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-pumpkin-thrower",
+      "name": "南瓜投手（摩天轮）：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "lobby",
+        "embeddedKey": "ferris-wheel",
+        "expected": "ferris-wheel",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-pumpkin-thrower",
+      "name": "南瓜投手（摩天轮）：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "embedded",
+        "changed": true,
+        "camMoved": 12.49,
+        "ok": true,
+        "a": {
+          "angle": 0.40615899999999855,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -19.785671938115303,
+            1.9724868479621738,
+            -8.7265625
+          ]
+        },
+        "b": {
+          "angle": 0.6011589999999971,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -15.49465303113523,
+            11.175389632466107,
+            -16
+          ]
+        }
+      }
+    },
+    {
+      "id": "A4-pumpkin-thrower",
+      "name": "南瓜投手（摩天轮）：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-parkour-run",
+      "name": "金币小径（跑酷）：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "parkour-run",
+          "name": "跑酷跑道"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 跑酷跑道 距入口 1m · 手机可点击此处",
+        "cam": [
+          13,
+          1.6,
+          -8
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-parkour-run",
+      "name": "金币小径（跑酷）：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "parkour-run",
+        "embeddedKey": null,
+        "expected": "parkour-run",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-parkour-run",
+      "name": "金币小径（跑酷）：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": {
+          "state": "running",
+          "distance": 7.0096875,
+          "speed": 14.0375
+        },
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-parkour-run",
+      "name": "金币小径（跑酷）：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-memory-match",
+      "name": "记忆翻牌：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "memory-match",
+          "name": "魔法牌屋"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 魔法牌屋 距入口 1m · 手机可点击此处",
+        "cam": [
+          0,
+          1.6,
+          -13
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-memory-match",
+      "name": "记忆翻牌：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "memory-match",
+        "embeddedKey": null,
+        "expected": "memory-match",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-memory-match",
+      "name": "记忆翻牌：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": "playing",
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-memory-match",
+      "name": "记忆翻牌：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-dance-hall",
+      "name": "跳舞厅：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "dance-hall",
+          "name": "跳舞厅"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 跳舞厅 距入口 1m · 手机可点击此处",
+        "cam": [
+          -23,
+          1.6,
+          15.75
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-dance-hall",
+      "name": "跳舞厅：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "dance-hall",
+        "embeddedKey": null,
+        "expected": "dance-hall",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-dance-hall",
+      "name": "跳舞厅：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": {
+          "time": 1.0455333333333319
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-dance-hall",
+      "name": "跳舞厅：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-carousel",
+      "name": "旋转木马：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "carousel",
+          "name": "旋转木马"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 旋转木马 距入口 1m · 手机可点击此处",
+        "cam": [
+          9,
+          1.6,
+          -0.2
+        ],
+        "quat": [
+          0,
+          -1,
+          0,
+          6.123233995736766e-17
+        ]
+      }
+    },
+    {
+      "id": "A2-carousel",
+      "name": "旋转木马：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "lobby",
+        "embeddedKey": "carousel",
+        "expected": "carousel",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-carousel",
+      "name": "旋转木马：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "embedded",
+        "changed": true,
+        "camMoved": 4.507,
+        "ok": true,
+        "a": {
+          "angle": 0.9959016666666716,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            9,
+            1.6,
+            -0.2
+          ]
+        },
+        "b": {
+          "angle": 1.5209016666666737,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            9.32174037000341,
+            2.487,
+            4.207339312561753
+          ]
+        }
+      }
+    },
+    {
+      "id": "A4-carousel",
+      "name": "旋转木马：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-pirate-ship",
+      "name": "海盗船：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "pirate-ship",
+          "name": "海盗船"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 海盗船 距入口 1m · 手机可点击此处",
+        "cam": [
+          -7,
+          1.6,
+          -0.8
+        ],
+        "quat": [
+          0,
+          -1,
+          0,
+          6.123233995736766e-17
+        ]
+      }
+    },
+    {
+      "id": "A2-pirate-ship",
+      "name": "海盗船：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "lobby",
+        "embeddedKey": "pirate-ship",
+        "expected": "pirate-ship",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-pirate-ship",
+      "name": "海盗船：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "embedded",
+        "changed": false,
+        "camMoved": 6.869,
+        "ok": true,
+        "a": {
+          "angle": null,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -7,
+            1.6,
+            -0.8
+          ]
+        },
+        "b": {
+          "angle": null,
+          "swing": null,
+          "phase": null,
+          "cam": [
+            -6.669773236777518,
+            4.259376260357472,
+            5.525
+          ]
+        }
+      }
+    },
+    {
+      "id": "A4-pirate-ship",
+      "name": "海盗船：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-train-ride",
+      "name": "高空环游：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "train-ride",
+          "name": "小火车站台"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 小火车站台 距入口 1m · 手机可点击此处",
+        "cam": [
+          -26,
+          1.6,
+          6
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-train-ride",
+      "name": "高空环游：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "train-ride",
+        "embeddedKey": null,
+        "expected": "train-ride",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-train-ride",
+      "name": "高空环游：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": {
+          "state": "riding",
+          "t": 0.042697530117011356
+        },
+        "pause": {
+          "exists": true,
+          "hidden": "false",
+          "paused": true
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-train-ride",
+      "name": "高空环游：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-fireworks-deck",
+      "name": "烟花甲板：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "fireworks-deck",
+          "name": "烟花观礼台"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 烟花观礼台 距入口 1m · 手机可点击此处",
+        "cam": [
+          13.8,
+          1.6,
+          10.28
+        ],
+        "quat": [
+          0,
+          -1,
+          0,
+          6.123233995736766e-17
+        ]
+      }
+    },
+    {
+      "id": "A2-fireworks-deck",
+      "name": "烟花甲板：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "fireworks-deck",
+        "embeddedKey": null,
+        "expected": "fireworks-deck",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-fireworks-deck",
+      "name": "烟花甲板：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": {
+          "fired": true
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-fireworks-deck",
+      "name": "烟花甲板：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "A1-century-clock",
+      "name": "世纪钟：靠近出现 E 提示",
+      "status": "PASS",
+      "detail": {
+        "near": {
+          "key": "century-clock",
+          "name": "世纪钟"
+        },
+        "promptOn": "1",
+        "promptText": "按 E 进入 · 世纪钟 距入口 1m · 手机可点击此处",
+        "cam": [
+          0,
+          1.6,
+          2
+        ],
+        "quat": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "A2-century-clock",
+      "name": "世纪钟：按 E 成功进入",
+      "status": "PASS",
+      "detail": {
+        "activeKey": "century-clock",
+        "embeddedKey": null,
+        "expected": "century-clock",
+        "hud": [
+          "pg-mode-hud",
+          "pg-mode-hud__dot",
+          "pg-mode-hud__label",
+          "pg-mode-hud__key",
+          "pg-mode-hud__btn",
+          "pg-mode-hud__hint",
+          "pg-ui",
+          "pg-ui__panel"
+        ]
+      }
+    },
+    {
+      "id": "A3-century-clock",
+      "name": "世纪钟：游玩/操作无卡死",
+      "status": "PASS",
+      "detail": {
+        "kind": "game",
+        "state": {
+          "hands": true
+        },
+        "ok": true
+      }
+    },
+    {
+      "id": "A4-century-clock",
+      "name": "世纪钟：退出回大厅且相机不偏移",
+      "status": "PASS",
+      "detail": {
+        "posDiff": 0,
+        "rotDiff": 0,
+        "exitState": {
+          "key": "lobby",
+          "embedded": false
+        }
+      }
+    },
+    {
+      "id": "B1",
+      "name": "动物园：进入内部近距离机位",
+      "status": "PASS",
+      "detail": {
+        "hasButton": true,
+        "active": false,
+        "cam": [
+          59.99999999999999,
+          33,
+          23.999999999999975
+        ],
+        "before": [
+          0,
+          1.6,
+          2
+        ],
+        "animals": 158,
+        "inZoo": true,
+        "zooDist": 0
+      }
+    },
+    {
+      "id": "B2",
+      "name": "动物园：退出后回中央广场机位",
+      "status": "PASS",
+      "detail": {
+        "cam": [
+          0,
+          30,
+          34
+        ],
+        "inZoo": false
+      }
+    },
+    {
+      "id": "B3",
+      "name": "农家乐：走进农田，眼位抬到田垄之上",
+      "status": "PASS",
+      "detail": [
+        45,
+        2.8600000000000003,
+        57
+      ]
+    },
+    {
+      "id": "B4",
+      "name": "森林公园：走上拱桥，眼位贴合桥面",
+      "status": "PASS",
+      "detail": [
+        -64,
+        4.129999999999999,
+        68
+      ]
+    },
+    {
+      "id": "B5",
+      "name": "森林公园：林地行走不悬空/不埋地",
+      "status": "PASS",
+      "detail": [
+        -88,
+        2.83,
+        60
+      ]
+    },
+    {
+      "id": "A5",
+      "name": "全设施 3 轮进出：Δgeo ≤ 0 且 Δtex ≤ 0",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "geometries": 111,
+          "textures": 51
+        },
+        "after": {
+          "geometries": 111,
+          "textures": 51
+        },
+        "dGeo": 0,
+        "dTex": 0
+      }
+    },
+    {
+      "id": "C1",
+      "name": "键盘 WASD 行走顺畅（2.5m 以上）",
+      "status": "PASS",
+      "detail": {
+        "walk": 4,
+        "joystickWalk": 3,
+        "activeBefore": "lobby",
+        "activeAfter": "lobby",
+        "y": 1.6
+      }
+    },
+    {
+      "id": "C2",
+      "name": "虚拟摇杆推行且不误进设施",
+      "status": "PASS",
+      "detail": {
+        "walk": 4,
+        "joystickWalk": 3,
+        "activeBefore": "lobby",
+        "activeAfter": "lobby",
+        "y": 1.6
+      }
+    },
+    {
+      "id": "C3",
+      "name": "驾驶/嵌入/过渡中点击设施入口均被拦截",
+      "status": "PASS",
+      "detail": {
+        "drivingKey": "lobby",
+        "embeddedKey": "carousel",
+        "transitionKey": "lobby"
+      }
+    },
+    {
+      "id": "D1",
+      "name": "靠近车辆出现统一 E 毛玻璃提示",
+      "status": "PASS",
+      "detail": {
+        "p": {
+          "x": -30,
+          "z": 98,
+          "yaw": 3.141592653589793
+        },
+        "prompt": "按 E 上车 距车 2m · 按 E 或点击此处直接上车",
+        "on": "1",
+        "near": true
+      }
+    },
+    {
+      "id": "D2",
+      "name": "F 上车：动态刚体 + 12 AI + 玩家 = 14 bodies",
+      "status": "PASS",
+      "detail": {
+        "active": true,
+        "state": {
+          "active": true,
+          "pending": false,
+          "speedKmh": 0,
+          "bodyCount": 14,
+          "aiBodies": 12,
+          "hasCar": true,
+          "claim": {
+            "index": 0,
+            "parked": true,
+            "x": -30,
+            "z": 98,
+            "yaw": 3.141592653589793
+          }
+        }
+      }
+    },
+    {
+      "id": "D3",
+      "name": "驾驶加速/地面碰撞正常，无穿地下坠",
+      "status": "PASS",
+      "detail": {
+        "speed": 40.35804634094239,
+        "dist": 18.202346801757812,
+        "y": 1.4799821376800537,
+        "vy": 3.5946265408703937e-10
+      }
+    },
+    {
+      "id": "D4",
+      "name": "驾驶中 R：立即下车并回到大厅出生点",
+      "status": "PASS",
+      "detail": {
+        "active": false,
+        "cam": [
+          0,
+          1.6,
+          24
+        ],
+        "key": "lobby"
+      }
+    },
+    {
+      "id": "D5",
+      "name": "F 下车：刚体/collider 全部清空",
+      "status": "PASS",
+      "detail": {
+        "active": false,
+        "pending": false,
+        "speedKmh": 0,
+        "bodyCount": 0,
+        "aiBodies": 0,
+        "hasCar": true,
+        "claim": null
+      }
+    },
+    {
+      "id": "C4",
+      "name": "红绿灯双轴状态循环、AI 坐标 60s 无 NaN、红灯停/绿灯行",
+      "status": "PASS",
+      "detail": {
+        "states": [
+          "red/green",
+          "red/yellow",
+          "red/red",
+          "green/red",
+          "yellow/red"
+        ],
+        "bad": [],
+        "cars": 10,
+        "signalTime": 16,
+        "obeyRed": 0,
+        "goGreen": 10
+      }
+    },
+    {
+      "id": "C5",
+      "name": "四季/昼夜 24 次狂切：无崩溃且 Δgeo ≤ 0 / Δtex ≤ 0",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "geometries": 124,
+          "textures": 55
+        },
+        "after": {
+          "geometries": 124,
+          "textures": 55
+        },
+        "dGeo": 0,
+        "dTex": 0,
+        "season": "autumn",
+        "mode": "day"
+      }
+    },
+    {
+      "id": "E1",
+      "name": "1280×800：E/F 提示不与摇杆/控制条重叠且不出屏",
+      "status": "PASS",
+      "detail": {
+        "vw": 1280,
+        "vh": 800,
+        "interact": {
+          "x": 522,
+          "y": 604,
+          "w": 236,
+          "h": 60
+        },
+        "drive": null,
+        "joystick": null,
+        "controls": {
+          "x": 452.671875,
+          "y": 56,
+          "w": 374.65625,
+          "h": 31
+        },
+        "mode": {
+          "x": 16,
+          "y": 16,
+          "w": 222.03125,
+          "h": 37
+        },
+        "time": {
+          "x": 1136.140625,
+          "y": 745,
+          "w": 127.859375,
+          "h": 39
+        },
+        "overlapJoystick": false,
+        "overlapDrive": false,
+        "overlapControls": false,
+        "overflow": false
+      }
+    },
+    {
+      "id": "F1",
+      "name": "R 自救：从墙缝/越界坐标回到出生点",
+      "status": "PASS",
+      "detail": {
+        "stuck": [
+          500,
+          1.6,
+          500
+        ],
+        "rescue": [
+          0,
+          1.6,
+          24
+        ]
+      }
+    },
+    {
+      "id": "F2",
+      "name": "嵌入设施中 R：退出并回到出生点",
+      "status": "PASS",
+      "detail": {
+        "key": "lobby",
+        "embedded": false,
+        "cam": [
+          0,
+          1.6,
+          24
+        ]
+      }
+    },
+    {
+      "id": "F3",
+      "name": "GPU 上下文丢失：暂停 + 毛玻璃兜底提示，可恢复",
+      "status": "PASS",
+      "detail": {
+        "hidden": "false",
+        "text": "🛠️ 图形渲染暂时中断 设备显存或图形上下文出现异常。游戏已自动暂停，避免卡死或继续消耗资源。 重新加载游戏",
+        "paused": true,
+        "restoredHidden": "true",
+        "restoredPaused": false,
+        "toastOn": "1",
+        "toastText": "网络已断开 · 已加载的场景仍可离线漫游，重新联网后自动恢复"
+      }
+    },
+    {
+      "id": "F4",
+      "name": "网络断开：友好 toast 提示",
+      "status": "PASS",
+      "detail": {
+        "hidden": "false",
+        "text": "🛠️ 图形渲染暂时中断 设备显存或图形上下文出现异常。游戏已自动暂停，避免卡死或继续消耗资源。 重新加载游戏",
+        "paused": true,
+        "restoredHidden": "true",
+        "restoredPaused": false,
+        "toastOn": "1",
+        "toastText": "网络已断开 · 已加载的场景仍可离线漫游，重新联网后自动恢复"
+      }
+    },
+    {
+      "id": "F5",
+      "name": "低性能设备降级档位存在（QualityTier 自动）",
+      "status": "PASS",
+      "detail": {
+        "tier": "high"
+      }
+    },
+    {
+      "id": "G1",
+      "name": "城市连续行走/转向 5 分钟（300s/9000 帧）：坐标稳定、无死锁",
+      "status": "PASS",
+      "detail": {
+        "frames": 9000,
+        "simulatedSeconds": 300,
+        "warmTravel": 835.6,
+        "travel": 835.6,
+        "renders": 30,
+        "wallMs": 9872,
+        "dGeo": 0,
+        "dTex": 0,
+        "end": [
+          24,
+          2.76,
+          170
+        ]
+      }
+    },
+    {
+      "id": "G2",
+      "name": "5 分钟长跑 Δgeo ≤ 0 / Δtex ≤ 0",
+      "status": "PASS",
+      "detail": {
+        "frames": 9000,
+        "simulatedSeconds": 300,
+        "warmTravel": 835.6,
+        "travel": 835.6,
+        "renders": 30,
+        "wallMs": 9872,
+        "dGeo": 0,
+        "dTex": 0,
+        "end": [
+          24,
+          2.76,
+          170
+        ]
+      }
+    },
+    {
+      "id": "G3",
+      "name": "全程 0 pageerror / 0 console.error",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      }
+    },
+    {
+      "id": "G4",
+      "name": "最终预算复核：overview ≤ 900 calls / ≤ 300k tris",
+      "status": "PASS",
+      "detail": {
+        "calls": 731,
+        "triangles": 217565,
+        "mem": {
+          "geometries": 180,
+          "textures": 74
+        }
+      }
+    },
+    {
+      "id": "H0",
+      "name": "390×844 开始页卡片完整可见、无横向滚动",
+      "status": "PASS",
+      "detail": {
+        "vw": 390,
+        "vh": 844,
+        "card": {
+          "x": 21.46484375,
+          "y": 269.3719787597656,
+          "w": 347.0703125,
+          "h": 329.8097839355469
+        },
+        "overflowX": false
+      }
+    },
+    {
+      "id": "H1",
+      "name": "手机竖屏：摇杆可见，E 提示不被摇杆/驾驶提示遮挡",
+      "status": "PASS",
+      "detail": {
+        "vw": 390,
+        "vh": 844,
+        "joystickVisible": true,
+        "joystickHidden": "false",
+        "interact": {
+          "x": 76,
+          "y": 656,
+          "w": 238,
+          "h": 56
+        },
+        "joystick": {
+          "x": 12,
+          "y": 714,
+          "w": 116,
+          "h": 116
+        },
+        "drive": null,
+        "overlapJoystick": false,
+        "overlapDrive": false,
+        "hitPrompt": true,
+        "promptOn": "1",
+        "promptStyle": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "0",
+          "timeOpen": "0"
+        },
+        "overflow": false
+      }
+    },
+    {
+      "id": "H2",
+      "name": "手机点击 E 提示可进入设施（点击/摇杆不冲突）",
+      "status": "PASS",
+      "detail": {
+        "embedded": "carousel",
+        "active": "lobby"
+      }
+    },
+    {
+      "id": "H3",
+      "name": "844×390 横屏：E 提示与摇杆不重叠",
+      "status": "PASS",
+      "detail": {
+        "interact": {
+          "x": 317,
+          "y": 236,
+          "w": 210,
+          "h": 48
+        },
+        "joystick": {
+          "x": 10,
+          "y": 280,
+          "w": 100,
+          "h": 100
+        },
+        "overlap": false,
+        "vw": 844,
+        "vh": 390
+      }
+    },
+    {
+      "id": "H4",
+      "name": "手机端全程 0 pageerror / 0 console.error",
+      "status": "PASS",
+      "detail": {
+        "errors": []
+      }
+    }
+  ],
+  "screenshots": [
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-01-overview.png",
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-02-carousel.png",
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-03-zoo.png",
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-04-bridge.png",
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-05-final-overview.png",
+    "D:\\playground-mvp\\docs\\screenshots\\qa-launch-06-mobile-landscape.png"
+  ],
+  "errors": [],
+  "runtimeErrors": []
+}

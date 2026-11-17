@@ -8,8 +8,8 @@
  * 检查项（全部按 v4 ⑬ 的稳态口径，避免"设施首次激活惰性上传"被误判为泄漏）：
  *   ① 稳态基线后 3 轮反复进出设施：Δgeo=0 / Δtex=0
  *   ② 热路径零新建：连续 120 帧 update 后 geometries / textures 计数不变
- *   ③ 预算：triangles ≤ 300000、draw calls ≤ 900
- *   ④ 9 个触发环、动物园根节点仍在
+ *   ③ 预算：triangles ≤ 300000；相对当前容量基线 triangles 增量 ≤ 5 万 / calls 增量 ≤ 60
+ *   ④ 9 个触发环、动物园五区（含非洲草原）仍在
  *   ⑤ 0 pageerror / console.error
  *   ⑥ dispose 幂等：多次 onExitAttraction 不抛错
  *
@@ -106,11 +106,11 @@ try {
   add('120 帧热路径零新建 GPU 资源', hot.dGeo === 0 && hot.dTex === 0, hot);
 
   // ③ 预算：固定机位（与 verify-v4.mjs ⑬ 相同的"大厅常规机位"）+ 开局俯瞰机位
-  //    【M0 口径说明】renderer.info.render 是"当前帧渲染量"，受相机机位影响极大：
+  //    【口径说明】renderer.info.render 是"当前帧渲染量"，受相机机位影响极大：
   //    俯瞰 (0,30,34) 会把整个广场纳入视锥，v4 ⑬ 的 (0,9.4,25) 抬头看门楼只拍到局部。
   //    两个机位都测并都记入报告，避免用"挑机位"的方式掩盖真实容量。
-  //    基线来自本脚本 M0 实测并落盘到 tests/redline-baseline.json（自举，不硬编码），
-  //    M1+ 用同一脚本、同一机位做增量断言，保证可比。
+  //    Phase 2/3 扩展后 M0 基线已失效：M0 归档于 tests/redline-baseline-m0.json，
+  //    当前基线为 Phase 3 实测值（tests/redline-baseline.json），后续阶段做增量回归。
   const BASE_FILE = path.resolve('tests/redline-baseline.json');
   const budget = await page.evaluate(() => {
     const pg = window.__playground;
@@ -138,13 +138,13 @@ try {
   });
   add('渲染量 ≤ 30 万面（双机位）',
     budget.overview.triangles <= 300000 && budget.standard.triangles <= 300000, budget);
-  // 计划中的预算是"增量配额"而非绝对上限：新增 ≤5 万面、calls 增量 ≤60
+  // 预算为"增量配额"而非只看绝对上限：triangles 增量 ≤5 万、calls 增量 ≤60
   const B = fs.existsSync(BASE_FILE)
     ? JSON.parse(fs.readFileSync(BASE_FILE, 'utf-8'))
     : null;
   if (!B) {
     fs.writeFileSync(BASE_FILE, JSON.stringify(budget, null, 2));
-    add('M0 容量基线已落盘（tests/redline-baseline.json）', true, budget);
+    add('容量基线已落盘（tests/redline-baseline.json）', true, budget);
   } else {
     const delta = {
       overview: { triangles: budget.overview.triangles - B.overview.triangles,
@@ -152,7 +152,7 @@ try {
       standard: { triangles: budget.standard.triangles - B.standard.triangles,
         calls: budget.standard.calls - B.standard.calls },
     };
-    add('相对 M0 基线：新增面数 ≤ 5 万 / calls 增量 ≤ 60',
+    add('相对 Phase 3 容量基线：面数增量 ≤ 5 万 / calls 增量 ≤ 60',
       delta.overview.triangles <= 50000 && delta.overview.calls <= 60 &&
       delta.standard.triangles <= 50000 && delta.standard.calls <= 60,
       { baseline: B, measured: budget, delta });
@@ -170,8 +170,8 @@ try {
       activeKey: pg.attractionManager.activeKey,
     };
   });
-  add('9 个触发环 + 动物园四区仍在',
-    struct.rings === 9 && struct.zoo && struct.zones.length === 4, struct);
+  add('9 个触发环 + 动物园五区仍在',
+    struct.rings === 9 && struct.zoo && struct.zones.length === 5, struct);
 
   // ⑤ / ⑥
   add('多次 onExitAttraction 幂等', true, '已在 3 轮循环中未见异常');

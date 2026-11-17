@@ -1,6 +1,6 @@
 {
   "module": "M9",
-  "at": "2026-11-16T06:07:24.827Z",
+  "at": "2026-11-17T09:28:46.577Z",
   "passed": 6,
   "total": 6,
   "allPass": true,
@@ -9,7 +9,7 @@
       "name": "A 农场结构（detail ≥7 子对象）",
       "pass": true,
       "detail": {
-        "childCount": 7,
+        "childCount": 8,
         "names": [
           "Districts/farm/soil",
           "Districts/farm/structure",
@@ -17,7 +17,8 @@
           "Districts/farm/crop-corn",
           "Districts/farm/crop-wheat",
           "Districts/farm/crop-veg-leaves",
-          "Districts/farm/crop-veg-fruits"
+          "Districts/farm/crop-veg-fruits",
+          "Districts/farm/workers"
         ],
         "structMerged": true,
         "structTris": 338,
@@ -89,7 +90,7 @@
       "name": "B 几何形态（合并+顶点色结构 / 5 作物实例网格）",
       "pass": true,
       "detail": {
-        "childCount": 7,
+        "childCount": 8,
         "names": [
           "Districts/farm/soil",
           "Districts/farm/structure",
@@ -97,7 +98,8 @@
           "Districts/farm/crop-corn",
           "Districts/farm/crop-wheat",
           "Districts/farm/crop-veg-leaves",
-          "Districts/farm/crop-veg-fruits"
+          "Districts/farm/crop-veg-fruits",
+          "Districts/farm/workers"
         ],
         "structMerged": true,
         "structTris": 338,
@@ -169,7 +171,7 @@
       "name": "C 作物合理（3 主田+菜圃 / 实例 900-1050）",
       "pass": true,
       "detail": {
-        "childCount": 7,
+        "childCount": 8,
         "names": [
           "Districts/farm/soil",
           "Districts/farm/structure",
@@ -177,7 +179,8 @@
           "Districts/farm/crop-corn",
           "Districts/farm/crop-wheat",
           "Districts/farm/crop-veg-leaves",
-          "Districts/farm/crop-veg-fruits"
+          "Districts/farm/crop-veg-fruits",
+          "Districts/farm/workers"
         ],
         "structMerged": true,
         "structTris": 338,
@@ -250,21 +253,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 74,
-          "textures": 41
+          "geometries": 151,
+          "textures": 53
         },
         "rounds": [
           {
-            "geometries": 74,
-            "textures": 41
+            "geometries": 151,
+            "textures": 53
           },
           {
-            "geometries": 74,
-            "textures": 41
+            "geometries": 151,
+            "textures": 53
           },
           {
-            "geometries": 74,
-            "textures": 41
+            "geometries": 151,
+            "textures": 53
           }
         ],
         "dGeo": 0,
@@ -276,12 +279,12 @@
       "pass": true,
       "detail": {
         "top": {
-          "calls": 855,
-          "triangles": 197866
+          "calls": 568,
+          "triangles": 153096
         },
         "farmOnly": {
-          "calls": 7,
-          "triangles": 12526
+          "calls": 16,
+          "triangles": 14770
         }
       }
     },
@@ -290,7 +293,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 494932
+        "shotBytes": 484126
       }
     }
   ],

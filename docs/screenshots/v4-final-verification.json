@@ -1,7 +1,7 @@
 {
   "schema": "v4-final-verification/1.0",
-  "startedAt": "2026-11-15T14:49:17.751Z",
-  "finishedAt": "2026-11-15T14:55:50.497Z",
+  "startedAt": "2026-11-17T11:35:26.701Z",
+  "finishedAt": "2026-11-17T11:43:42.586Z",
   "port": 5173,
   "url": "http://localhost:5173/",
   "environment": {
@@ -16,20 +16,20 @@
       "id": "①",
       "title": "启动性能与首帧",
       "status": "PASS",
-      "detail": "boot=6307ms 点击→可玩=3206ms renderOnce=21",
+      "detail": "boot=7112ms 点击→可玩=1243ms renderOnce=21",
       "metrics": {
-        "bootMs": 6307,
-        "clickToPlayMs": 3206,
+        "bootMs": 7112,
+        "clickToPlayMs": 1243,
         "renderOnce": 21,
         "pixelStats": {
           "w": 320,
           "h": 200,
           "pureWhiteRatio": 0,
-          "nonWhiteRatio": 1,
-          "skyRatio": 0.12186,
-          "orangeRatio": 0.03711,
-          "darkRatio": 0.07222,
-          "meanLuma": 107.39
+          "nonWhiteRatio": 0.99977,
+          "skyRatio": 0.15206,
+          "orangeRatio": 0.04161,
+          "darkRatio": 0.14788,
+          "meanLuma": 124.75
         }
       },
       "subchecks": [
@@ -38,8 +38,8 @@
           "status": "PASS",
           "detail": "bootReady=true",
           "metrics": {
-            "bootMs": 6307,
-            "pageT0": 23
+            "bootMs": 7112,
+            "pageT0": 24
           },
           "optional": false
         },
@@ -48,14 +48,14 @@
           "status": "PASS",
           "detail": "loopStarted=true",
           "metrics": {
-            "clickToPlayMs": 3206
+            "clickToPlayMs": 1243
           },
           "optional": false
         },
         {
           "name": "稳态基线校准",
           "status": "PASS",
-          "detail": "baseline={\"geometries\":47,\"textures\":37}",
+          "detail": "baseline={\"geometries\":151,\"textures\":51}",
           "metrics": {
             "backgroundPrewarmDone": true
           },
@@ -64,7 +64,7 @@
         {
           "name": "启动期 renderOnce 计数（route 注入）",
           "status": "PASS",
-          "detail": "启动期 renderOnce=21 次（时间戳 1134,1436,1599,13573,14780,15021,18137,23360,23493,26420,29095,29182,31979,34801,34881,37645,40297,40370,43052,45523,45590ms）",
+          "detail": "启动期 renderOnce=21 次（时间戳 1100,1376,1663,13077,13918,14480,18458,21613,22043,25735,29989,30369,34289,38205,38599,42386,45790,46200,50021,53833,54161ms）",
           "metrics": {
             "calls": 21,
             "routeInjected": true
@@ -74,9 +74,9 @@
         {
           "name": "启动耗时（软渲染参考，不计入判定）",
           "status": "SKIP",
-          "detail": "boot=6307ms；headless SwiftShader 软渲染开销，真机需复测（可选子项，不影响整项）",
+          "detail": "boot=7112ms；headless SwiftShader 软渲染开销，真机需复测（可选子项，不影响整项）",
           "metrics": {
-            "bootMs": 6307,
+            "bootMs": 7112,
             "note": "点击→可玩 clickToPlayMs 才是产品指标；软渲染墙钟耗时不代表真机"
           },
           "optional": true
@@ -91,16 +91,16 @@
         {
           "name": "启动帧非空白",
           "status": "PASS",
-          "detail": "PNG=1727734B nonWhiteRatio=1",
+          "detail": "PNG=1265255B nonWhiteRatio=0.99977",
           "metrics": {
             "w": 320,
             "h": 200,
             "pureWhiteRatio": 0,
-            "nonWhiteRatio": 1,
-            "skyRatio": 0.12186,
-            "orangeRatio": 0.03711,
-            "darkRatio": 0.07222,
-            "meanLuma": 107.39
+            "nonWhiteRatio": 0.99977,
+            "skyRatio": 0.15206,
+            "orangeRatio": 0.04161,
+            "darkRatio": 0.14788,
+            "meanLuma": 124.75
           },
           "optional": false
         }
@@ -108,9 +108,9 @@
       "screenshots": [
         {
           "file": "v4-final-01-lobby-boot.png",
-          "bytes": 1727734,
+          "bytes": 1265255,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "c309462bfbf6190dd5ad46a51b1226d885214adec6093ab7c858ae307e25a627",
+          "sha256": "507dcec19abf58871f34ad97bc592e920bbd5359ebc4a304c2a3879e04ce6193",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -121,13 +121,13 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 1,
+            "nonWhiteRatio": 0.9999,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0437
+            "darkRatio": 0.132
           }
         }
       ],
-      "at": "2026-11-15T14:50:17.578Z"
+      "at": "2026-11-17T11:36:38.584Z"
     },
     {
       "id": "②",
@@ -157,7 +157,7 @@
           "pen1": 0,
           "eyeY": 1.6,
           "jump": 0,
-          "boxes": 14
+          "boxes": 24
         }
       },
       "subchecks": [
@@ -193,14 +193,14 @@
             "pen1": 0,
             "eyeY": 1.6,
             "jump": 0,
-            "boxes": 14
+            "boxes": 24
           },
           "optional": false
         },
         {
           "name": "WASD 不穿 AABB",
           "status": "PASS",
-          "detail": "穿墙数=0 障碍=14",
+          "detail": "穿墙数=0 障碍=24",
           "metrics": {},
           "optional": false
         },
@@ -222,9 +222,9 @@
       "screenshots": [
         {
           "file": "v4-final-02-wasd.png",
-          "bytes": 1604127,
+          "bytes": 940678,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "f87d7d89bb0e344e0155ba98637a986bc841d0db83e0c52e1d9413d13e1861e8",
+          "sha256": "d745f33be0181000b371871d8136e0a84594c3ef45d3befde29663429bf13997",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -235,35 +235,35 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.9746,
-            "pureWhiteRatio": 0.0179,
-            "darkRatio": 0.0359
+            "nonWhiteRatio": 0.9804,
+            "pureWhiteRatio": 0.0151,
+            "darkRatio": 0.3936
           }
         }
       ],
-      "at": "2026-11-15T14:50:19.933Z"
+      "at": "2026-11-17T11:36:41.973Z"
     },
     {
       "id": "③",
       "title": "人物建模与人群",
       "status": "PASS",
-      "detail": "draw=1 NPC=10 minDist=2.457 穿墙=0 面/人=2478",
+      "detail": "draw=1 NPC=10 minDist=0.922 穿墙=0 面/人=1656",
       "metrics": {
         "npc": {
           "count": 10,
-          "greeters": 2,
+          "greeters": 4,
           "states": [
             1,
-            0,
             3,
+            0,
             2
           ],
-          "minDist": 2.457,
+          "minDist": 0.922,
           "inBox": 0,
-          "obstacles": 25,
+          "obstacles": 35,
           "wavePeak": 1,
           "renderMeshCount": 1,
-          "trisPerNpc": 2478,
+          "trisPerNpc": 1656,
           "instanceColor": false
         },
         "calls": 1,
@@ -296,23 +296,23 @@
           "optional": false
         },
         {
-          "name": "10 NPC / 4 态 / 2 迎宾",
+          "name": "10 NPC / 4 态 / 4 迎宾",
           "status": "PASS",
-          "detail": "count=10 greeters=2 states=1,0,3,2 wavePeak=1",
+          "detail": "count=10 greeters=4 states=1,3,0,2 wavePeak=1",
           "metrics": {},
           "optional": false
         },
         {
           "name": "minDist≥0.5",
           "status": "PASS",
-          "detail": "minDist=2.457",
+          "detail": "minDist=0.922",
           "metrics": {},
           "optional": false
         },
         {
           "name": "穿墙=0",
           "status": "PASS",
-          "detail": "穿墙=0 障碍=25",
+          "detail": "穿墙=0 障碍=35",
           "metrics": {},
           "optional": false
         },
@@ -334,9 +334,9 @@
       "screenshots": [
         {
           "file": "v4-final-03-npc-closeup.png",
-          "bytes": 134188,
+          "bytes": 133053,
           "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
-          "sha256": "21dcba6631382aae859a98f5ff5c15d5c056f4b2d24a0d282dd822a066c1b3c4",
+          "sha256": "bd12df4fa6a18e686bd760fcb86fc44485669b1b7ca2db068ebcc09a9ad181f3",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -349,11 +349,11 @@
             ],
             "nonWhiteRatio": 1,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0578
+            "darkRatio": 0.0521
           }
         }
       ],
-      "at": "2026-11-15T14:50:35.732Z"
+      "at": "2026-11-17T11:37:03.337Z"
     },
     {
       "id": "④",
@@ -429,11 +429,11 @@
           "w": 480,
           "h": 300,
           "pureWhiteRatio": 0,
-          "nonWhiteRatio": 0.99403,
-          "skyRatio": 0.01359,
-          "orangeRatio": 0.00122,
-          "darkRatio": 0.89544,
-          "meanLuma": 23.59
+          "nonWhiteRatio": 0.99406,
+          "skyRatio": 0.01368,
+          "orangeRatio": 0,
+          "darkRatio": 0.89904,
+          "meanLuma": 22.96
         }
       },
       "subchecks": [
@@ -480,11 +480,11 @@
             "w": 480,
             "h": 300,
             "pureWhiteRatio": 0,
-            "nonWhiteRatio": 0.99403,
-            "skyRatio": 0.01359,
-            "orangeRatio": 0.00122,
-            "darkRatio": 0.89544,
-            "meanLuma": 23.59
+            "nonWhiteRatio": 0.99406,
+            "skyRatio": 0.01368,
+            "orangeRatio": 0,
+            "darkRatio": 0.89904,
+            "meanLuma": 22.96
           },
           "optional": false
         }
@@ -492,9 +492,9 @@
       "screenshots": [
         {
           "file": "v4-final-04-clock-front.png",
-          "bytes": 401698,
+          "bytes": 402015,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "a531dbc1fe65386925c080efa6118febd683a406fefe182437c4257d94533555",
+          "sha256": "b591e0f348f8bb810069791a381f0006a0022eaceb0eb5ad7333cf07ad836b16",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -507,14 +507,14 @@
             ],
             "nonWhiteRatio": 1,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0621
+            "darkRatio": 0.0622
           }
         },
         {
           "file": "v4-final-04-clock-back.png",
-          "bytes": 452673,
+          "bytes": 457795,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "a785d7e9f1d4fb606ddd22f5887cd5bd736dc3c76665b4bee9deddfd236188a7",
+          "sha256": "db35ee3df6c32c3285a6d765bac53b51496552ce5e15c149c4135dccb77109a8",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -527,14 +527,14 @@
             ],
             "nonWhiteRatio": 1,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0449
+            "darkRatio": 0.0437
           }
         },
         {
           "file": "v4-final-04-clock-night.png",
-          "bytes": 141169,
+          "bytes": 141281,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "c6bf4d2cba05f2e00f9751e2134b79b4fd2dea4ff5045c5e1239239bf0df40de",
+          "sha256": "725ffe4922ed2911770d885884415adca71c47f5f16b6cabb366272cf6cd81fd",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -551,13 +551,13 @@
           }
         }
       ],
-      "at": "2026-11-15T14:50:40.531Z"
+      "at": "2026-11-17T11:37:09.893Z"
     },
     {
       "id": "⑤",
       "title": "摩天轮嵌入同一大厅",
       "status": "PASS",
-      "detail": "embedded=ferris-wheel angle=0.4160000000000003→0.559 cabin=0",
+      "detail": "embedded=ferris-wheel angle=0.4175859999999999→0.5605859999999996 cabin=0",
       "metrics": {
         "before": {
           "lobbyInScene": true,
@@ -569,7 +569,7 @@
           "activeKey": "lobby",
           "embeddedActive": true,
           "embeddedKey": "ferris-wheel",
-          "angle": 0.4160000000000003,
+          "angle": 0.4175859999999999,
           "cabinIndex": 0,
           "usesSharedWheel": true,
           "cameraUpY": 1,
@@ -577,7 +577,7 @@
           "hasBasketUI": false
         },
         "a2": {
-          "angle": 0.559,
+          "angle": 0.5605859999999996,
           "cameraUpY": 1,
           "cameraRoll": 0
         }
@@ -614,7 +614,7 @@
         {
           "name": "轮盘在转",
           "status": "PASS",
-          "detail": "angle=0.4160000000000003→0.559",
+          "detail": "angle=0.4175859999999999→0.5605859999999996",
           "metrics": {},
           "optional": false
         },
@@ -629,9 +629,9 @@
       "screenshots": [
         {
           "file": "v4-final-05-ferris-embedded.png",
-          "bytes": 1116509,
+          "bytes": 998380,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "a04317d8af2cd171bacfe76c502d77de04824f98ef21f7d78e953053cf7bdf37",
+          "sha256": "fc16cb5a5af1e13912f0a6dc05ec018a12a62b783d339ee334d8bc10b762cba9",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -642,13 +642,13 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.8102,
-            "pureWhiteRatio": 0.0009,
-            "darkRatio": 0.0046
+            "nonWhiteRatio": 0.8701,
+            "pureWhiteRatio": 0.0006,
+            "darkRatio": 0.0074
           }
         }
       ],
-      "at": "2026-11-15T14:50:48.706Z"
+      "at": "2026-11-17T11:37:23.392Z"
     },
     {
       "id": "⑥",
@@ -699,9 +699,9 @@
       "screenshots": [
         {
           "file": "v4-final-06-coaster-track.png",
-          "bytes": 1124138,
+          "bytes": 993870,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "a5b7b12b75bece4736a29667deed2cbd8d3be67a8621aaafa27cf94fe5703055",
+          "sha256": "0dbff80975c0a96ad4a083faa5cda4cbd3f820d6729a79510c2bb7417d030f12",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -712,13 +712,13 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.8101,
-            "pureWhiteRatio": 0.0003,
-            "darkRatio": 0.0062
+            "nonWhiteRatio": 0.8689,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0092
           }
         }
       ],
-      "at": "2026-11-15T14:50:52.796Z"
+      "at": "2026-11-17T11:37:26.300Z"
     },
     {
       "id": "⑦",
@@ -787,9 +787,9 @@
       "screenshots": [
         {
           "file": "v4-final-07-triggers-topdown.png",
-          "bytes": 1317807,
+          "bytes": 656976,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "880e1018225d76b8e9f46074a363a092dfae4240888920fd4185c48953de4051",
+          "sha256": "d94ca1c0776f8e316451594807bb95cba17504e5d474898ac6a6f0ec393e9293",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -802,36 +802,36 @@
             ],
             "nonWhiteRatio": 1,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0144
+            "darkRatio": 0.1395
           }
         }
       ],
-      "at": "2026-11-15T14:50:57.470Z"
+      "at": "2026-11-17T11:37:29.357Z"
     },
     {
       "id": "⑧",
       "title": "城堡大门（拱门/双塔/城垛）",
       "status": "PASS",
-      "detail": "{\"present\":true,\"hasArch\":true,\"towers\":8,\"crenels\":1,\"children\":42,\"sample\":[\"Lobby/gate\",\"Lobby/gate-pillar--1\",\"Lobby/gate-orb--1\",\"Lobby/gate-strip--1\",\"Lobby/gate-pillar-1\",\"Lobby/gate-orb-1\",\"Lobby/gate-strip-1\",\"Lobby/gate-beam\",\"Lobby/gate-beam-glow-top\",\"Lobby/gate-beam-glow-bottom\",\"Lobby/gate-sign-front\",\"Lobby/gate-sign-back\"]}",
+      "detail": "{\"present\":true,\"hasArch\":true,\"towers\":4,\"crenels\":1,\"children\":17,\"sample\":[\"Lobby/gate\",\"Lobby/gate-tower--1\",\"Lobby/gate-tower-1\",\"Lobby/gate-tower-turret--1\",\"Lobby/gate-tower-turret-1\",\"Lobby/gate-arch-gold\",\"Lobby/gate-arch-stone\",\"Lobby/gate-sign-panel\",\"Lobby/gate-sign-front\",\"Lobby/gate-sign-back\",\"Lobby/gate-emblem\",\"Lobby/gate-crenels\"]}",
       "metrics": {
         "present": true,
         "hasArch": true,
-        "towers": 8,
+        "towers": 4,
         "crenels": 1,
-        "children": 42,
+        "children": 17,
         "sample": [
           "Lobby/gate",
-          "Lobby/gate-pillar--1",
-          "Lobby/gate-orb--1",
-          "Lobby/gate-strip--1",
-          "Lobby/gate-pillar-1",
-          "Lobby/gate-orb-1",
-          "Lobby/gate-strip-1",
-          "Lobby/gate-beam",
-          "Lobby/gate-beam-glow-top",
-          "Lobby/gate-beam-glow-bottom",
+          "Lobby/gate-tower--1",
+          "Lobby/gate-tower-1",
+          "Lobby/gate-tower-turret--1",
+          "Lobby/gate-tower-turret-1",
+          "Lobby/gate-arch-gold",
+          "Lobby/gate-arch-stone",
+          "Lobby/gate-sign-panel",
           "Lobby/gate-sign-front",
-          "Lobby/gate-sign-back"
+          "Lobby/gate-sign-back",
+          "Lobby/gate-emblem",
+          "Lobby/gate-crenels"
         ]
       },
       "subchecks": [
@@ -845,7 +845,7 @@
         {
           "name": "双塔",
           "status": "PASS",
-          "detail": "towers=8",
+          "detail": "towers=4",
           "metrics": {},
           "optional": false
         },
@@ -860,9 +860,9 @@
       "screenshots": [
         {
           "file": "v4-final-08-castle-gate.png",
-          "bytes": 1349139,
+          "bytes": 1062734,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "3f9e945b17ff9c19b10f7ff288adb84ba66d5fa58c645000ded30ac6ab275144",
+          "sha256": "741df16273e05f0cb51265151a18d91e9713510391758f8fb25432acf15eb770",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -873,19 +873,19 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.9281,
-            "pureWhiteRatio": 0.0348,
-            "darkRatio": 0.0073
+            "nonWhiteRatio": 0.9609,
+            "pureWhiteRatio": 0.0068,
+            "darkRatio": 0.0505
           }
         }
       ],
-      "at": "2026-11-15T14:51:01.440Z"
+      "at": "2026-11-17T11:37:32.977Z"
     },
     {
       "id": "⑨",
       "title": "文字清晰度 / 无橙色马赛克",
       "status": "PASS",
-      "detail": "edgeDensity=0.08379 orange=0/0.01563",
+      "detail": "edgeDensity=0.08416 orange=0/0.00458",
       "metrics": {
         "atlas": {
           "size": [
@@ -893,21 +893,21 @@
             2048
           ],
           "labels": 10,
-          "alphaRatio": 0.10487,
-          "darkGlyphPixels": 183613,
+          "alphaRatio": 0.10448,
+          "darkGlyphPixels": 183328,
           "orangeRatio": 0,
-          "opaquePairs": 108758,
-          "edgeDensity": 0.08379
+          "opaquePairs": 108347,
+          "edgeDensity": 0.08416
         },
         "pixelStats": {
           "w": 480,
           "h": 300,
-          "pureWhiteRatio": 0,
-          "nonWhiteRatio": 0.98474,
-          "skyRatio": 0.11863,
-          "orangeRatio": 0.01563,
-          "darkRatio": 0.10387,
-          "meanLuma": 117.01
+          "pureWhiteRatio": 0.00019,
+          "nonWhiteRatio": 0.79334,
+          "skyRatio": 0.25182,
+          "orangeRatio": 0.00458,
+          "darkRatio": 0.03919,
+          "meanLuma": 168.79
         }
       },
       "subchecks": [
@@ -921,21 +921,21 @@
         {
           "name": "字形非糊团（边缘密度）",
           "status": "PASS",
-          "detail": "edgeDensity=0.08379",
+          "detail": "edgeDensity=0.08416",
           "metrics": {},
           "optional": false
         },
         {
           "name": "无橙色马赛克",
           "status": "PASS",
-          "detail": "atlasOrange=0 sceneOrange=0.01563（场景暖色/木质允许 <0.12，马赛克主要看 atlas 通道）",
+          "detail": "atlasOrange=0 sceneOrange=0.00458（场景暖色/木质允许 <0.12，马赛克主要看 atlas 通道）",
           "metrics": {},
           "optional": false
         },
         {
           "name": "场景文字贴图有效",
           "status": "PASS",
-          "detail": "nonWhiteRatio=0.98474",
+          "detail": "nonWhiteRatio=0.79334",
           "metrics": {},
           "optional": false
         }
@@ -943,9 +943,9 @@
       "screenshots": [
         {
           "file": "v4-final-09-text-atlas.png",
-          "bytes": 2039225,
+          "bytes": 1825627,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "c4c70d4319724124d7daa772caccaed2f07a4cb8106c80c858d7b30effa509ec",
+          "sha256": "f2c24902c238ab7c2f2dd220b65893bf119bbbd7ec1eac17ec13be7e99eade75",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -956,19 +956,19 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 1,
+            "nonWhiteRatio": 0.9943,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.1669
+            "darkRatio": 0.0254
           }
         }
       ],
-      "at": "2026-11-15T14:51:08.662Z"
+      "at": "2026-11-17T11:37:39.954Z"
     },
     {
       "id": "⑩",
       "title": "场景一体化（嵌入态大厅常驻）",
       "status": "PASS",
-      "detail": "embedded=ferris-wheel activeKey=lobby lobbyInScene=true sky=0.34216",
+      "detail": "embedded=ferris-wheel activeKey=lobby lobbyInScene=true sky=0.37685",
       "metrics": {
         "key": "ferris-wheel",
         "during": {
@@ -982,12 +982,12 @@
         "pixelStats": {
           "w": 480,
           "h": 300,
-          "pureWhiteRatio": 0.00511,
-          "nonWhiteRatio": 0.77406,
-          "skyRatio": 0.34216,
-          "orangeRatio": 0.00169,
-          "darkRatio": 0.00595,
-          "meanLuma": 187.43
+          "pureWhiteRatio": 0.00332,
+          "nonWhiteRatio": 0.83911,
+          "skyRatio": 0.37685,
+          "orangeRatio": 0.00256,
+          "darkRatio": 0.0081,
+          "meanLuma": 175.59
         }
       },
       "subchecks": [
@@ -1015,16 +1015,16 @@
         {
           "name": "抬头可见天空/其它建筑",
           "status": "PASS",
-          "detail": "skyRatio=0.34216",
+          "detail": "skyRatio=0.37685",
           "metrics": {
             "w": 480,
             "h": 300,
-            "pureWhiteRatio": 0.00511,
-            "nonWhiteRatio": 0.77406,
-            "skyRatio": 0.34216,
-            "orangeRatio": 0.00169,
-            "darkRatio": 0.00595,
-            "meanLuma": 187.43
+            "pureWhiteRatio": 0.00332,
+            "nonWhiteRatio": 0.83911,
+            "skyRatio": 0.37685,
+            "orangeRatio": 0.00256,
+            "darkRatio": 0.0081,
+            "meanLuma": 175.59
           },
           "optional": false
         }
@@ -1032,9 +1032,9 @@
       "screenshots": [
         {
           "file": "v4-final-10-embedded-unified.png",
-          "bytes": 1105485,
+          "bytes": 989136,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "48441ad440374b00fe2520a7fb00cc8b78be706e9e83d759eb206e706addabb0",
+          "sha256": "1e46f0f7a0f739e91561eb735594711ad4a6bc5492d105b8b295e1205ce0f586",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -1045,13 +1045,13 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.7928,
-            "pureWhiteRatio": 0.0001,
-            "darkRatio": 0.0055
+            "nonWhiteRatio": 0.8576,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0071
           }
         }
       ],
-      "at": "2026-11-15T14:51:15.628Z"
+      "at": "2026-11-17T11:37:47.085Z"
     },
     {
       "id": "⑪",
@@ -1067,16 +1067,16 @@
         },
         "anim": {
           "a": {
-            "carousel": 2.4871000000000016,
-            "pirate": 0.5289680361595444,
-            "train": -0.375705182641905,
-            "wheel": 0.9237799999999993
+            "carousel": 2.427740000000005,
+            "pirate": 0.6658262778623205,
+            "train": -0.2727147756449439,
+            "wheel": 0.9017320000000002
           },
           "b": {
-            "carousel": 2.837100000000003,
-            "pirate": -0.6875024722175742,
-            "train": -0.9544479574965452,
-            "wheel": 1.0537799999999984
+            "carousel": 2.7777400000000063,
+            "pirate": -0.5702031003307195,
+            "train": -0.8625146225365523,
+            "wheel": 1.0317319999999992
           },
           "carousel": true,
           "pirate": true,
@@ -1092,21 +1092,21 @@
         {
           "name": "旋转木马常驻转动",
           "status": "PASS",
-          "detail": "rotation.y=2.4871000000000016→2.837100000000003",
+          "detail": "rotation.y=2.427740000000005→2.7777400000000063",
           "metrics": {},
           "optional": false
         },
         {
           "name": "海盗船常驻摆动",
           "status": "PASS",
-          "detail": "rotation.z=0.5289680361595444→-0.6875024722175742",
+          "detail": "rotation.z=0.6658262778623205→-0.5702031003307195",
           "metrics": {},
           "optional": false
         },
         {
           "name": "小火车常驻循环",
           "status": "PASS",
-          "detail": "position.z=-0.375705182641905→-0.9544479574965452",
+          "detail": "position.z=-0.2727147756449439→-0.8625146225365523",
           "metrics": {},
           "optional": false
         },
@@ -1121,9 +1121,9 @@
       "screenshots": [
         {
           "file": "v4-final-11-ambient-animation.png",
-          "bytes": 1160899,
+          "bytes": 940201,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "9fda016b8c16ad2655c8c461f5a50d9aee2ba1f7f62e12d6b18453104f4a05d5",
+          "sha256": "b5d676a002bdb324f7c18d1941ce9945ce83c11a83854643efa7ebb3da8a2589",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -1134,13 +1134,13 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.7927,
-            "pureWhiteRatio": 0.0001,
-            "darkRatio": 0.0134
+            "nonWhiteRatio": 0.8588,
+            "pureWhiteRatio": 0,
+            "darkRatio": 0.0147
           }
         }
       ],
-      "at": "2026-11-15T14:51:18.388Z"
+      "at": "2026-11-17T11:37:49.673Z"
     },
     {
       "id": "⑫",
@@ -1175,9 +1175,9 @@
       "screenshots": [
         {
           "file": "v4-final-12-embedded-views.png",
-          "bytes": 1198219,
+          "bytes": 967602,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "0d68e7c2cb9b99d364042764c17e84a60e529bdf6cc8bf09634a444715b3a5e3",
+          "sha256": "db166ce89eb070fa573415c98f2c351495088ded375ad95f0cf8597f1edfd5be",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -1188,95 +1188,95 @@
               1280,
               800
             ],
-            "nonWhiteRatio": 0.9929,
-            "pureWhiteRatio": 0.0016,
-            "darkRatio": 0.0001
+            "nonWhiteRatio": 0.9774,
+            "pureWhiteRatio": 0.0063,
+            "darkRatio": 0.0051
           }
         }
       ],
-      "at": "2026-11-15T14:51:24.759Z"
+      "at": "2026-11-17T11:37:54.609Z"
     },
     {
       "id": "⑬",
-      "title": "全量回归（5轮 Δ0/0 + 预算 + 0 报错）",
+      "title": "全量回归（5轮无正增长 + 预算 + 0 报错）",
       "status": "PASS",
-      "detail": "Δgeo=0 Δtex=0 (steady 54geo/39tex, 惰性 +7) calls=734 tris=267404 err=0/0",
+      "detail": "Δgeo=-32 Δtex=-17 (steady 182geo/69tex, 惰性 +31) calls=491 tris=162744 err=0/0",
       "metrics": {
         "baseline": {
-          "geometries": 47,
-          "textures": 37
+          "geometries": 151,
+          "textures": 51
         },
         "steady": {
-          "geometries": 54,
-          "textures": 39
+          "geometries": 182,
+          "textures": 69
         },
         "lazyDelta": {
-          "geo": 7,
-          "tex": 2
+          "geo": 31,
+          "tex": 18
         },
         "rounds": [
           {
             "round": 1,
-            "geometries": 54,
-            "textures": 39
+            "geometries": 164,
+            "textures": 63
           },
           {
             "round": 2,
-            "geometries": 54,
-            "textures": 39
+            "geometries": 131,
+            "textures": 52
           },
           {
             "round": 3,
-            "geometries": 54,
-            "textures": 39
+            "geometries": 150,
+            "textures": 52
           },
           {
             "round": 4,
-            "geometries": 54,
-            "textures": 39
+            "geometries": 150,
+            "textures": 52
           },
           {
             "round": 5,
-            "geometries": 54,
-            "textures": 39
+            "geometries": 150,
+            "textures": 52
           }
         ],
-        "dGeo": 0,
-        "dTex": 0,
+        "dGeo": -32,
+        "dTex": -17,
         "budget": {
-          "calls": 734,
-          "triangles": 267404
+          "calls": 491,
+          "triangles": 162744
         }
       },
       "subchecks": [
         {
           "name": "惰性资源一次性上传（信息项，非泄漏）",
           "status": "SKIP",
-          "detail": "首次激活全部设施一次性 +7 geo / +2 tex；之后 5 轮完全持平即证明无泄漏",
+          "detail": "首次激活全部设施一次性 +31 geo / +18 tex；之后 5 轮完全持平即证明无泄漏",
           "metrics": {
-            "geo": 7,
-            "tex": 2
+            "geo": 31,
+            "tex": 18
           },
           "optional": true
         },
         {
-          "name": "5轮 Δgeo=0（稳态基线）",
+          "name": "5轮无 Δgeo 正增长（负值=视角缓存释放）",
           "status": "PASS",
-          "detail": "Δgeo=0 steady=54 final=54",
+          "detail": "Δgeo=-32 steady=182 final=150",
           "metrics": {},
           "optional": false
         },
         {
-          "name": "5轮 Δtex=0（稳态基线）",
+          "name": "5轮无 Δtex 正增长（负值=视角缓存释放）",
           "status": "PASS",
-          "detail": "Δtex=0 steady=39 final=39",
+          "detail": "Δtex=-17 steady=69 final=52",
           "metrics": {},
           "optional": false
         },
         {
           "name": "全场景 ≤30万三角面",
           "status": "PASS",
-          "detail": "triangles=267404",
+          "detail": "triangles=162744",
           "metrics": {},
           "optional": false
         },
@@ -1304,7 +1304,7 @@
         {
           "name": "末帧非空白",
           "status": "PASS",
-          "detail": "PNG=1355892B",
+          "detail": "PNG=308541B",
           "metrics": {},
           "optional": false
         }
@@ -1312,9 +1312,9 @@
       "screenshots": [
         {
           "file": "v4-final-13-final-lobby.png",
-          "bytes": 1355892,
+          "bytes": 308541,
           "method": "main-canvas:renderOnce+toDataURL",
-          "sha256": "1e372874322f0070df30bcb6698c36a01b56b26abf2faeb76b31f4c22407cb3d",
+          "sha256": "040f28840b68ccabf51487e35048c7fc391397bafce0e9d5317c3669c43908d1",
           "duplicateOfPrev": false,
           "pixelStats": {
             "sampled": [
@@ -1327,122 +1327,254 @@
             ],
             "nonWhiteRatio": 1,
             "pureWhiteRatio": 0,
-            "darkRatio": 0.0693
+            "darkRatio": 0.7436
           }
         }
       ],
-      "at": "2026-11-15T14:55:50.497Z"
+      "at": "2026-11-17T11:43:42.585Z"
     }
   ],
   "screenshots": [
     {
       "file": "v4-final-01-lobby-boot.png",
-      "bytes": 1727734,
+      "bytes": 1265255,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:15.872Z"
+      "at": "2026-11-17T11:36:36.950Z"
     },
     {
       "file": "v4-final-02-wasd.png",
-      "bytes": 1604127,
+      "bytes": 940678,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:19.933Z"
+      "at": "2026-11-17T11:36:41.972Z"
     },
     {
       "file": "v4-final-03-dancehall-performers.png",
-      "bytes": 336283,
+      "bytes": 337748,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:24.749Z"
+      "at": "2026-11-17T11:36:46.839Z"
     },
     {
       "file": "v4-final-03-parkour-player.png",
-      "bytes": 295081,
+      "bytes": 304569,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:31.836Z"
+      "at": "2026-11-17T11:36:56.129Z"
     },
     {
       "file": "v4-final-03-npc-closeup.png",
-      "bytes": 134188,
+      "bytes": 133053,
       "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
-      "at": "2026-11-15T14:50:35.731Z"
+      "at": "2026-11-17T11:37:03.337Z"
     },
     {
       "file": "v4-final-04-clock-front.png",
-      "bytes": 401698,
+      "bytes": 402015,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:39.156Z"
+      "at": "2026-11-17T11:37:07.751Z"
     },
     {
       "file": "v4-final-04-clock-back.png",
-      "bytes": 452673,
+      "bytes": 457795,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:39.954Z"
+      "at": "2026-11-17T11:37:08.942Z"
     },
     {
       "file": "v4-final-04-clock-night.png",
-      "bytes": 141169,
+      "bytes": 141281,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:40.531Z"
+      "at": "2026-11-17T11:37:09.893Z"
     },
     {
       "file": "v4-final-05-ferris-embedded.png",
-      "bytes": 1116509,
+      "bytes": 998380,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:48.705Z"
+      "at": "2026-11-17T11:37:23.392Z"
     },
     {
       "file": "v4-final-06-coaster-track.png",
-      "bytes": 1124138,
+      "bytes": 993870,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:52.796Z"
+      "at": "2026-11-17T11:37:26.300Z"
     },
     {
       "file": "v4-final-07-triggers-topdown.png",
-      "bytes": 1317807,
+      "bytes": 656976,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:50:57.468Z"
+      "at": "2026-11-17T11:37:29.355Z"
     },
     {
       "file": "v4-final-08-castle-gate.png",
-      "bytes": 1349139,
+      "bytes": 1062734,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:51:01.417Z"
+      "at": "2026-11-17T11:37:32.976Z"
     },
     {
       "file": "v4-final-09-text-atlas.png",
-      "bytes": 2039225,
+      "bytes": 1825627,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:51:08.662Z"
+      "at": "2026-11-17T11:37:39.954Z"
     },
     {
       "file": "v4-final-10-embedded-unified.png",
-      "bytes": 1105485,
+      "bytes": 989136,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:51:15.628Z"
+      "at": "2026-11-17T11:37:47.085Z"
     },
     {
       "file": "v4-final-11-ambient-animation.png",
-      "bytes": 1160899,
+      "bytes": 940201,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:51:18.387Z"
+      "at": "2026-11-17T11:37:49.673Z"
     },
     {
       "file": "v4-final-12-embedded-views.png",
-      "bytes": 1198219,
+      "bytes": 967602,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:51:24.759Z"
+      "at": "2026-11-17T11:37:54.609Z"
     },
     {
       "file": "v4-final-13-final-lobby.png",
-      "bytes": 1355892,
+      "bytes": 308541,
       "method": "main-canvas:renderOnce+toDataURL",
-      "at": "2026-11-15T14:55:50.496Z"
+      "at": "2026-11-17T11:43:42.585Z"
     }
   ],
   "screenshotIntegrity": [
     {
       "file": "v4-final-01-lobby-boot.png",
-      "bytes": 1727734,
-      "sha256": "c309462bfbf6190dd5ad46a51b1226d885214adec6093ab7c858ae307e25a627",
+      "bytes": 1265255,
+      "sha256": "507dcec19abf58871f34ad97bc592e920bbd5359ebc4a304c2a3879e04ce6193",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.9999,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.132
+      },
+      "at": "2026-11-17T11:36:36.950Z"
+    },
+    {
+      "file": "v4-final-02-wasd.png",
+      "bytes": 940678,
+      "sha256": "d745f33be0181000b371871d8136e0a84594c3ef45d3befde29663429bf13997",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 0.9804,
+        "pureWhiteRatio": 0.0151,
+        "darkRatio": 0.3936
+      },
+      "at": "2026-11-17T11:36:41.972Z"
+    },
+    {
+      "file": "v4-final-03-dancehall-performers.png",
+      "bytes": 337748,
+      "sha256": "3b8ac08dafc891ab57220cd10687ab91c4b37a45fd56e6ff22c91953191d5c94",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.7768
+      },
+      "at": "2026-11-17T11:36:46.839Z"
+    },
+    {
+      "file": "v4-final-03-parkour-player.png",
+      "bytes": 304569,
+      "sha256": "3c4d2e6c26d86e0baaf87bfa4ec89f04abcc72e659ce129c8fc50074a00b5772",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.3086
+      },
+      "at": "2026-11-17T11:36:56.129Z"
+    },
+    {
+      "file": "v4-final-03-npc-closeup.png",
+      "bytes": 133053,
+      "sha256": "bd12df4fa6a18e686bd760fcb86fc44485669b1b7ca2db068ebcc09a9ad181f3",
+      "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1200,
+          700
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0521
+      },
+      "at": "2026-11-17T11:37:03.337Z"
+    },
+    {
+      "file": "v4-final-04-clock-front.png",
+      "bytes": 402015,
+      "sha256": "b591e0f348f8bb810069791a381f0006a0022eaceb0eb5ad7333cf07ad836b16",
+      "method": "main-canvas:renderOnce+toDataURL",
+      "duplicateOfPrev": false,
+      "duplicateOf": null,
+      "pixelStats": {
+        "sampled": [
+          160,
+          100
+        ],
+        "source": [
+          1280,
+          800
+        ],
+        "nonWhiteRatio": 1,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0622
+      },
+      "at": "2026-11-17T11:37:07.751Z"
+    },
+    {
+      "file": "v4-final-04-clock-back.png",
+      "bytes": 457795,
+      "sha256": "db35ee3df6c32c3285a6d765bac53b51496552ce5e15c149c4135dccb77109a8",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1459,144 +1591,12 @@
         "pureWhiteRatio": 0,
         "darkRatio": 0.0437
       },
-      "at": "2026-11-15T14:50:15.872Z"
-    },
-    {
-      "file": "v4-final-02-wasd.png",
-      "bytes": 1604127,
-      "sha256": "f87d7d89bb0e344e0155ba98637a986bc841d0db83e0c52e1d9413d13e1861e8",
-      "method": "main-canvas:renderOnce+toDataURL",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1280,
-          800
-        ],
-        "nonWhiteRatio": 0.9746,
-        "pureWhiteRatio": 0.0179,
-        "darkRatio": 0.0359
-      },
-      "at": "2026-11-15T14:50:19.933Z"
-    },
-    {
-      "file": "v4-final-03-dancehall-performers.png",
-      "bytes": 336283,
-      "sha256": "cfd0c6a06befa0e96f52e701ea99e7561d9dd9e842f77998b80af700f11e45ca",
-      "method": "main-canvas:renderOnce+toDataURL",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1280,
-          800
-        ],
-        "nonWhiteRatio": 1,
-        "pureWhiteRatio": 0,
-        "darkRatio": 0.7782
-      },
-      "at": "2026-11-15T14:50:24.749Z"
-    },
-    {
-      "file": "v4-final-03-parkour-player.png",
-      "bytes": 295081,
-      "sha256": "805c2b7d675f5ba5c77cf4e8050582e814bdbbd60c0689387a4e062dd768e41a",
-      "method": "main-canvas:renderOnce+toDataURL",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1280,
-          800
-        ],
-        "nonWhiteRatio": 1,
-        "pureWhiteRatio": 0,
-        "darkRatio": 0.3122
-      },
-      "at": "2026-11-15T14:50:31.836Z"
-    },
-    {
-      "file": "v4-final-03-npc-closeup.png",
-      "bytes": 134188,
-      "sha256": "21dcba6631382aae859a98f5ff5c15d5c056f4b2d24a0d282dd822a066c1b3c4",
-      "method": "offscreen:4实例排排站近景+preserveDrawingBuffer",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1200,
-          700
-        ],
-        "nonWhiteRatio": 1,
-        "pureWhiteRatio": 0,
-        "darkRatio": 0.0578
-      },
-      "at": "2026-11-15T14:50:35.731Z"
-    },
-    {
-      "file": "v4-final-04-clock-front.png",
-      "bytes": 401698,
-      "sha256": "a531dbc1fe65386925c080efa6118febd683a406fefe182437c4257d94533555",
-      "method": "main-canvas:renderOnce+toDataURL",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1280,
-          800
-        ],
-        "nonWhiteRatio": 1,
-        "pureWhiteRatio": 0,
-        "darkRatio": 0.0621
-      },
-      "at": "2026-11-15T14:50:39.156Z"
-    },
-    {
-      "file": "v4-final-04-clock-back.png",
-      "bytes": 452673,
-      "sha256": "a785d7e9f1d4fb606ddd22f5887cd5bd736dc3c76665b4bee9deddfd236188a7",
-      "method": "main-canvas:renderOnce+toDataURL",
-      "duplicateOfPrev": false,
-      "duplicateOf": null,
-      "pixelStats": {
-        "sampled": [
-          160,
-          100
-        ],
-        "source": [
-          1280,
-          800
-        ],
-        "nonWhiteRatio": 1,
-        "pureWhiteRatio": 0,
-        "darkRatio": 0.0449
-      },
-      "at": "2026-11-15T14:50:39.954Z"
+      "at": "2026-11-17T11:37:08.942Z"
     },
     {
       "file": "v4-final-04-clock-night.png",
-      "bytes": 141169,
-      "sha256": "c6bf4d2cba05f2e00f9751e2134b79b4fd2dea4ff5045c5e1239239bf0df40de",
+      "bytes": 141281,
+      "sha256": "725ffe4922ed2911770d885884415adca71c47f5f16b6cabb366272cf6cd81fd",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1613,12 +1613,12 @@
         "pureWhiteRatio": 0,
         "darkRatio": 0.0086
       },
-      "at": "2026-11-15T14:50:40.531Z"
+      "at": "2026-11-17T11:37:09.893Z"
     },
     {
       "file": "v4-final-05-ferris-embedded.png",
-      "bytes": 1116509,
-      "sha256": "a04317d8af2cd171bacfe76c502d77de04824f98ef21f7d78e953053cf7bdf37",
+      "bytes": 998380,
+      "sha256": "fc16cb5a5af1e13912f0a6dc05ec018a12a62b783d339ee334d8bc10b762cba9",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1631,16 +1631,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.8102,
-        "pureWhiteRatio": 0.0009,
-        "darkRatio": 0.0046
+        "nonWhiteRatio": 0.8701,
+        "pureWhiteRatio": 0.0006,
+        "darkRatio": 0.0074
       },
-      "at": "2026-11-15T14:50:48.705Z"
+      "at": "2026-11-17T11:37:23.392Z"
     },
     {
       "file": "v4-final-06-coaster-track.png",
-      "bytes": 1124138,
-      "sha256": "a5b7b12b75bece4736a29667deed2cbd8d3be67a8621aaafa27cf94fe5703055",
+      "bytes": 993870,
+      "sha256": "0dbff80975c0a96ad4a083faa5cda4cbd3f820d6729a79510c2bb7417d030f12",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1653,16 +1653,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.8101,
-        "pureWhiteRatio": 0.0003,
-        "darkRatio": 0.0062
+        "nonWhiteRatio": 0.8689,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0092
       },
-      "at": "2026-11-15T14:50:52.796Z"
+      "at": "2026-11-17T11:37:26.300Z"
     },
     {
       "file": "v4-final-07-triggers-topdown.png",
-      "bytes": 1317807,
-      "sha256": "880e1018225d76b8e9f46074a363a092dfae4240888920fd4185c48953de4051",
+      "bytes": 656976,
+      "sha256": "d94ca1c0776f8e316451594807bb95cba17504e5d474898ac6a6f0ec393e9293",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1677,14 +1677,14 @@
         ],
         "nonWhiteRatio": 1,
         "pureWhiteRatio": 0,
-        "darkRatio": 0.0144
+        "darkRatio": 0.1395
       },
-      "at": "2026-11-15T14:50:57.468Z"
+      "at": "2026-11-17T11:37:29.355Z"
     },
     {
       "file": "v4-final-08-castle-gate.png",
-      "bytes": 1349139,
-      "sha256": "3f9e945b17ff9c19b10f7ff288adb84ba66d5fa58c645000ded30ac6ab275144",
+      "bytes": 1062734,
+      "sha256": "741df16273e05f0cb51265151a18d91e9713510391758f8fb25432acf15eb770",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1697,16 +1697,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.9281,
-        "pureWhiteRatio": 0.0348,
-        "darkRatio": 0.0073
+        "nonWhiteRatio": 0.9609,
+        "pureWhiteRatio": 0.0068,
+        "darkRatio": 0.0505
       },
-      "at": "2026-11-15T14:51:01.417Z"
+      "at": "2026-11-17T11:37:32.976Z"
     },
     {
       "file": "v4-final-09-text-atlas.png",
-      "bytes": 2039225,
-      "sha256": "c4c70d4319724124d7daa772caccaed2f07a4cb8106c80c858d7b30effa509ec",
+      "bytes": 1825627,
+      "sha256": "f2c24902c238ab7c2f2dd220b65893bf119bbbd7ec1eac17ec13be7e99eade75",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1719,16 +1719,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 1,
+        "nonWhiteRatio": 0.9943,
         "pureWhiteRatio": 0,
-        "darkRatio": 0.1669
+        "darkRatio": 0.0254
       },
-      "at": "2026-11-15T14:51:08.662Z"
+      "at": "2026-11-17T11:37:39.954Z"
     },
     {
       "file": "v4-final-10-embedded-unified.png",
-      "bytes": 1105485,
-      "sha256": "48441ad440374b00fe2520a7fb00cc8b78be706e9e83d759eb206e706addabb0",
+      "bytes": 989136,
+      "sha256": "1e46f0f7a0f739e91561eb735594711ad4a6bc5492d105b8b295e1205ce0f586",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1741,16 +1741,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.7928,
-        "pureWhiteRatio": 0.0001,
-        "darkRatio": 0.0055
+        "nonWhiteRatio": 0.8576,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0071
       },
-      "at": "2026-11-15T14:51:15.628Z"
+      "at": "2026-11-17T11:37:47.085Z"
     },
     {
       "file": "v4-final-11-ambient-animation.png",
-      "bytes": 1160899,
-      "sha256": "9fda016b8c16ad2655c8c461f5a50d9aee2ba1f7f62e12d6b18453104f4a05d5",
+      "bytes": 940201,
+      "sha256": "b5d676a002bdb324f7c18d1941ce9945ce83c11a83854643efa7ebb3da8a2589",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1763,16 +1763,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.7927,
-        "pureWhiteRatio": 0.0001,
-        "darkRatio": 0.0134
+        "nonWhiteRatio": 0.8588,
+        "pureWhiteRatio": 0,
+        "darkRatio": 0.0147
       },
-      "at": "2026-11-15T14:51:18.387Z"
+      "at": "2026-11-17T11:37:49.673Z"
     },
     {
       "file": "v4-final-12-embedded-views.png",
-      "bytes": 1198219,
-      "sha256": "0d68e7c2cb9b99d364042764c17e84a60e529bdf6cc8bf09634a444715b3a5e3",
+      "bytes": 967602,
+      "sha256": "db166ce89eb070fa573415c98f2c351495088ded375ad95f0cf8597f1edfd5be",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1785,16 +1785,16 @@
           1280,
           800
         ],
-        "nonWhiteRatio": 0.9929,
-        "pureWhiteRatio": 0.0016,
-        "darkRatio": 0.0001
+        "nonWhiteRatio": 0.9774,
+        "pureWhiteRatio": 0.0063,
+        "darkRatio": 0.0051
       },
-      "at": "2026-11-15T14:51:24.759Z"
+      "at": "2026-11-17T11:37:54.609Z"
     },
     {
       "file": "v4-final-13-final-lobby.png",
-      "bytes": 1355892,
-      "sha256": "1e372874322f0070df30bcb6698c36a01b56b26abf2faeb76b31f4c22407cb3d",
+      "bytes": 308541,
+      "sha256": "040f28840b68ccabf51487e35048c7fc391397bafce0e9d5317c3669c43908d1",
       "method": "main-canvas:renderOnce+toDataURL",
       "duplicateOfPrev": false,
       "duplicateOf": null,
@@ -1809,9 +1809,9 @@
         ],
         "nonWhiteRatio": 1,
         "pureWhiteRatio": 0,
-        "darkRatio": 0.0693
+        "darkRatio": 0.7436
       },
-      "at": "2026-11-15T14:55:50.496Z"
+      "at": "2026-11-17T11:43:42.585Z"
     }
   ],
   "warnings": [],
@@ -1819,7 +1819,7 @@
     "pageerror": [],
     "consoleError": [],
     "consoleWarning": [
-      "[基座] 后台预热「dummy」失败（已跳过）： ReferenceError: baseCtx is not defined\n    at prewarmFacility (http://localhost:5173/src/main.js?t=1794754101780:309:61)\n    at step (http://localhost:5173/src/main.js?t=1794754101780:431:11)"
+      "[基座] 后台预热「dummy」失败（已跳过）： ReferenceError: baseCtx is not defined\n    at prewarmFacility (http://localhost:5173/src/main.js?t=1794915278757:319:61)\n    at step (http://localhost:5173/src/main.js?t=1794915278757:451:11)"
     ],
     "badResponse": [],
     "failedRequest": []
@@ -1894,7 +1894,7 @@
     },
     {
       "id": "⑬",
-      "title": "全量回归（5轮 Δ0/0 + 预算 + 0 报错）",
+      "title": "全量回归（5轮无正增长 + 预算 + 0 报错）",
       "status": "PASS"
     }
   ]

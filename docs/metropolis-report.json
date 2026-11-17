@@ -1,18 +1,18 @@
 {
   "phase": 5,
-  "generatedAt": "2026-11-16T06:34:59.186Z",
-  "pass": 12,
+  "generatedAt": "2026-11-16T08:34:59.798Z",
+  "pass": 9,
   "total": 12,
-  "allPass": true,
-  "maxTris": 239204,
-  "maxCalls": 1170,
+  "allPass": false,
+  "maxTris": 247112,
+  "maxCalls": 1193,
   "checks": [
     {
       "name": "A 18 座福田式塔楼 + 医院/学校/公交站齐全",
-      "ok": true,
+      "ok": false,
       "detail": {
-        "towers": 18,
-        "hospital": true,
+        "towers": 3,
+        "hospital": false,
         "school": true
       }
     },
@@ -22,15 +22,15 @@
       "detail": [
         {
           "distance": 0,
-          "tri": 1474
+          "tri": 1028
         },
         {
           "distance": 95,
-          "tri": 252
+          "tri": 104
         },
         {
           "distance": 185,
-          "tri": 252
+          "tri": 84
         }
       ]
     },
@@ -74,13 +74,13 @@
     },
     {
       "name": "E 车辆/公交/行人/路灯/信号灯全部 InstancedMesh",
-      "ok": true,
+      "ok": false,
       "detail": {
-        "cars": 32,
-        "wheels": 128,
+        "cars": 12,
+        "wheels": 48,
         "bus": 1,
-        "peds": 24,
-        "legs": 48,
+        "peds": 11,
+        "legs": 22,
         "lamps": 50,
         "lampInstances": 50
       }
@@ -100,7 +100,6 @@
         256,
         256,
         256,
-        256,
         256
       ]
     },
@@ -109,21 +108,21 @@
       "ok": true,
       "detail": {
         "bus": {
-          "t": 0.4677609702563693,
+          "t": 0.4248950195267375,
           "fired": true
         },
         "alighters": [
           {
             "active": true,
-            "t": 0.24188100207733468
+            "t": 0.29863326703894066
           },
           {
             "active": true,
-            "t": 0.35669547553292147
+            "t": 0.3225239284020559
           },
           {
             "active": true,
-            "t": 0.3028383486066617
+            "t": 0.3464145897651745
           }
         ],
         "pedsMoved": true
@@ -134,70 +133,70 @@
       "ok": true,
       "detail": {
         "before": {
-          "geometries": 73,
-          "textures": 41
+          "geometries": 82,
+          "textures": 44
         },
         "after": {
-          "geometries": 73,
-          "textures": 41
+          "geometries": 82,
+          "textures": 44
         },
-        "car0": 0.9251931871597784
+        "car0": 0.5934084554280121
       }
     },
     {
       "name": "J 夜景暖光：玻璃亮窗 + 路灯光斑点亮",
-      "ok": true,
+      "ok": false,
       "detail": {
-        "emissive": 3.515,
-        "lampOpacity": 0.55
+        "emissive": 0.962,
+        "lampOpacity": 0.52
       }
     },
     {
       "name": "K 7 机位全部 ≤300k 三角形（含都会区）",
       "ok": true,
       "detail": {
-        "maxTris": 239204,
-        "maxCalls": 1170,
+        "maxTris": 247112,
+        "maxCalls": 1193,
         "views": {
           "gate": {
-            "triangles": 239204,
-            "calls": 1170,
+            "triangles": 247112,
+            "calls": 1193,
             "cityVisible": false,
             "lod": 1
           },
           "overview": {
-            "triangles": 219512,
-            "calls": 903,
+            "triangles": 237288,
+            "calls": 934,
             "cityVisible": true,
             "lod": 1
           },
           "cityNear": {
-            "triangles": 198460,
-            "calls": 427,
+            "triangles": 209266,
+            "calls": 442,
             "cityVisible": true,
             "lod": 0
           },
           "cityFar": {
-            "triangles": 218958,
-            "calls": 480,
+            "triangles": 236726,
+            "calls": 513,
             "cityVisible": true,
             "lod": 1
           },
           "castle": {
-            "triangles": 218960,
-            "calls": 481,
+            "triangles": 236824,
+            "calls": 516,
             "cityVisible": true,
             "lod": 1
           },
           "farm": {
-            "triangles": 196356,
-            "calls": 428,
+            "triangles": 207948,
+            "calls": 447,
             "cityVisible": true,
             "lod": 1
           },
           "south": {
-            "triangles": 236088,
-            "calls": 1104,
+            "triangles": 239796,
+            "calls": 1119,
             "cityVisible": false,
             "lod": 1
           }
@@ -209,8 +208,8 @@
       "ok": true,
       "detail": {
         "steady": {
-          "geometries": 82,
-          "textures": 46
+          "geometries": 89,
+          "textures": 47
         },
         "deltas": [
           {
