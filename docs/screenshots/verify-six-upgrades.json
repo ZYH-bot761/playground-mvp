@@ -1,9 +1,9 @@
 {
   "module": "six-upgrades",
-  "at": "2026-11-15T11:06:56.895Z",
-  "passed": 20,
+  "at": "2026-11-17T12:14:54.648Z",
+  "passed": 17,
   "total": 20,
-  "allPass": true,
+  "allPass": false,
   "checks": [
     {
       "name": "① 三个新依赖写入 package.json",
@@ -72,14 +72,14 @@
         },
         "bvhGraze": {
           "hit": true,
-          "x": -9.1,
-          "wallX": -8.6,
+          "x": -11,
+          "wallX": -10.5,
           "pushedOutside": true
         },
         "stats": {
           "bvhRebuilds": 1,
-          "bvhTriangles": 120,
-          "registeredColliders": 12,
+          "bvhTriangles": 220,
+          "registeredColliders": 22,
           "bvhPushOuts": 1
         },
         "mutex": true
@@ -114,8 +114,8 @@
       "detail": {
         "stats": {
           "bvhRebuilds": 1,
-          "bvhTriangles": 120,
-          "registeredColliders": 12,
+          "bvhTriangles": 220,
+          "registeredColliders": 22,
           "bvhPushOuts": 1
         },
         "pushOut": {
@@ -123,8 +123,8 @@
         },
         "bvhGraze": {
           "hit": true,
-          "x": -9.1,
-          "wallX": -8.6,
+          "x": -11,
+          "wallX": -10.5,
           "pushedOutside": true
         }
       }
@@ -148,25 +148,25 @@
     },
     {
       "name": "③ LOD 禁用自动降级，视野内始终高模（远景方块消除）",
-      "pass": true,
+      "pass": false,
       "detail": {
-        "lods": 7,
-        "pinned": 2,
-        "meshes": 581,
-        "meshWithBounds": 581,
-        "mipmapTextures": 17,
+        "lods": 8,
+        "pinned": 0,
+        "meshes": 801,
+        "meshWithBounds": 801,
+        "mipmapTextures": 56,
         "badTextures": 0,
         "stats": {
-          "lodsPinned": 7,
-          "boundsFixed": 124,
-          "mipmapsApplied": 17,
+          "lodsPinned": 8,
+          "boundsFixed": 374,
+          "mipmapsApplied": 50,
           "anisotropy": 16,
-          "meshesScanned": 581,
+          "meshesScanned": 801,
           "forceNoCullMeshes": 0,
           "rescans": 1
         },
-        "districtLodPinned": true,
-        "forceNoCullMeshes": 581,
+        "districtLodPinned": false,
+        "forceNoCullMeshes": 801,
         "allOff": true,
         "restored": true
       }
@@ -175,7 +175,7 @@
       "name": "③ 纹理 Mipmap / 各向异性设置正确",
       "pass": true,
       "detail": {
-        "mipmapTextures": 17,
+        "mipmapTextures": 56,
         "badTextures": 0,
         "anisotropy": 16
       }
@@ -184,37 +184,37 @@
       "name": "③ 全 Mesh 包围体精确修正 + 强制关闭 frustumCulled 能力",
       "pass": true,
       "detail": {
-        "meshes": 581,
-        "meshWithBounds": 581,
-        "forceNoCullMeshes": 581,
+        "meshes": 801,
+        "meshWithBounds": 801,
+        "forceNoCullMeshes": 801,
         "allOff": true,
         "restored": true
       }
     },
     {
       "name": "④ 农作物随机旋转 / 缩放 / 色差（消除木棍感，仍为 InstancedMesh）",
-      "pass": true,
+      "pass": false,
       "detail": {
-        "cropTypes": 14,
-        "cropInstances": 504,
-        "randomDistinct": 4,
-        "colored": true
+        "cropTypes": 5,
+        "cropInstances": 968,
+        "randomDistinct": 0,
+        "colored": 0
       }
     },
     {
       "name": "④ 城堡程序化重构（塔楼 + 城墙 + 城垛 + 屋顶，合并几何）",
-      "pass": true,
+      "pass": false,
       "detail": {
-        "castleBodyTris": 1144,
-        "castleWallsTris": 480
+        "castleBodyTris": 1096,
+        "castleWallsTris": 288
       }
     },
     {
       "name": "④ 沥青马路 + 车道标线 + 城堡区抬高地形",
       "pass": true,
       "detail": {
-        "structureCount": 36,
-        "roadMarkings": 24,
+        "structureCount": 94,
+        "roadMarkings": 82,
         "plateauY": 1.1,
         "castleDetailY": 2.2
       }
@@ -254,8 +254,8 @@
       "name": "⑤ 「游乐场」招牌下移 Y 轴 + 前移避免遮挡",
       "pass": true,
       "detail": {
-        "signY": 13.792066805845511,
-        "signZ": 1.02
+        "signY": 14.05,
+        "signZ": 1.8
       }
     },
     {
@@ -271,21 +271,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 67,
-          "textures": 36
+          "geometries": 150,
+          "textures": 50
         },
         "rounds": [
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 150,
+            "textures": 50
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 150,
+            "textures": 50
           },
           {
-            "geometries": 67,
-            "textures": 36
+            "geometries": 150,
+            "textures": 50
           }
         ],
         "dGeo": 0,
@@ -297,7 +297,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 599893
+        "shotBytes": 948582
       }
     }
   ],

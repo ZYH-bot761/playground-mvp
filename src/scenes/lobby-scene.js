@@ -4405,20 +4405,28 @@ export class Lobby extends IAttraction {
       return;
     }
     const cam = this._ctx?.camera;
+    /* 【驾驶集成修复】movementMode（六项升级的漫游层）曾与驾驶扫描互斥：
+     * 玩家按 F 进入漫游飞/走到车旁后，isEngaged()=true 使旧 baseOk 恒 false，
+     * 车辆永不扫描、按 E 无反应——这正是「靠近车却上不去」的根因。
+     * 现在按模式细分：ground 漫游（第一人称贴地，眼高 1.7m）与 WASD 一样
+     * 允许扫车；flight（高空）与旧逻辑一致不扫描；驾驶中由上面的 d.active 分支接管。 */
+    const roamGround = movementMode.isEngaged() && movementMode.mode === 'ground';
+    const roamFlight = movementMode.isEngaged() && movementMode.mode === 'flight';
     const baseOk = cam
       && !this._wasdBlendActive
       && this._sitState === 'none'
-      && !movementMode.isEngaged()
+      && !roamFlight                       // 飞行模式在高空，不扫车（地面模式放行）
       && !cameraRig.isTransitioning
       && !(this._ctx?.isEmbedded?.())
       && this._zooFly == null;
     let scanPoint = null;
     let scanRadius = 4.2;
-    if (baseOk && this._inputMode === 'wasd' && cam.position.y < 3.2) {
+    if (baseOk && (this._inputMode === 'wasd' || roamGround) && cam.position.y < 3.2) {
+      // WASD 步行 或 漫游地面模式：以相机（第一人称）位置扫车。
       scanPoint = cam.position;
     } else if (baseOk && this._inputMode === 'orbit' && this._controls?.target) {
-      // 轨道模式用“看向的地面点”找车。这样从公园俯瞰城市时，
-      // 把视线中心移到试驾车上就能直接 F 上车，无需先切 WASD。
+      // 轨道模式用“看向的地面点”找车。从公园俯瞰城市时，
+      // 把视线中心移到试驾车上就能直接 E 上车，无需先切 WASD。
       scanPoint = this._controls.target;
       scanRadius = 6.0;
     }

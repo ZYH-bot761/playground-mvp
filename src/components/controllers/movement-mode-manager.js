@@ -241,6 +241,7 @@ class MovementModeManager {
     const ctx = this._getContext();
     if (ctx.activeKey && ctx.activeKey !== 'lobby') return this;
     if (ctx.busy) return this; // Lobby 内部相机过渡（动物园飞行等）期间让位
+    if (ctx.driving) return this; // 驾驶中不允许接管相机
     if (cameraRig.isTransitioning) return this;
     this.engaged = true;
     this._initOrientation();
@@ -294,13 +295,21 @@ class MovementModeManager {
     return this;
   }
 
-  /** 当前是否应当接管相机（设施/过渡期间自动让位） */
+  /**
+   * 当前是否应当接管相机（设施/过渡/驾驶期间自动让位）。
+   * 【驾驶集成】ctx.driving 为真时本状态机让位：驾驶相机由 CityDriving 经
+   * CameraRig.writePose 独占写；若此处仍返回 true，update() 每帧写 cam.position.y
+   * 与 rotation 会与之双写，导致驾驶视角抖动/被锁在 1.7m 眼高。
+   * 注意这是「让位」而非 disengage：engaged 标志保留，下车后自动恢复接管，
+   * 玩家无需重新按 F。isEngaged 是唯一的实际生效判据，所有门控都读它。
+   */
   isEngaged() {
     if (!this.engaged || this._disposed || !this._camera) return false;
     const ctx = this._getContext();
     if (ctx.embedded || cameraRig.isTransitioning) return false;
     if (ctx.activeKey && ctx.activeKey !== 'lobby') return false;
-    if (ctx.busy) return false; // Lobby 内部相机过渡（动物园飞行等）期间自动让位
+    if (ctx.busy) return false;   // Lobby 内部相机过渡（动物园飞行等）期间自动让位
+    if (ctx.driving) return false; // 驾驶中让位给 CityDriving（见上）
     return true;
   }
 

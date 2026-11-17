@@ -621,6 +621,10 @@ async function bootstrap() {
       embedded: !!facilityRuntime.isEmbeddedActive,
       // Lobby 内部相机过渡（动物园一键飞行）期间，F 接管与相机仲裁互斥
       busy: !!attractionManager.active?._zooFly,
+      // 【驾驶集成】上车/驾驶中让位给 CityDriving，避免漫游状态机每帧写
+      // cam.position.y / rotation 与驾驶相机双写（以及靠近车时扫描被禁用）
+      driving: !!(attractionManager.active?._driving?.active
+        || attractionManager.active?._driving?.pending),
     }),
   }).attach().buildHUD();
   renderOptimizer.configure({

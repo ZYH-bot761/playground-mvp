@@ -30,6 +30,7 @@ const SUITES = [
   { name: 'v4',           label: 'v4 全量 13 项',   file: 'verify-v4.mjs', marker: /"FAIL": 0/ },
   { name: 'season',       label: '四季天气 16 项',  file: 'verify-season.mjs', marker: /allPass=true/ },
   { name: 'driving',      label: 'GTA 驾驶 21 项',  file: 'verify-driving.mjs', marker: /allPass=true/ },
+  { name: 'drive-roam',   label: '漫游↔驾驶集成 7 项', file: 'verify-drive-roam.mjs', marker: /allPass=true/ },
   { name: 'phase2',       label: '生态扩张 20 项',  file: 'verify-phase2.mjs', marker: /allPass=true/ },
   { name: 'm6zoo',        label: '动物园回归 8 项', file: 'verify-m6-zoo.mjs', marker: /allPass=true/ },
 ];
