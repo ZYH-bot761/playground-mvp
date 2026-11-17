@@ -1,18 +1,18 @@
 {
   "phase": 1,
-  "generatedAt": "2026-11-17T09:37:31.929Z",
+  "generatedAt": "2026-11-17T13:30:56.994Z",
   "pass": 19,
   "total": 19,
   "allPass": true,
-  "maxTris": 189059,
-  "maxCalls": 741,
+  "maxTris": 190603,
+  "maxCalls": 722,
   "checks": [
     {
       "name": "A 9 街块重组为 6 建筑：医院/学校/商场 + 3 异形塔",
       "ok": true,
       "detail": {
         "towers": 3,
-        "detailTriangles": 1028,
+        "detailTriangles": 1388,
         "residential": 2,
         "skyline": 27,
         "streetTrees": 60,
@@ -53,7 +53,7 @@
       "detail": [
         {
           "distance": 0,
-          "tri": 1028
+          "tri": 1388
         },
         {
           "distance": 160,
@@ -159,7 +159,7 @@
       "ok": true,
       "detail": {
         "redEntries": 0,
-        "stoppedAtRed": 869,
+        "stoppedAtRed": 876,
         "violations": []
       }
     },
@@ -168,8 +168,8 @@
       "ok": true,
       "detail": {
         "bad": 0,
-        "checks": 531,
-        "waitSamples": 583
+        "checks": 530,
+        "waitSamples": 585
       }
     },
     {
@@ -251,42 +251,42 @@
       "name": "R 7 机位全部 ≤300k 三角形（含都会区）",
       "ok": true,
       "detail": {
-        "maxTris": 189059,
-        "maxCalls": 741,
+        "maxTris": 190603,
+        "maxCalls": 722,
         "views": {
           "gate": {
-            "triangles": 174718,
-            "calls": 741,
+            "triangles": 175902,
+            "calls": 722,
             "cityVisible": false
           },
           "overview": {
-            "triangles": 188499,
-            "calls": 394,
+            "triangles": 190043,
+            "calls": 375,
             "cityVisible": true
           },
           "cityNear": {
-            "triangles": 188927,
-            "calls": 393,
+            "triangles": 190471,
+            "calls": 374,
             "cityVisible": true
           },
           "signals": {
-            "triangles": 187457,
-            "calls": 391,
+            "triangles": 189001,
+            "calls": 372,
             "cityVisible": true
           },
           "hospital": {
-            "triangles": 188967,
-            "calls": 395,
+            "triangles": 190511,
+            "calls": 376,
             "cityVisible": true
           },
           "mall": {
-            "triangles": 189059,
-            "calls": 401,
+            "triangles": 190603,
+            "calls": 382,
             "cityVisible": true
           },
           "south": {
-            "triangles": 173156,
-            "calls": 706,
+            "triangles": 174340,
+            "calls": 687,
             "cityVisible": false
           }
         }
@@ -297,8 +297,8 @@
       "ok": true,
       "detail": {
         "steady": {
-          "geometries": 174,
-          "textures": 60
+          "geometries": 187,
+          "textures": 69
         },
         "deltas": [
           {

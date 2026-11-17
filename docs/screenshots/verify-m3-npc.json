@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-15T09:05:10.226Z",
+  "at": "2026-11-17T13:26:04.947Z",
   "passed": 7,
   "total": 7,
   "allPass": true,
@@ -9,14 +9,15 @@
       "pass": true,
       "detail": {
         "stats": {
-          "nodes": 354,
-          "edges": 1130,
+          "nodes": 335,
+          "edges": 1007,
           "rebuilds": 2,
+          "blockedRetargets": 0,
           "radius": 31
         },
         "renderMeshCount": 1,
-        "nodes": 354,
-        "withPath": 8
+        "nodes": 335,
+        "withPath": 5
       }
     },
     {
@@ -26,11 +27,12 @@
         "blockedFrames": 0,
         "firstBlock": null,
         "maxBlocked": 0,
-        "moved": 120.58,
+        "moved": 46.2,
         "navStats": {
-          "nodes": 354,
-          "edges": 1130,
+          "nodes": 335,
+          "edges": 1007,
           "rebuilds": 2,
+          "blockedRetargets": 12,
           "radius": 31
         },
         "withPath": 6
@@ -43,11 +45,12 @@
         "blockedFrames": 0,
         "firstBlock": null,
         "maxBlocked": 0,
-        "moved": 120.58,
+        "moved": 46.2,
         "navStats": {
-          "nodes": 354,
-          "edges": 1130,
+          "nodes": 335,
+          "edges": 1007,
           "rebuilds": 2,
+          "blockedRetargets": 12,
           "radius": 31
         },
         "withPath": 6
@@ -68,14 +71,14 @@
         "injected": true,
         "escaped": true,
         "at": [
-          -7.2,
-          12
+          -12,
+          14.4
         ],
         "box": {
-          "minX": -8.6,
-          "maxX": -4.4,
-          "minZ": 12.8,
-          "maxZ": 17.2,
+          "minX": -10.5,
+          "maxX": -4.9,
+          "minZ": 12,
+          "maxZ": 18,
           "key": "gate-left"
         }
       }
@@ -93,7 +96,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m3-npc.png",
-        "bytes": 1253595
+        "bytes": 1032741
       }
     }
   ],

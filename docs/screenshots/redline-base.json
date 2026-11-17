@@ -1,10 +1,10 @@
 {
   "module": "base",
-  "at": "2026-11-17T12:18:55.693Z",
+  "at": "2026-11-17T13:35:07.780Z",
   "port": 5173,
-  "passed": 7,
+  "passed": 8,
   "total": 8,
-  "allPass": false,
+  "allPass": true,
   "checks": [
     {
       "name": "稳态后 3 轮 Δgeo=0 / Δtex=0",
@@ -147,12 +147,13 @@
       "detail": []
     },
     {
-      "name": "脚本执行",
-      "pass": false,
-      "detail": "page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n\n    at D:\\playground-mvp\\tests\\verify-redline.mjs:181:14"
+      "name": "截图有效",
+      "pass": true,
+      "detail": {
+        "file": "D:\\playground-mvp\\docs\\screenshots\\redline-base.png",
+        "bytes": 1031384
+      }
     }
   ],
-  "errors": [
-    "console.error: The AudioContext encountered an error from the audio device or the WebAudio renderer."
-  ]
+  "errors": []
 }
