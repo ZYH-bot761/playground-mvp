@@ -1,6 +1,6 @@
 {
   "module": "base",
-  "at": "2026-11-18T02:47:29.378Z",
+  "at": "2026-11-18T04:27:51.047Z",
   "port": 5173,
   "passed": 8,
   "total": 8,
@@ -12,20 +12,20 @@
       "detail": {
         "steady": {
           "geometries": 152,
-          "textures": 54
+          "textures": 56
         },
         "rounds": [
           {
             "geometries": 152,
-            "textures": 54
+            "textures": 56
           },
           {
             "geometries": 152,
-            "textures": 54
+            "textures": 56
           },
           {
             "geometries": 152,
-            "textures": 54
+            "textures": 56
           }
         ],
         "dGeo": 0,
@@ -38,11 +38,11 @@
       "detail": {
         "before": {
           "geometries": 152,
-          "textures": 54
+          "textures": 56
         },
         "after": {
           "geometries": 152,
-          "textures": 54
+          "textures": 56
         },
         "dGeo": 0,
         "dTex": 0
@@ -53,12 +53,12 @@
       "pass": true,
       "detail": {
         "overview": {
-          "calls": 669,
-          "triangles": 173956
+          "calls": 692,
+          "triangles": 173826
         },
         "standard": {
-          "calls": 646,
-          "triangles": 170582
+          "calls": 669,
+          "triangles": 170452
         }
       }
     },
@@ -100,31 +100,31 @@
         },
         "measured": {
           "overview": {
-            "calls": 669,
-            "triangles": 173956
+            "calls": 692,
+            "triangles": 173826
           },
           "standard": {
-            "calls": 646,
-            "triangles": 170582
+            "calls": 669,
+            "triangles": 170452
           }
         },
         "delta": {
           "overview": {
-            "triangles": -111286,
-            "calls": -529
+            "triangles": -111416,
+            "calls": -506
           },
           "standard": {
-            "triangles": -107916,
-            "calls": -508
+            "triangles": -108046,
+            "calls": -485
           }
         }
       }
     },
     {
-      "name": "9 个触发环 + 动物园五区仍在",
+      "name": "10 个触发环（含别墅）+ 动物园五区仍在",
       "pass": true,
       "detail": {
-        "rings": 9,
+        "rings": 10,
         "zoo": true,
         "zones": [
           "Zoo/bird_zone",
@@ -151,7 +151,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\redline-base.png",
-        "bytes": 1031350
+        "bytes": 1033644
       }
     }
   ],

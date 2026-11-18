@@ -1,11 +1,11 @@
 {
-  "at": "2026-11-15T09:04:24.450Z",
+  "at": "2026-11-18T03:48:23.331Z",
   "passed": 7,
   "total": 7,
   "allPass": true,
   "checks": [
     {
-      "name": "A 9 环均由本体门位派生（同 x / 正前方）",
+      "name": "A 10 环均由本体门位派生（同 x / 正前方）",
       "pass": true,
       "detail": [
         {
@@ -17,9 +17,9 @@
           ],
           "ring": [
             -20,
-            -8
+            -8.4
           ],
-          "gap": 8
+          "gap": 7.6
         },
         {
           "key": "parkour-run",
@@ -48,17 +48,17 @@
           "gap": 7
         },
         {
-          "key": "jump-jump",
+          "key": "dance-hall",
           "ok": true,
           "body": [
-            26,
-            -2
+            -23,
+            8.5
           ],
           "ring": [
-            26,
-            6
+            -23,
+            15.75
           ],
-          "gap": 8
+          "gap": 7.25
         },
         {
           "key": "train-ride",
@@ -82,9 +82,9 @@
           ],
           "ring": [
             9,
-            0.5
+            -0.2
           ],
-          "gap": 7
+          "gap": 7.7
         },
         {
           "key": "pirate-ship",
@@ -95,22 +95,22 @@
           ],
           "ring": [
             -7,
-            -2
+            -0.8
           ],
-          "gap": 7
+          "gap": 5.8
         },
         {
           "key": "fireworks-deck",
           "ok": true,
           "body": [
-            22,
-            20
+            13.8,
+            15.5
           ],
           "ring": [
-            22,
-            14
+            13.8,
+            10.28
           ],
-          "gap": 6
+          "gap": 5.220000000000001
         },
         {
           "key": "century-clock",
@@ -124,6 +124,19 @@
             2
           ],
           "gap": 6
+        },
+        {
+          "key": "villa",
+          "ok": true,
+          "body": [
+            -30,
+            25
+          ],
+          "ring": [
+            -30,
+            32
+          ],
+          "gap": 7
         }
       ]
     },
@@ -131,7 +144,7 @@
       "name": "B 触发环最小间距 ≥ 6.5m",
       "pass": true,
       "detail": {
-        "minDist": 8.062,
+        "minDist": 7.539,
         "pair": [
           "pirate-ship",
           "century-clock"
@@ -158,15 +171,15 @@
       "name": "D 引导线端点跟随派生 trigger",
       "pass": true,
       "detail": {
-        "guides": 9,
-        "radial": 7
+        "guides": 10,
+        "radial": 8
       }
     },
     {
       "name": "E 建筑 AABB 无重叠",
       "pass": true,
       "detail": {
-        "boxes": 12,
+        "boxes": 22,
         "overlaps": 0,
         "overlapPairs": []
       }
@@ -181,7 +194,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m2-layout.png",
-        "bytes": 1257249
+        "bytes": 713714
       }
     }
   ],
