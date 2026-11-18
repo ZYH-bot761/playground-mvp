@@ -1,7 +1,7 @@
 {
   "phase": 2,
   "title": "生态扩张：森林公园 / 动物升级 / 农家劳作",
-  "at": "2026-11-16T11:52:32.981Z",
+  "at": "2026-11-18T02:50:39.249Z",
   "pass": 20,
   "total": 20,
   "allPass": true,
@@ -28,9 +28,9 @@
       "name": "A3 树林 100+ 且树干/树冠/灌木全部 InstancedMesh",
       "ok": true,
       "detail": {
-        "trees": 128,
+        "trees": 130,
         "instanced": true,
-        "shrubs": 29
+        "shrubs": 24
       }
     },
     {
@@ -110,20 +110,20 @@
       "name": "B3 大象长鼻 / 长颈鹿脖 / 狮虎尾巴矩阵随时间变化",
       "ok": true,
       "detail": {
-        "elephant": 3.5789413452148438,
-        "giraffe": 0.20932237058877945,
-        "lion": 2.6156845092773438,
-        "tiger": 1.5576858520507812
+        "elephant": 0.2635689377784729,
+        "giraffe": 0.2884662598371506,
+        "lion": 0.5195682048797607,
+        "tiger": 0.5787563621997833
       }
     },
     {
       "name": "B4 大型四足动物踩地（脚底 y≈1.1）",
       "ok": true,
       "detail": {
-        "elephant": 1.1047290228307247,
-        "giraffe": 1.1266143582761288,
-        "lion": 1.15418561687693,
-        "tiger": 1.1467201421037316
+        "elephant": 1.1286734275054187,
+        "giraffe": 1.132041712407954,
+        "lion": 1.1672592440154403,
+        "tiger": 1.148874535690993
       }
     },
     {
@@ -174,7 +174,8 @@
           "cycles": {
             "planter": 5.2,
             "hoer": 6.8
-          }
+          },
+          "cropCycleSeconds": 28
         },
         "planters": 3,
         "hoers": 2
@@ -230,12 +231,12 @@
       "name": "D1 新增内容机位 draw calls ≤ 900",
       "ok": true,
       "detail": {
-        "contentCalls": 825,
+        "contentCalls": 472,
         "views": {
-          "zoo": 628,
-          "safari": 825,
-          "forest": 535,
-          "farm": 555
+          "zoo": 370,
+          "safari": 472,
+          "forest": 318,
+          "farm": 346
         }
       }
     },
@@ -243,31 +244,31 @@
       "name": "D2 六个机位 triangles ≤ 300k",
       "ok": true,
       "detail": {
-        "maxTris": 287234,
+        "maxTris": 174952,
         "views": {
           "zoo": {
-            "calls": 628,
-            "triangles": 227932
+            "calls": 370,
+            "triangles": 144490
           },
           "safari": {
-            "calls": 825,
-            "triangles": 242282
+            "calls": 472,
+            "triangles": 151678
           },
           "forest": {
-            "calls": 535,
-            "triangles": 223318
+            "calls": 318,
+            "triangles": 142014
           },
           "farm": {
-            "calls": 555,
-            "triangles": 244690
+            "calls": 346,
+            "triangles": 153670
           },
           "overview": {
-            "calls": 1297,
-            "triangles": 287234
+            "calls": 719,
+            "triangles": 174952
           },
           "districtOverview": {
-            "calls": 982,
-            "triangles": 245736
+            "calls": 547,
+            "triangles": 153240
           }
         }
       }
@@ -277,24 +278,24 @@
       "ok": true,
       "detail": {
         "before": {
-          "geometries": 108,
-          "textures": 49
+          "geometries": 152,
+          "textures": 56
         },
         "after": {
-          "geometries": 108,
-          "textures": 49
+          "geometries": 152,
+          "textures": 56
         },
         "dGeo": 0,
         "dTex": 0,
         "arraysAfter": {
           "walkers": 4,
           "dogs": 2,
-          "owned": 31
+          "owned": 36
         },
         "arraysBefore": {
           "walkers": 4,
           "dogs": 2,
-          "owned": 31
+          "owned": 36
         }
       }
     },
@@ -305,12 +306,12 @@
         "before": {
           "walkers": 4,
           "dogs": 2,
-          "owned": 31
+          "owned": 36
         },
         "after": {
           "walkers": 4,
           "dogs": 2,
-          "owned": 31
+          "owned": 36
         }
       }
     },
@@ -353,9 +354,9 @@
         ]
       },
       "bridgeArchHeight": 2.472671389579773,
-      "trees": 128,
+      "trees": 130,
       "treesInstanced": true,
-      "shrubs": 29,
+      "shrubs": 24,
       "walkers": 4,
       "dogs": 2,
       "dogLegInstances": 8,
@@ -449,16 +450,16 @@
       },
       "safariInside": true,
       "animDiff": {
-        "elephant": 3.5789413452148438,
-        "giraffe": 0.20932237058877945,
-        "lion": 2.6156845092773438,
-        "tiger": 1.5576858520507812
+        "elephant": 0.2635689377784729,
+        "giraffe": 0.2884662598371506,
+        "lion": 0.5195682048797607,
+        "tiger": 0.5787563621997833
       },
       "groundY": {
-        "elephant": 1.1047290228307247,
-        "giraffe": 1.1266143582761288,
-        "lion": 1.15418561687693,
-        "tiger": 1.1467201421037316
+        "elephant": 1.1286734275054187,
+        "giraffe": 1.132041712407954,
+        "lion": 1.1672592440154403,
+        "tiger": 1.148874535690993
       },
       "trunkHeight": 1.850000035762787,
       "camera": {
@@ -492,7 +493,8 @@
         "cycles": {
           "planter": 5.2,
           "hoer": 6.8
-        }
+        },
+        "cropCycleSeconds": 28
       },
       "planterTorsoCount": 3,
       "hoerTorsoCount": 2,
@@ -534,50 +536,50 @@
   },
   "budget": {
     "zoo": {
-      "calls": 628,
-      "triangles": 227932
+      "calls": 370,
+      "triangles": 144490
     },
     "safari": {
-      "calls": 825,
-      "triangles": 242282
+      "calls": 472,
+      "triangles": 151678
     },
     "forest": {
-      "calls": 535,
-      "triangles": 223318
+      "calls": 318,
+      "triangles": 142014
     },
     "farm": {
-      "calls": 555,
-      "triangles": 244690
+      "calls": 346,
+      "triangles": 153670
     },
     "overview": {
-      "calls": 1297,
-      "triangles": 287234
+      "calls": 719,
+      "triangles": 174952
     },
     "districtOverview": {
-      "calls": 982,
-      "triangles": 245736
+      "calls": 547,
+      "triangles": 153240
     }
   },
   "hot": {
     "before": {
-      "geometries": 108,
-      "textures": 49
+      "geometries": 152,
+      "textures": 56
     },
     "after": {
-      "geometries": 108,
-      "textures": 49
+      "geometries": 152,
+      "textures": 56
     },
     "dGeo": 0,
     "dTex": 0,
     "arraysAfter": {
       "walkers": 4,
       "dogs": 2,
-      "owned": 31
+      "owned": 36
     },
     "arraysBefore": {
       "walkers": 4,
       "dogs": 2,
-      "owned": 31
+      "owned": 36
     }
   },
   "screenshots": [

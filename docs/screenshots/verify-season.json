@@ -1,6 +1,6 @@
 {
   "module": "phase3-season",
-  "at": "2026-11-17T11:23:57.751Z",
+  "at": "2026-11-18T02:40:11.095Z",
   "passed": 16,
   "total": 16,
   "allPass": true,
@@ -176,7 +176,7 @@
         "count": 84,
         "mem": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "calls": 1,
         "cam": [
@@ -194,7 +194,7 @@
         "count": 84,
         "mem": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "calls": 1,
         "cam": [
@@ -212,7 +212,7 @@
         "count": 84,
         "mem": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "calls": 1,
         "cam": [
@@ -230,7 +230,7 @@
         "count": 84,
         "mem": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "calls": 1,
         "cam": [
@@ -246,11 +246,11 @@
       "detail": {
         "before": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "after": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "dGeo": 0,
         "dTex": 0
@@ -271,17 +271,17 @@
   "memory": {
     "before": {
       "geometries": 152,
-      "textures": 51
+      "textures": 54
     },
     "after": {
       "geometries": 152,
-      "textures": 51
+      "textures": 54
     },
     "dGeo": 0,
     "dTex": 0
   },
   "bootMem": {
     "geometries": 152,
-    "textures": 51
+    "textures": 54
   }
 }

@@ -1,6 +1,6 @@
 {
   "module": "six-upgrades",
-  "at": "2026-11-17T12:14:54.648Z",
+  "at": "2026-11-18T02:43:46.262Z",
   "passed": 17,
   "total": 20,
   "allPass": false,
@@ -154,12 +154,12 @@
         "pinned": 0,
         "meshes": 801,
         "meshWithBounds": 801,
-        "mipmapTextures": 56,
+        "mipmapTextures": 62,
         "badTextures": 0,
         "stats": {
           "lodsPinned": 8,
           "boundsFixed": 374,
-          "mipmapsApplied": 50,
+          "mipmapsApplied": 56,
           "anisotropy": 16,
           "meshesScanned": 801,
           "forceNoCullMeshes": 0,
@@ -175,7 +175,7 @@
       "name": "③ 纹理 Mipmap / 各向异性设置正确",
       "pass": true,
       "detail": {
-        "mipmapTextures": 56,
+        "mipmapTextures": 62,
         "badTextures": 0,
         "anisotropy": 16
       }
@@ -271,21 +271,21 @@
       "pass": true,
       "detail": {
         "steady": {
-          "geometries": 150,
-          "textures": 50
+          "geometries": 147,
+          "textures": 52
         },
         "rounds": [
           {
-            "geometries": 150,
-            "textures": 50
+            "geometries": 147,
+            "textures": 52
           },
           {
-            "geometries": 150,
-            "textures": 50
+            "geometries": 147,
+            "textures": 52
           },
           {
-            "geometries": 150,
-            "textures": 50
+            "geometries": 147,
+            "textures": 52
           }
         ],
         "dGeo": 0,
@@ -297,7 +297,7 @@
       "pass": true,
       "detail": {
         "errors": [],
-        "shotBytes": 948582
+        "shotBytes": 870589
       }
     }
   ],

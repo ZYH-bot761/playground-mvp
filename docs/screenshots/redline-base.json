@@ -1,6 +1,6 @@
 {
   "module": "base",
-  "at": "2026-11-17T13:35:07.780Z",
+  "at": "2026-11-18T02:47:29.378Z",
   "port": 5173,
   "passed": 8,
   "total": 8,
@@ -12,20 +12,20 @@
       "detail": {
         "steady": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "rounds": [
           {
             "geometries": 152,
-            "textures": 51
+            "textures": 54
           },
           {
             "geometries": 152,
-            "textures": 51
+            "textures": 54
           },
           {
             "geometries": 152,
-            "textures": 51
+            "textures": 54
           }
         ],
         "dGeo": 0,
@@ -38,11 +38,11 @@
       "detail": {
         "before": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "after": {
           "geometries": 152,
-          "textures": 51
+          "textures": 54
         },
         "dGeo": 0,
         "dTex": 0
@@ -151,7 +151,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\redline-base.png",
-        "bytes": 1031384
+        "bytes": 1031350
       }
     }
   ],
