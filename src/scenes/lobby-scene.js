@@ -226,6 +226,11 @@ const FACILITY_SPECS = Object.freeze([
     key: 'century-clock', name: '世纪钟', label: '世纪钟',
     x: 0, z: -4, doorDir: { dx: 0, dz: 1 }, doorDepth: 3,
   },
+  {
+    // 【可进入别墅】西南外围空地，距跳舞厅触发点约 17m、火车约 26m，满足 6.5m 自检
+    key: 'villa', name: '我的别墅', label: '我的别墅',
+    x: -30, z: 25, doorDir: { dx: 0, dz: 1 }, doorDepth: 4,
+  },
 ]);
 
 /**

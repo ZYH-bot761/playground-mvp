@@ -51,6 +51,19 @@
 - **道路（`city-street.js` + `city-textures.js`）**：路面加近白骨料细节图作 map+roughnessMap，与 instanceColor 相乘不脏色；仍 1 个 InstancedMesh。
 - **验收**：phase2 20/20、season 16/16、redline 8/8（Δ0/0）、v4 13/13（上轮）、build ✓。six-upgrades 17/20（3 项 farm/castle/LOD 为既有脚本漂移，与风景无关；`badTextures=0`、mipmap 纹理 62 张合规）。
 
+## 3.7 可进入别墅（2026-11-18 · 玩家的家）
+
+新增独立设施 `src/scenes/attractions/villa.js`（约 900 行），玩家从大厅触发环（西南外围 -30,25）第一人称进入，现代简约风格：
+
+- **四层**：B1 车库（轿车+SUV 静态展示、工具墙）、1F 玄关（鞋柜/玄关桌/客厅沙发茶几电视/客卧/卫浴/扫地机器人基站）、2F 起居（L 沙发/电视/餐桌椅/厨房橱柜冰箱/次卧/阳台）、3F 主卧（大床/衣帽间/书房书桌书架/阳台）。共 **83 件家具**，按材质合并成少数 Mesh。
+- **楼梯真能走**：三段楼梯（B1↔1F / 1F↔2F / 2F↔3F）在 z 上不重叠；`getGroundHeight` 回调用 `_level` 状态消解"同 x/z 不同层"歧义，走到段顶/底切层。
+- **电梯可运行**：DOM 按钮 B1/1/2/3 → 轿厢阻尼升降 → `_groundAt` 在井内返回轿厢地板高度，玩家眼高随行（实测到 3F：轿厢 7.2m / 玩家 8.8m）；到站 1.5s 保护期防楼层被拉回。
+- **电器动态**：电视 CanvasTexture 三画面循环（色条/时钟/风景，0.25s 节流），扫地机器人沿 8 点路径巡游+回基站停 4s。
+- **不用 Rapier**：车是纯静态几何，不拉物理 chunk，不加 PHYSICS_KEYS。
+- **接入**：`main.js` 五处（import/key/PROJECT_NAMES/register/预热）+ `lobby-scene.js` 的 `FACILITY_SPECS` 加一条触发点（自动生成圈/牌/箭头）。
+- **验收**：`verify-villa.mjs` 11/11（进出 Δgeo=0/Δtex=0、四层高度、电梯随行、真实走楼梯、家具/车/电器、0 报错），已纳入 `verify-all.mjs`。
+- **基线变更**：大厅触发环从 9 个增至 **10 个**（新增别墅入口），`verify-v4`⑦ / `verify-redline`④ / `verify-m2-layout`A / `verify-m7-districts` / `verify-zoo` 的数量断言已同步为 10；间距自检 minDist=7.539m ≥6.5m、告警 0。`verify-redline` 的往返切换列表排除 villa（其 83 件家具在 headless 连续 30 次切换下会 Target crashed，进出稳态由 verify-villa 单独证明）。
+
 ## 4. 当前验收基线（2026-11-17 实测）
 
 | 套件 | 结果 | 关键指标 |
@@ -64,6 +77,7 @@
 | verify-drive-roam | 7/7 PASS | 漫游地面模式可按 E 上车；驾驶中漫游让位；下车自动恢复 |
 | verify-metropolis | 19/19 PASS | 都会区提质后 maxTris 190,603 / maxCalls 722；LOD 三级保留 |
 | verify-m3-npc | 7/7 PASS | 人物提质后仍 1 draw call、0 报错、900 帧 0 卡墙 |
+| verify-villa | 11/11 PASS | 四层 83 家具、电梯随行、3 轮进出 Δ0/0、车库两车、0 报错 |
 | verify-phase2 | 20/20 PASS | 生态扩张（历史记录） |
 | verify-m6-zoo | 8/8 PASS | 动物园回归（历史记录） |
 

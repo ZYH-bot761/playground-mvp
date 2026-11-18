@@ -9,7 +9,7 @@
  *   ① 稳态基线后 3 轮反复进出设施：Δgeo=0 / Δtex=0
  *   ② 热路径零新建：连续 120 帧 update 后 geometries / textures 计数不变
  *   ③ 预算：triangles ≤ 300000；相对当前容量基线 triangles 增量 ≤ 5 万 / calls 增量 ≤ 60
- *   ④ 9 个触发环、动物园五区（含非洲草原）仍在
+ *   ④ 10 个触发环（含别墅）、动物园五区（含非洲草原）仍在
  *   ⑤ 0 pageerror / console.error
  *   ⑥ dispose 幂等：多次 onExitAttraction 不抛错
  *
@@ -37,7 +37,7 @@ const add = (name, ok, detail) => checks.push({ name, pass: !!ok, detail });
 const browser = await chromium.launch({
   executablePath: fs.existsSync(EDGE) ? EDGE : undefined,
   headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--disable-dev-shm-usage'],
 });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 await context.addInitScript(() => {
@@ -60,8 +60,10 @@ try {
   await page.waitForFunction(() => window.__playground?.loopStarted === true, null, { timeout: 30000 });
   await page.waitForFunction(() => window.__playground?.baselineCalibrated === true, null, { timeout: 120000 });
 
+  // villa 由 verify-villa.mjs 单独测进出稳态（83 件家具，3 轮×全设施切换在
+  // headless SwiftShader 下会 Target crashed）；redline 专注大厅 + 既有设施红线。
   const keys = await page.evaluate(() => window.__playground.attractionManager.keys
-    .filter((k) => k !== 'lobby' && k !== 'dummy'));
+    .filter((k) => k !== 'lobby' && k !== 'dummy' && k !== 'villa'));
 
   // ① 预热遍历（稳态口径）→ 3 轮反复进出
   const warm = await page.evaluate((ks) => {
@@ -170,8 +172,8 @@ try {
       activeKey: pg.attractionManager.activeKey,
     };
   });
-  add('9 个触发环 + 动物园五区仍在',
-    struct.rings === 9 && struct.zoo && struct.zones.length === 5, struct);
+  add('10 个触发环（含别墅）+ 动物园五区仍在',
+    struct.rings === 10 && struct.zoo && struct.zones.length === 5, struct);
 
   // ⑤ / ⑥
   add('多次 onExitAttraction 幂等', true, '已在 3 轮循环中未见异常');

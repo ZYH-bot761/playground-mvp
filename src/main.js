@@ -91,6 +91,7 @@ import { PirateShip } from './scenes/attractions/pirate-ship.js';
 import { Lobby } from './scenes/lobby-scene.js';
 import { FireworksDeck } from './scenes/attractions/fireworks-deck.js';
 import { CenturyClock } from './scenes/attractions/century-clock.js';
+import { Villa } from './scenes/attractions/villa.js';
 import { cameraRig } from './core/camera-rig.js';
 import { dayNightCycle } from './utils/helpers/day-night-cycle.js';
 import { seasonCycle } from './utils/helpers/season-cycle.js';
@@ -123,6 +124,8 @@ const PIRATE_KEY = 'pirate-ship';
 const FIREWORKS_KEY = 'fireworks-deck';
 /** 模块 8 项目：天津世纪钟（大厅中央地标，可进入近距离观赏） */
 const CLOCK_KEY = 'century-clock';
+/** 可进入的别墅（玩家的家）：四层 + 电梯 + 车库，独立设施 */
+const VILLA_KEY = 'villa';
 /** M5a 项目：可漫游的游乐场大厅 */
 const LOBBY_KEY = 'lobby';
 /** 当前正式激活的项目 */
@@ -171,6 +174,7 @@ const PROJECT_NAMES = Object.freeze({
   [PIRATE_KEY]: '海盗船',
   [FIREWORKS_KEY]: '烟花观礼台',
   [CLOCK_KEY]: '世纪钟',
+  [VILLA_KEY]: '我的别墅',
   [FERRIS_WHEEL_KEY]: '南瓜摩天轮',
   [LOBBY_KEY]: '游乐场大厅',
 });
@@ -404,7 +408,7 @@ function scheduleIdle(task) {
  */
 const BACKGROUND_PREWARM_KEYS = Object.freeze([
   DANCE_KEY, TRAIN_KEY, CLOCK_KEY,
-  FIREWORKS_KEY, MEMORY_KEY, PARKOUR_KEY, PUMPKIN_KEY, DUMMY_KEY,
+  FIREWORKS_KEY, MEMORY_KEY, PARKOUR_KEY, PUMPKIN_KEY, DUMMY_KEY, VILLA_KEY,
   // 【阶段二·模块 2】CAROUSEL_KEY / PIRATE_KEY 已登记 EMBEDDED_KEYS，
   // prewarmFacility 会在嵌入分支直接跳过，不再列进队列。
 ]);
@@ -833,6 +837,7 @@ async function bootstrap() {
   attractionManager.register(PIRATE_KEY, () => new PirateShip());
   attractionManager.register(FIREWORKS_KEY, () => new FireworksDeck());
   attractionManager.register(CLOCK_KEY, () => new CenturyClock());
+  attractionManager.register(VILLA_KEY, () => new Villa());
   attractionManager.register(LOBBY_KEY, () => new Lobby());
 
   /* ---------- ③-b v4 T03：嵌入视图运行时（唯一场景 + 相机即视图） ----------

@@ -3,7 +3,7 @@
  * 运行：node tests/verify-m2-layout.mjs
  *
  * 断言：
- *   A 9 个触发环，均由本体 + 大门朝向派生（同 x、z 偏移 = doorDepth + 3）
+ *   A 10 个触发环（含别墅），均由本体 + 大门朝向派生（同 x、z 偏移 = doorDepth + 3）
  *   B 任意两环间距 ≥ 6.5m（v4⑦ 口径）
  *   C 南瓜摩天轮 ↔ 海盗船本体净距 ≥ 20m（旧 12.6m，用户要求拉开）
  *   D 引导线数量 = 设施数 - 中轴两项 + 中轴两条，且每条端点落在对应 trigger 上
@@ -67,14 +67,15 @@ try {
   const align = data.layout.map((f) => {
     const ring = data.rings.find((r) => r.key === f.key);
     if (!ring) return { key: f.key, ok: false, why: 'no ring' };
-    const gap = f.doorDepth + 3;
+    // 与 lobby-scene.js triggerOf 同口径：露天设施用 facadeFront 替代 doorDepth
+    const gap = (f.facadeFront ?? f.doorDepth) + 3;
     const ok = Math.abs(ring.x - (f.x + f.doorDir.dx * gap)) < 0.02
       && Math.abs(ring.z - (f.z + f.doorDir.dz * gap)) < 0.02
       && Math.abs(ring.x - f.x) < 0.02; // 门朝纯 Z，圈与本体同 x
     return { key: f.key, ok, body: [f.x, f.z], ring: [ring.x, ring.z], gap };
   });
-  add('A 9 环均由本体门位派生（同 x / 正前方）',
-    data.rings.length === 9 && data.layout.length === 9 && align.every((a) => a.ok), align);
+  add('A 10 环均由本体门位派生（同 x / 正前方）',
+    data.rings.length === 10 && data.layout.length === 10 && align.every((a) => a.ok), align);
 
   // B 环间距
   let minD = Infinity, pair = null;
