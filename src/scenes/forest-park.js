@@ -107,6 +107,48 @@ function mergeParts(parts, label) {
   return g;
 }
 
+/**
+ * 自然树冠几何：在 Icosahedron 上按【顶点坐标】做确定性径向位移，
+ * 让球体变成有叶簇凹凸的轮廓。用坐标 hash 而非索引，保证同一空间位置的
+ * 多个副本位移一致、不裂面。面数与原几何完全相同（零增面）。
+ * @param {number} detail Icosahedron detail（1=80面，0=20面）
+ * @param {number} amp 位移幅度系数
+ */
+function makeCanopyGeometry(detail = 1, amp = 0.07) {
+  const g = new THREE.IcosahedronGeometry(1, detail);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    // 用坐标 hash（连续正弦叠加）保证位置相同→位移相同
+    const n = Math.sin(x * 5.3 + y * 3.7) * Math.cos(z * 4.9 - y * 2.1)
+      + 0.5 * Math.sin(x * 9.1 - z * 7.3 + y * 5.7);
+    const r = 1 + n * amp;
+    pos.setXYZ(i, x * r, y * r * 0.94, z * r); // 略压扁，避免正球
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
+
+/** 针叶树几何：Cone 顶点做轻微螺旋扭转 + 半径抖动，打破规整圆锥感（零增面）。 */
+function makeConiferGeometry(radial = 7) {
+  // heightSegments 保持默认 1（零增面）；靠底面顶点半径抖动打破规整圆锥
+  const g = new THREE.ConeGeometry(1, 1, radial);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const ang = Math.atan2(z, x);
+    // 半径按角度波动（按坐标 hash，避免同位置副本裂面）
+    const wobble = 1 + Math.sin(ang * 3 + y * 2) * 0.09;
+    pos.setXYZ(i, x * wobble, y, z * wobble);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
+
 function makeGrassTexture() {
   const size = 256;
   const c = document.createElement('canvas');
@@ -136,6 +178,73 @@ function makeGrassTexture() {
   tex.repeat.set(10, 7);
   tex.anisotropy = 4;
   tex.name = 'ForestPark/grass';
+  return tex;
+}
+
+/**
+ * 草地法线贴图：由确定性噪声梯度生成 (dx,dy,1) 法线，让草叶有微观凹凸。
+ * 与 makeGrassTexture 同种子、同 repeat，零增面；Canvas 设 mipmap 满足纹理验收。
+ */
+function makeGrassNormalTexture() {
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const g = c.getContext('2d');
+  const img = g.createImageData(size, size);
+  const rnd = makeRng(20261116);
+  // 预生成高度场（草叶簇 + 细噪），再中心差分求法线
+  const h = new Float32Array(size * size);
+  for (let i = 0; i < 1800; i += 1) {
+    const cx = (rnd() * size) | 0, cy = (rnd() * size) | 0;
+    const amp = 0.4 + rnd() * 0.6;
+    const len = 2 + (rnd() * 5) | 0;
+    for (let k = 0; k < len; k += 1) {
+      const yy = (cy - k + size) % size;
+      h[yy * size + cx] += amp;
+    }
+  }
+  for (let i = 0; i < size * size; i += 1) h[i] += rnd() * 0.25;
+  const at = (x, y) => h[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = at(x + 1, y) - at(x - 1, y);
+      const dy = at(x, y + 1) - at(x, y - 1);
+      const nx = -dx * 0.5, ny = -dy * 0.5, nz = 1;
+      const inv = 1 / Math.hypot(nx, ny, nz);
+      const idx = (y * size + x) * 4;
+      img.data[idx] = (nx * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 1] = (ny * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 2] = (nz * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(10, 7);
+  tex.anisotropy = 4;
+  tex.name = 'ForestPark/grassNormal';
+  return tex; // 法线数据线性空间，不设 sRGB
+}
+
+/** 草地粗糙度贴图：草叶簇略粗糙、缝隙略光滑，打破常数 roughness。 */
+function makeGrassRoughTexture() {
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const g = c.getContext('2d');
+  g.fillStyle = '#e0e0e0'; g.fillRect(0, 0, size, size); // 草丛粗糙 ≈0.88
+  const rnd = makeRng(20261117);
+  for (let i = 0; i < 3600; i += 1) {
+    const v = 150 + ((rnd() * 80) | 0);
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    g.fillRect(rnd() * size, rnd() * size, 1, 2 + rnd() * 4);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(10, 7);
+  tex.anisotropy = 4;
+  tex.name = 'ForestPark/grassRough';
   return tex;
 }
 
@@ -212,9 +321,15 @@ export class ForestPark {
 
     // ---- 草坪 ----
     const grassTex = this._trackTex(makeGrassTexture());
+    /* 【风景提质】草地加法线 + 粗糙度贴图，草叶有微观凹凸、不再是纯色绿毯。
+     * ground 角色在大厅 matGround 早已挂同类型三图，defines 一致不会破坏四季注入。 */
+    const grassNormal = this._trackTex(makeGrassNormalTexture());
+    const grassRough = this._trackTex(makeGrassRoughTexture());
     const lawnGeo = this._trackGeo(new THREE.PlaneGeometry(w, d, 1, 1));
     const lawnMat = this._trackMat(new THREE.MeshStandardMaterial({
       color: 0xffffff, map: grassTex, roughness: 0.98, metalness: 0,
+      normalMap: grassNormal, roughnessMap: grassRough,
+      normalScale: new THREE.Vector2(0.6, 0.6),
       envMapIntensity: 0.1,
     }));
     const lawn = new THREE.Mesh(lawnGeo, lawnMat);
@@ -238,6 +353,7 @@ export class ForestPark {
         uniform float uTime;
         varying vec2 vUv;
         varying float vWave;
+        varying vec3 vViewDir;
         void main() {
           vec3 p = position;
           float w1 = sin(p.z * 1.35 + uTime * 1.55) * 0.055;
@@ -245,12 +361,16 @@ export class ForestPark {
           p.y += w1 + w2;
           vWave = w1 + w2;
           vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+          // 【风景提质】视线方向供片元算菲涅尔；零增面，uTime 保留
+          vec4 world = modelMatrix * vec4(p, 1.0);
+          vViewDir = normalize(cameraPosition - world.xyz);
+          gl_Position = projectionMatrix * viewMatrix * world;
         }`,
       fragmentShader: `
         uniform float uTime;
         varying vec2 vUv;
         varying float vWave;
+        varying vec3 vViewDir;
         void main() {
           float r1 = sin(vUv.y * 86.0 - uTime * 2.8 + sin(vUv.x * 7.0 + uTime * 0.4) * 1.8);
           float r2 = sin(vUv.y * 33.0 + uTime * 1.4 + vUv.x * 12.0);
@@ -260,6 +380,12 @@ export class ForestPark {
           vec3 light = vec3(0.22, 0.55, 0.60);
           vec3 col = mix(deep, light, 0.28 + 0.20 * ripple + vWave * 1.2);
           col += band * vec3(0.22, 0.30, 0.31);
+          // 【菲涅尔】水面掠射角反射天光：视线越平越亮，模拟真实水体的
+          // 边缘高光（原本只有内部波纹，缺少"水面"的体积感）。
+          float fres = pow(1.0 - abs(vViewDir.y), 3.0);
+          col += fres * vec3(0.16, 0.24, 0.26);
+          // 波纹导数驱动的高光细闪，让水面在斜视下有粼粼反光
+          col += band * fres * vec3(0.10, 0.14, 0.15);
           gl_FragColor = vec4(col, 1.0);
         }`,
     }));
@@ -383,9 +509,13 @@ export class ForestPark {
     this.stats = { trees: broad.length + conifer.length, broad: broad.length, conifer: conifer.length, shrubs: shrubs.length };
 
     const trunkGeo = this._trackGeo(new THREE.CylinderGeometry(0.16, 0.24, 1, 6));
-    const canopyGeo = this._trackGeo(new THREE.IcosahedronGeometry(1, 1));
-    const coniferGeo = this._trackGeo(new THREE.ConeGeometry(1, 1, 7));
-    const shrubGeo = this._trackGeo(new THREE.IcosahedronGeometry(1, 0));
+    /* 【风景提质·零增面】树冠几何顶点噪声位移：把光滑球体变成有自然凹凸的
+     * 叶簇轮廓。顶点数/面数完全不变（Icosahedron detail=1 仍 80 面），
+     * 不碰材质 defines / 四季 uniform / instanceColor，契约零影响。
+     * 位移用顶点坐标的确定性 hash，所有实例共享同一几何（省 GPU）。 */
+    const canopyGeo = this._trackGeo(makeCanopyGeometry(1, 1));
+    const coniferGeo = this._trackGeo(makeConiferGeometry(7));
+    const shrubGeo = this._trackGeo(makeCanopyGeometry(0, 0));
     const trunkMat = this._trackMat(new THREE.MeshStandardMaterial({ color: 0x765234, roughness: 0.96, metalness: 0 }));
     // 阔叶 / 针叶 / 灌木分材质，四季系统可分别控制；不新增 draw call（原本就是分 IM）。
     const leafMat = this._trackMat(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0 }));

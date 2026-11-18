@@ -169,6 +169,62 @@ export function makeTrackTexture() {
   return srgb(new THREE.CanvasTexture(c));
 }
 
+/**
+ * 沥青路面细节：接近白色的骨料噪点（作 map 与 instanceColor 相乘不脏色），
+ * 加淡砖缝给人行道质感。作 roughnessMap 打破整条路一个 roughness 常数。
+ */
+export function makeAsphaltDetail() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  // 近白底：与 instanceColor 相乘几乎不改变原色，只叠加细节
+  g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, 256, 256);
+  // 沥青骨料细点
+  for (let i = 0; i < 5200; i += 1) {
+    const v = 200 + ((Math.random() * 55) | 0);
+    g.fillStyle = `rgba(${v},${v},${v},0.5)`;
+    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 1.5, 1 + Math.random() * 1.5);
+  }
+  // 稀疏裂纹/接缝（低对比，避免脏）
+  g.strokeStyle = 'rgba(120,120,120,0.18)'; g.lineWidth = 1;
+  for (let i = 0; i < 14; i += 1) {
+    const x = Math.random() * 256, y = Math.random() * 256;
+    g.beginPath(); g.moveTo(x, y);
+    g.lineTo(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
+    g.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 8);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/** 人行道砖纹：淡灰白砖缝，作 map 给纯色人行道条带质感。 */
+export function makePavementDetail() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f4f4f2'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = 'rgba(110,112,108,0.22)'; g.lineWidth = 2;
+  for (let y = 0; y <= 256; y += 32) {
+    g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke();
+  }
+  for (let row = 0; row < 8; row += 1) {
+    const off = row % 2 ? 16 : 0;
+    for (let x = off; x <= 256; x += 32) {
+      g.beginPath(); g.moveTo(x, row * 32); g.lineTo(x, row * 32 + 32); g.stroke();
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 6);
+  tex.anisotropy = 4;
+  return tex;
+}
+
 export function makeParkingTexture() {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 256;

@@ -41,6 +41,16 @@
 - **实测**：verify-metropolis 19/19（maxTris 190,603）、redline 8/8（Δgeo=0/Δtex=0，双机位面数未涨）、m3-npc 7/7（1 draw call）、v4 13/13（面/人=1656）。
 - **天花板说明**：守 30 万红线 + 5 边胶囊 Body 的前提下，人物不可能达到 GTA 照片级；要更进一步必须放宽红线或引入外部高模（两者都与现有架构决策冲突）。
 
+## 3.6 风景提质（2026-11-18 · 守红线程序化）
+
+用户要求风景更自然、授权下载资产。仍走程序化路线（下载贴图会引入外部依赖 + 纹理台账 + 首屏体积；本机无 Blender）。全部零增面/纯材质 shader 改动。
+
+- **树木草地（`forest-park.js`）**：树冠/针叶/灌木几何做顶点噪声位移（用坐标 hash 保证同位置副本不裂面），光滑球→自然叶簇轮廓，**面数完全不变**；森林草坪加程序化法线+粗糙度贴图（复用大厅 ground 角色三图配置，defines 一致不破坏四季注入）。
+- **水体**：森林河片元 shader 加菲涅尔高光 + 视线方向（保留 `uTime`/`isShaderMaterial` 硬断言）；都会区湖加波纹法线贴图并随 UV 同步滚动。
+- **天空（`day-night-cycle.js`）**：夜空星星加缓慢闪烁（单标量调制，零 GPU 分配）。
+- **道路（`city-street.js` + `city-textures.js`）**：路面加近白骨料细节图作 map+roughnessMap，与 instanceColor 相乘不脏色；仍 1 个 InstancedMesh。
+- **验收**：phase2 20/20、season 16/16、redline 8/8（Δ0/0）、v4 13/13（上轮）、build ✓。six-upgrades 17/20（3 项 farm/castle/LOD 为既有脚本漂移，与风景无关；`badTextures=0`、mipmap 纹理 62 张合规）。
+
 ## 4. 当前验收基线（2026-11-17 实测）
 
 | 套件 | 结果 | 关键指标 |

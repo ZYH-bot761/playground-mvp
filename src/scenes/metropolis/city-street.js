@@ -1,7 +1,7 @@
 /** 都会区地面 / 路网 / 路灯 / 红绿灯 / 公交站：路灯与信号灯全部 InstancedMesh。 */
 import * as THREE from 'three';
 import { CITY, CITY_ROADS, CITY_INTERSECTIONS, PARKING_DRIVE, BUS_STOP } from './city-layout.js';
-import { makeParkingTexture } from './city-textures.js';
+import { makeParkingTexture, makeAsphaltDetail } from './city-textures.js';
 
 function planeGeo(w, d) {
   const g = new THREE.PlaneGeometry(w, d);
@@ -68,7 +68,13 @@ export function buildCityBase({ group, owned }) {
   add((PARKING_DRIVE.fromX + PARKING_DRIVE.toX) / 2, PARKING_DRIVE.z,
     PARKING_DRIVE.fromX - PARKING_DRIVE.toX, PARKING_DRIVE.width, 0x30373d, y + 0.03);
 
-  const padMesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 0.92 }), items.length);
+  /* 【风景提质】路面加近白骨料细节图（map + roughnessMap）：打破纯色沥青，
+   * 与 instanceColor 相乘不脏色；仍是 1 个 InstancedMesh，零增面零增 call。 */
+  const asphaltDetail = makeAsphaltDetail();
+  owned.textures.push(asphaltDetail);
+  const padMesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({
+    map: asphaltDetail, roughnessMap: asphaltDetail, roughness: 0.92,
+  }), items.length);
   padMesh.name = 'City/roads';
   padMesh.frustumCulled = false;
   padMesh.receiveShadow = false;

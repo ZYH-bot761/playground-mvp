@@ -645,7 +645,10 @@ class DayNightCycleImpl {
     this._sun.visible = s.sunOpacity > 0.005;
     this._moon.visible = s.moonOpacity > 0.005;
     if (this._stars) {
-      this._stars.material.opacity = s.starOpacity * 0.9;
+      // 【风景提质】夜空星星缓慢闪烁：整体 opacity 做小幅正弦调制，
+      // 只写一个标量、零 GPU 分配；白天 starOpacity≈0 自然不受影响。
+      const twinkle = 0.86 + 0.14 * Math.sin(this._time * 1.7);
+      this._stars.material.opacity = s.starOpacity * 0.9 * twinkle;
       this._stars.visible = s.starOpacity > 0.005;
       this._stars.rotation.y = this._time * 0.0035;
     }

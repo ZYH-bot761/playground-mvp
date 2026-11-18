@@ -88,6 +88,43 @@ function waterTexture() {
   return t;
 }
 
+/**
+ * 水面波纹法线贴图：正弦波叠加生成 (dx,dy,1) 法线，让平静湖面有粼粼反光。
+ * 与 waterTex 同 repeat，update 中同步 offset 滚动 → 流动反光。零增面。
+ */
+function waterNormalTexture() {
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const img = g.createImageData(size, size);
+  // 高度场：多组不同方向的细波叠加
+  const height = (x, y) => {
+    const u = x / size * Math.PI * 2, v = y / size * Math.PI * 2;
+    return Math.sin(u * 6 + v * 2) * 0.5
+      + Math.sin(u * 3 - v * 7) * 0.3
+      + Math.sin(u * 11 + v * 9) * 0.2;
+  };
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = height(x + 1, y) - height(x - 1, y);
+      const dy = height(x, y + 1) - height(x, y - 1);
+      const nx = -dx * 0.32, ny = -dy * 0.32, nz = 1;
+      const inv = 1 / Math.hypot(nx, ny, nz);
+      const idx = (y * size + x) * 4;
+      img.data[idx] = (nx * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 1] = (ny * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 2] = (nz * inv * 0.5 + 0.5) * 255;
+      img.data[idx + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3, 3);
+  return t; // 法线数据线性空间，不设 sRGB
+}
+
 function signTexture() {
   const c = document.createElement('canvas');
   c.width = 640; c.height = 160;
@@ -197,7 +234,9 @@ export function buildCityLake({ group, owned }) {
 
   const sandTex = sandTexture();
   const waterTex = waterTexture();
-  owned.textures.push(sandTex, waterTex);
+  /* 【风景提质】湖面加波纹法线贴图，反光随 UV 滚动流动，零增面 */
+  const waterNormal = waterNormalTexture();
+  owned.textures.push(sandTex, waterTex, waterNormal);
 
   // 沙滩从湿沙、干沙到草地，三层收边，避免水里直接切到柏油。
   const wetGeo = shapePlane(CITY_LAKE.w + 3.2, CITY_LAKE.d + 3.2, 8);
@@ -215,6 +254,7 @@ export function buildCityLake({ group, owned }) {
   const waterGeo = shapePlane(CITY_LAKE.w, CITY_LAKE.d, 7);
   const waterMat = new THREE.MeshStandardMaterial({
     map: waterTex, color: 0xb8fff4, roughness: 0.16, metalness: 0.08,
+    normalMap: waterNormal, normalScale: new THREE.Vector2(0.45, 0.45),
     transparent: true, opacity: 0.94, depthWrite: true,
   });
   const water = new THREE.Mesh(waterGeo, waterMat);
@@ -359,6 +399,9 @@ export function buildCityLake({ group, owned }) {
       time += dt;
       waterTex.offset.x = (time * 0.012) % 1;
       waterTex.offset.y = (time * 0.006) % 1;
+      // 法线贴图同步滚动 → 反光与波纹同向流动
+      waterNormal.offset.x = waterTex.offset.x;
+      waterNormal.offset.y = waterTex.offset.y;
       foamMat.opacity = 0.25 + Math.sin(time * 0.9) * 0.08;
       boats.forEach((b) => {
         b.mesh.position.set(
