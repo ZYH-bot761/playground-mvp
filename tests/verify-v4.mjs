@@ -1045,13 +1045,13 @@ try {
     sm.setPaused(false);
   });
   const checks = [
-    sub('10 个触发环（含别墅）', rings.count === 10 ? S.PASS : S.FAIL, `count=${rings.count}`),
+    sub('9 个触发环', rings.count === 9 ? S.PASS : S.FAIL, `count=${rings.count}`),
     sub('最小间距≥6.5m', rings.minDist >= 6.5 ? S.PASS : S.FAIL, `minDist=${rings.minDist} pair=${JSON.stringify(rings.pair)}`),
     sub('代码自检 0 告警', warn.length === 0 ? S.PASS : S.FAIL, `告警数=${warn.length}`, warn.slice(0, 3)),
     sub('俯瞰无交叠', rings.minDist > rings.ringRadius * 2 ? S.PASS : S.FAIL,
       `minDist=${rings.minDist} > 2×ringRadius=${rings.ringRadius * 2}`),
   ];
-  pushItem('⑦', '触发环分散', decide(checks), `10环 minDist=${rings.minDist}m 告警=${warn.length}`,
+  pushItem('⑦', '触发环分散', decide(checks), `9环 minDist=${rings.minDist}m 告警=${warn.length}`,
     { rings, warnings: warn.slice(0, 5) }, checks, [shot]);
 } catch (err) {
   pushItem('⑦', '触发环分散', S.FAIL, String(err));

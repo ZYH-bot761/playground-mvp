@@ -7,6 +7,7 @@ import { CITY, cityWalkColliders } from './city-layout.js';
 import { buildCityBase } from './city-street.js';
 import { buildCityLake } from './city-lake.js';
 import { buildCityAir } from './city-air.js';
+import { buildCityVilla } from './city-villa.js';
 import { buildCityBuildings } from './city-buildings.js';
 import { buildCityDetails } from './city-details.js';
 import { buildCityExpansion } from './city-expansion.js';
@@ -40,6 +41,9 @@ export class Metropolis {
     this.expansion = buildCityExpansion({ group: g, owned: this.owned });
     this.lake = buildCityLake({ group: g, owned: this.owned });
     this.air = buildCityAir({ group: g, owned: this.owned });
+    // 商场西侧空地的别墅门面（玩家走近门口按 E 进入室内 Villa 设施）
+    this.villaDoor = buildCityVilla({ group: g, owned: this.owned });
+    this.walkColliders.push(...this.villaDoor.colliders);
     this.signals = new CitySignals({ group: g, owned: this.owned });
     this.traffic = new CityTraffic({ group: g, owned: this.owned, signals: this.signals });
     this.crowd = new CityCrowd({ group: g, owned: this.owned, signals: this.signals });

@@ -89,7 +89,7 @@ try {
     (info.fence?.length === 2) && (info.signs?.length >= 4) && info.water && info.entryArch,
     { fence: info.fence, signs: info.signs?.length, water: info.water, arch: info.entryArch });
   add('HUD 动物园按钮存在', info.zooBtn, info.zooBtn);
-  add('既有 10 个触发环未被污染（含别墅）', info.triggers === 10, info.triggers);
+  add('既有 9 个触发环未被污染', info.triggers === 9, info.triggers);
 
   const bootShot = await shot('01-default-view');
   add('默认机位截图有效', bootShot.bytes > 20000, bootShot);

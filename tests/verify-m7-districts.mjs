@@ -145,7 +145,7 @@ try {
     };
   });
   add('E 既有零改动（9 环 / 4 区 / AABB）',
-    existing.rings === 10 && existing.zooZones === 4 && existing.boxes > 0, existing);
+    existing.rings === 9 && existing.zooZones === 4 && existing.boxes > 0, existing);
 
   // ---------- F 预算 ----------
   const budget = await page.evaluate(() => {

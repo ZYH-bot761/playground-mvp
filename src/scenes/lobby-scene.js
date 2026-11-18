@@ -226,11 +226,6 @@ const FACILITY_SPECS = Object.freeze([
     key: 'century-clock', name: '世纪钟', label: '世纪钟',
     x: 0, z: -4, doorDir: { dx: 0, dz: 1 }, doorDepth: 3,
   },
-  {
-    // 【可进入别墅】西南外围空地，距跳舞厅触发点约 17m、火车约 26m，满足 6.5m 自检
-    key: 'villa', name: '我的别墅', label: '我的别墅',
-    x: -30, z: 25, doorDir: { dx: 0, dz: 1 }, doorDepth: 4,
-  },
 ]);
 
 /**
@@ -915,6 +910,7 @@ export class Lobby extends IAttraction {
     this._city = null;                 // 【阶段五】北侧都会区
     this._driving = null;             // 【阶段四】GTA 驾驶控制器
     this._nearCar = null;             // 当前可上车的 AI 车
+    this._nearVillaDoor = false;      // 玩家是否站在都会区别墅门口（按 E 进入室内）
     this._driveHintEl = null;         // 按 E 上车 / 驾驶 HUD
     this._driveHintSig = '';          // HUD 文案签名，同值不写 DOM
     this._driveHintMode = '';         // off / near / pending / driving
@@ -4117,7 +4113,15 @@ export class Lobby extends IAttraction {
     if (movementMode.isEngaged() || cameraRig.isTransitioning) return;
     // 用实时位置重算，避免「刚走到圈内、HUD 尚未刷新」时 E 无效
     const near = this._findNearFacility();
-    if (!near) return;
+    if (!near) {
+      // 都会区别墅门口：不在 FACILITIES 触发环里，单独按距离判定
+      if (this._nearVillaDoor && this._ctx?.onEnterAttraction) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this._ctx.onEnterAttraction('villa');
+      }
+      return;
+    }
     const now = performance.now();
     if (now - this._lastInteractAt < INTERACT_COOLDOWN) return;
     this._lastInteractAt = now;
@@ -4479,6 +4483,47 @@ export class Lobby extends IAttraction {
       if (main) main.textContent = '按 E 上车';
       if (sub) sub.textContent = `距车 ${dist}m · 按 E 或点击此处直接上车`;
     }
+  }
+
+  /**
+   * 都会区别墅门口扫描：玩家走到商场西侧别墅南门口（距离 ≤4.2m）时亮起提示。
+   * 别墅不在 FACILITIES 触发环里（那是游乐园的），而是都会区的实体建筑，
+   * 靠近门口按 E 直接进室内 Villa 独立设施。
+   */
+  _updateVillaDoor(_dt = 0) {
+    const door = this._city?.villaDoor;
+    const cam = this._ctx?.camera;
+    const active = !this._disposed && !this._driving?.active && !this._driving?.pending
+      && this._sitState === 'none' && !this._zooFly && !cameraRig.isTransitioning
+      && !this._ctx?.isEmbedded?.();
+    let near = false;
+    if (active && door && cam) {
+      const dx = cam.position.x - door.doorPos.x;
+      const dz = cam.position.z - door.doorPos.z;
+      near = dz <= 1.5 && Math.hypot(dx, dz) <= 4.2; // 门口在南侧，避开屋顶误触
+    }
+    this._nearVillaDoor = near;
+    // 专用提示 DOM（懒创建一次，dispose 一并移除）
+    let el = this._villaHintEl;
+    if (!el && active) {
+      el = document.createElement('div');
+      el.className = 'lb-villa-hint';
+      el.textContent = '按 E 进入我的别墅';
+      el.dataset.on = '0';
+      document.body.appendChild(el);
+      this._villaHintEl = el;
+      if (!document.getElementById('lb-villa-style')) {
+        const st = document.createElement('style');
+        st.id = 'lb-villa-style';
+        st.textContent = '.lb-villa-hint{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);'
+          + 'padding:10px 20px;border-radius:999px;background:rgba(18,26,32,.88);'
+          + 'color:#ffe6bc;border:1px solid rgba(255,217,160,.45);font:13px "Microsoft YaHei",sans-serif;'
+          + 'pointer-events:none;opacity:0;transition:opacity .2s;z-index:59}'
+          + '.lb-villa-hint[data-on="1"]{opacity:1}';
+        document.head.appendChild(st);
+      }
+    }
+    if (el) el.dataset.on = near ? '1' : '0';
   }
 
   /* ------------------------------------------------------------------------ */
@@ -5439,6 +5484,7 @@ export class Lobby extends IAttraction {
 
     // 【阶段四】按 F 上/下车 + 车辆物理与驾驶相机（唯一写相机点，位于控制仲裁之后）
     this._updateVehicle(dt);
+    this._updateVillaDoor(dt);
     // 【上线 QA】E 入口提示 + 嵌入设施出口按钮 + 延迟自救落地
     this._updateInteractionHint(dt);
     this._updateFacilityExitUI();
@@ -5671,6 +5717,8 @@ export class Lobby extends IAttraction {
     this._driveHintEl = null;
     this._city?.dispose();
     this._city = null;
+    this._villaHintEl?.parentNode?.removeChild(this._villaHintEl);
+    this._villaHintEl = null;
     this._step('GPU 资源', () => this._disposeThreeResources());
 
     /* ---------- 步骤 6：台账与状态清空 ---------- */

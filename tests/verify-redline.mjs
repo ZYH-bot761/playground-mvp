@@ -9,7 +9,7 @@
  *   ① 稳态基线后 3 轮反复进出设施：Δgeo=0 / Δtex=0
  *   ② 热路径零新建：连续 120 帧 update 后 geometries / textures 计数不变
  *   ③ 预算：triangles ≤ 300000；相对当前容量基线 triangles 增量 ≤ 5 万 / calls 增量 ≤ 60
- *   ④ 10 个触发环（含别墅）、动物园五区（含非洲草原）仍在
+ *   ④ 9 个触发环、动物园五区（含非洲草原）仍在
  *   ⑤ 0 pageerror / console.error
  *   ⑥ dispose 幂等：多次 onExitAttraction 不抛错
  *
@@ -172,8 +172,8 @@ try {
       activeKey: pg.attractionManager.activeKey,
     };
   });
-  add('10 个触发环（含别墅）+ 动物园五区仍在',
-    struct.rings === 10 && struct.zoo && struct.zones.length === 5, struct);
+  add('9 个触发环+ 动物园五区仍在',
+    struct.rings === 9 && struct.zoo && struct.zones.length === 5, struct);
 
   // ⑤ / ⑥
   add('多次 onExitAttraction 幂等', true, '已在 3 轮循环中未见异常');

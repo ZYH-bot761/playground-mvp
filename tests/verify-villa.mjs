@@ -55,11 +55,35 @@ try {
   let baseline = null;
   const rounds = [];
 
-  // ---- 4 轮进出：第 1 轮建基线，后 3 轮测 Δ ----
+  // ---- 4 轮进出：第 1 轮走真实门口按 E（建基线），后 3 轮直接调用测 Δ ----
   for (let r = 0; r < 4; r += 1) {
-    const enter = await page.evaluate(async () => {
+    if (r === 0) {
+      // 真实入口：都会区商场西侧别墅门口，站进去应亮提示
+      const door = await page.evaluate(() => {
+        const pg = window.__playground, lobby = pg.attractionManager.active, cam = pg.sceneManager.camera;
+        const d = lobby._city?.villaDoor?.doorPos;
+        if (!d) return { hasDoor: false };
+        cam.position.set(d.x, 2.76, d.z - 2.5);
+        cam.rotation.order = 'YXZ'; cam.rotation.set(0, 0, 0);
+        cam.updateMatrixWorld(true);
+        lobby._updateVillaDoor(0.016);
+        return {
+          hasDoor: true,
+          near: lobby._nearVillaDoor,
+          hint: document.querySelector('.lb-villa-hint')?.dataset.on,
+        };
+      });
+      check('都会区别墅门口：门面存在 + 靠近亮起 E 提示',
+        door.hasDoor && door.near && door.hint === '1', door);
+      await page.keyboard.press('e');
+      await page.waitForTimeout(150);
+    }
+    const enter = await page.evaluate(async (viaDoor) => {
       const pg = window.__playground;
-      await pg.onEnterAttraction?.('villa');
+      // 门口按 E 已触发进入则不再重复调用
+      if (!viaDoor && pg.attractionManager.activeKey !== 'villa') {
+        await pg.onEnterAttraction?.('villa');
+      }
       const v = pg.attractionManager.active;
       const cam = pg.sceneManager.camera;
       return {
@@ -68,7 +92,7 @@ try {
         camY: +cam.position.y.toFixed(2),
         ui: !!document.querySelector('#villa-ui'),
       };
-    });
+    }, r === 0);
     if (r === 0) {
       check('第一人称出生在 1F 门厅', enter.key === 'villa' && enter.level === 1 && Math.abs(enter.camY - 1.6) < 0.1 && enter.ui, enter);
       const built = await page.evaluate(() => {
