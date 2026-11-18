@@ -1,11 +1,11 @@
 {
-  "at": "2026-11-18T03:48:23.331Z",
+  "at": "2026-11-18T04:53:16.423Z",
   "passed": 7,
   "total": 7,
   "allPass": true,
   "checks": [
     {
-      "name": "A 10 环均由本体门位派生（同 x / 正前方）",
+      "name": "A 9 环均由本体门位派生（同 x / 正前方）",
       "pass": true,
       "detail": [
         {
@@ -124,19 +124,6 @@
             2
           ],
           "gap": 6
-        },
-        {
-          "key": "villa",
-          "ok": true,
-          "body": [
-            -30,
-            25
-          ],
-          "ring": [
-            -30,
-            32
-          ],
-          "gap": 7
         }
       ]
     },
@@ -171,15 +158,15 @@
       "name": "D 引导线端点跟随派生 trigger",
       "pass": true,
       "detail": {
-        "guides": 10,
-        "radial": 8
+        "guides": 9,
+        "radial": 7
       }
     },
     {
       "name": "E 建筑 AABB 无重叠",
       "pass": true,
       "detail": {
-        "boxes": 22,
+        "boxes": 23,
         "overlaps": 0,
         "overlapPairs": []
       }
@@ -194,7 +181,7 @@
       "pass": true,
       "detail": {
         "file": "D:\\playground-mvp\\docs\\screenshots\\zoo-m2-layout.png",
-        "bytes": 713714
+        "bytes": 562169
       }
     }
   ],
