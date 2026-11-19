@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CITY, CITY_INTERSECTIONS, BUS_STOP } from './city-layout.js';
+import { createCarBodyGeometry, createCarCabinGeometry } from './city-car-blender-model.js';
 
 /** 轮胎 + 轮毂 + 四根辐条合并成一个轮子几何：仍只 1 draw，但不再是光秃秃的圆柱。 */
 function detailedWheelGeometry() {
@@ -157,10 +158,12 @@ export class CityTraffic {
 
   _build() {
     const g = this.group;
-    const bodyGeo = new THREE.BoxGeometry(1, 1, 1);
-    const cabinGeo = new THREE.BoxGeometry(1, 1, 1);
+    // 【Blender 车模】车身/玻璃舱来自 tools/blender/build_city_car.py（3444 tris），
+    // 原点与实例矩阵语义对齐（body 中心=实例位置，cabin 中心=实例位置），故实例缩放恒为 1。
+    const bodyGeo = createCarBodyGeometry();
+    const cabinGeo = createCarCabinGeometry();
     const wheelGeo = detailedWheelGeometry();
-    const bodyMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.35 });
+    const bodyMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.35, vertexColors: true });
     const cabinMat = new THREE.MeshStandardMaterial({ color: 0x182b33, roughness: 0.2, metalness: 0.4 });
     const wheelMat = new THREE.MeshStandardMaterial({
       vertexColors: true, roughness: 0.62, metalness: 0.16,
@@ -322,11 +325,11 @@ export class CityTraffic {
       const idx = 10 + i;
       d.position.set(p.x, 1.435, p.z);
       d.rotation.set(0, p.yaw, 0);
-      d.scale.set(1.0, 0.55, 2.15);
+      d.scale.set(1, 1, 1);
       d.updateMatrix();
       this.body.setMatrixAt(idx, d.matrix);
       d.position.y = 1.96;
-      d.scale.set(0.82, 0.5, 1.25);
+      d.scale.set(1, 1, 1);
       d.updateMatrix();
       this.cabin.setMatrixAt(idx, d.matrix);
       for (let w = 0; w < 4; w++) {
@@ -432,11 +435,11 @@ export class CityTraffic {
       if (dt > 0) v.spin = (v.spin - (v.curSpeed * dt) / 0.30) % (Math.PI * 2);
       d.position.set(p.x, 1.435, p.z);
       d.rotation.set(0, p.yaw, 0);
-      d.scale.set(1.0, 0.55, 2.15);
+      d.scale.set(1, 1, 1);
       d.updateMatrix();
       this.body.setMatrixAt(i, d.matrix);
       d.position.y = 1.96;
-      d.scale.set(0.82, 0.5, 1.22);
+      d.scale.set(1, 1, 1);
       d.updateMatrix();
       this.cabin.setMatrixAt(i, d.matrix);
       for (let w = 0; w < 4; w++) {
@@ -642,12 +645,12 @@ export class CityTraffic {
     group.name = 'Lobby/player-car';
     const wheels = [];
     const body = new THREE.Mesh(bodyGeo, mat);
-    body.scale.set(1.0, 0.55, 2.15);
+    body.scale.set(1, 1, 1);
     body.castShadow = false;
     group.add(body);
     const cabin = new THREE.Mesh(cabinGeo, cabinMat);
     cabin.position.y = 0.525;
-    cabin.scale.set(0.82, 0.5, 1.22);
+    cabin.scale.set(1, 1, 1);
     group.add(cabin);
     for (let w = 0; w < 4; w++) {
       const wheel = new THREE.Mesh(wheelGeo, this.wheels.material);

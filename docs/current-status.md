@@ -64,6 +64,17 @@
 - **验收**：`verify-villa.mjs` 12/12（都会区门口按 E 进入、进出 Δgeo=0/Δtex=0、四层高度、电梯随行、真实走楼梯、家具/车/电器、0 报错），已纳入 `verify-all.mjs`。
 - **为何放都会区**：用户明确"别墅不要放在游乐园，单独放到大都会商场旁空地"。曾试过放大厅触发环（第 10 个），已撤销，5 个脚本数量断言恢复 9。`verify-redline` 的往返切换列表排除 villa（其 83 件家具在 headless 连续 30 次切换下会 Target crashed，进出稳态由 verify-villa 单独证明）。
 
+## 3.8 Blender 离线建模 → 数据编译（2026-11-19 · 车辆试点）
+
+用户本地 Blender 3.6.23（`D:\blender`）+ MCP socket 9876 已就绪（GUI 插件 Addon 2.0 手动 Start Server；`blender_client.py --detect-env` 判定 `mcp_available=true / socket`）。**铁律不变：零外部资产，无 GLB 进运行时**——Blender 只做离线建模/渲染，量化几何数据编译进 JS 模块。
+
+- **产物**：`tools/blender/build_city_car.py`（侧轮廓放样车身 + 轮眉/保险杠/格栅/灯框/后视镜/尾翼 + 玻璃舱/A柱/车顶条）；`models/blender-car-preview.png`（Cycles CPU 64spp 人工验收图）；`src/scenes/metropolis/city-car-blender-model.js`（114KB 量化数据：position/normal ×1000、color ×255）。`tools/blender/start_mcp_server.py` 为插件强制启动辅助。
+- **轴变换**：Blender Z-up `(x,y,z)` → Three `(x,z,-y)`（det=+1，法线同变换），车头 -Y → Three +Z；脚本内 `AXIS_CHECK_OK` 断言运行时包围盒。
+- **面数 3444 tris**（车身 2908 + 玻璃舱 536；原盒车 24 tris）。AI 车/玩家车共用几何，实例数量与 draw call 不变。
+- **接入**：`city-traffic.js` 的 `bodyGeo/cabinGeo` 换 Blender 几何、`bodyMat` 开 `vertexColors`（白=车漆×instanceColor，深/浅灰=饰件）、实例缩放 `(1,.55,2.15)/(.82,.5,1.22)` 归一为 1、cabin 位置不变；轮子仍是 `detailedWheelGeometry`。**碰撞/车位/AI/驾驶逻辑零改动**。
+- **验收**：build ✓、redline 8/8、v4 13/13、driving 21/21、drive-roam 7/7、metropolis 19/19（maxTris 230997 / maxCalls 741、稳态 Δ0/0、0 报错）。
+- **边界**：WorkBuddy 的 blender 是 `mcp.json` 自定义服务，不在插件列表内，重连需在 MCP 服务管理面板操作；socket 通了之后建模链路直接可用。
+
 ## 4. 当前验收基线（2026-11-17 实测）
 
 | 套件 | 结果 | 关键指标 |
