@@ -17,9 +17,11 @@ import { CitySignals } from './city-signals.js';
 import { ParkActors } from './park-actors.js';
 
 export class Metropolis {
-  constructor({ root, anchors = {} }) {
+  constructor({ root, anchors = {}, getGroundHeight = null }) {
     this.root = root;
     this.anchors = anchors;
+    /** 大厅的步行地面解析：行人/下车客要按各自脚下高度站位，不能一律按城市基座 1.16。 */
+    this.getGroundHeight = getGroundHeight;
     this.group = new THREE.Group();
     this.group.name = 'Lobby/metropolis';
     this.owned = { geometries: [], materials: [], textures: [] };
@@ -46,7 +48,10 @@ export class Metropolis {
     this.walkColliders.push(...this.villaDoor.colliders);
     this.signals = new CitySignals({ group: g, owned: this.owned });
     this.traffic = new CityTraffic({ group: g, owned: this.owned, signals: this.signals });
-    this.crowd = new CityCrowd({ group: g, owned: this.owned, signals: this.signals });
+    this.crowd = new CityCrowd({
+      group: g, owned: this.owned, signals: this.signals, traffic: this.traffic,
+      getGroundHeight: this.getGroundHeight,
+    });
     // 游乐园活动 NPC 永远可见，不跟城市背向剔除一起隐藏
     this.parkActors = new ParkActors({ root: this.root, anchors: this.anchors });
     this.traffic.onBusStop = () => {

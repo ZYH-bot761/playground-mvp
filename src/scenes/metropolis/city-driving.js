@@ -15,7 +15,7 @@
 import * as THREE from 'three';
 import physicsManager from '../../core/physics-manager.js';
 import { cameraRig } from '../../core/camera-rig.js';
-import { isOnRoad } from './city-layout.js';
+import { isDrivable } from './city-layout.js';
 
 const CAR_HALF_X = 0.92;
 const CAR_HALF_Y = 0.32;
@@ -283,7 +283,7 @@ export class CityDriving {
     body.setAngvel({ x: 0, y: steer * 1.45 * steerAuthority, z: 0 }, true);
 
     // 路边/草地降速：在重建速度之前处理，不能把本帧冲量一起覆盖掉。
-    const offRoad = !isOnRoad(t.x, t.z);
+    const offRoad = !isDrivable(t.x, t.z);
     if (offRoad) {
       const drag = Math.exp(-0.32 * step);
       fwdSpeed *= drag;

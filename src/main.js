@@ -91,7 +91,7 @@ import { PirateShip } from './scenes/attractions/pirate-ship.js';
 import { Lobby } from './scenes/lobby-scene.js';
 import { FireworksDeck } from './scenes/attractions/fireworks-deck.js';
 import { CenturyClock } from './scenes/attractions/century-clock.js';
-import { Villa } from './scenes/attractions/villa.js';
+import { VillaEmbedView } from './components/embedded-views/villa-embed-view.js';
 import { cameraRig } from './core/camera-rig.js';
 import { dayNightCycle } from './utils/helpers/day-night-cycle.js';
 import { seasonCycle } from './utils/helpers/season-cycle.js';
@@ -149,6 +149,10 @@ const EMBEDDED_KEYS = new Set([
   // PumpkinThrower 投篮场景（用户明确「不要什么投的、金币啥的都不用」）。
   // 旧 PumpkinThrower 仍保留注册，仅供 attractionManager 直接激活的兼容路径。
   PUMPKIN_KEY,
+  // 【v3】别墅升级为嵌入视图：不再卸载大厅，而是把别墅真实盖在都会区
+  // CITY_VILLA(-30,134) 那块地皮上，只换相机机位进 1F 玄关。
+  // 「从阳台/窗户看到的是真大厅」这条诉求靠它兑现，同时避免另建一套假街景。
+  VILLA_KEY,
 ]);
 
 /**
@@ -157,8 +161,10 @@ const EMBEDDED_KEYS = new Set([
  * 而 Lobby.js 属他人文件（T06/T02），本任务不改它。这里把该 key 重定向到真实
  * 摩天轮嵌入视图 FERRIS_WHEEL_KEY：用户在广场点「南瓜摩天轮」环 → 进座舱俯瞰大厅，
  * 而不是进入旧的独立投篮场景。旧独立 PumpkinThrower 仍保留注册（且不删 any key），
- * 但不再作为大厅入口；如需直接进入旧投篮玩法可用
- * window.__playground.attractionManager.activate('pumpkin-thrower')。
+ * 但不再作为大厅入口；如需直接进入旧投篮玩法，必须先等物理块就绪
+ * （`await window.__playground.physicsManager.init()`）再调用
+ * `window.__playground.attractionManager.activate('pumpkin-thrower')`：
+ * 该 key 属 PHYSICS_KEYS，绕过 onEnterAttraction 的懒加载门禁会直接抛错。
  */
 const TRIGGER_KEY_ALIASES = Object.freeze({ [PUMPKIN_KEY]: FERRIS_WHEEL_KEY });
 
@@ -421,6 +427,14 @@ const BACKGROUND_PREWARM_KEYS = Object.freeze([
  * - 已预热 / 用户已进入过的设施由 prewarmedKeys 跳过。
  */
 function startBackgroundPrewarm() {
+  /* 【QA 钩子】?no-prewarm=1 跳过后台预热。
+   * 预热每项都会 activate/deactivate 一次设施，期间 Lobby 被 dispose 重建、
+   * 键鼠监听短暂失效；验收脚本需要稳定机位与输入，用这个开关把噪声排掉。 */
+  if (new URLSearchParams(window.location.search).has('no-prewarm')) {
+    backgroundPrewarmDone = true;
+    console.info('[基座] ?no-prewarm=1：跳过后台分帧预热');
+    return;
+  }
   let index = 0;
   const step = () => {
     // 【T04b】嵌入视图下 attractionManager.activeKey 仍是 'lobby'（大厅没被卸），
@@ -436,6 +450,7 @@ function startBackgroundPrewarm() {
     const activeLobby = attractionManager.active;
     if (activeLobby?._driving?.active || activeLobby?._driving?.pending
         || activeLobby?._nearCar || activeLobby?._nearFacility
+        || activeLobby?._nearVillaDoor
         || (activeLobby?._sitState && activeLobby._sitState !== 'none')) {
       window.setTimeout(step, 600);
       return;
@@ -837,7 +852,9 @@ async function bootstrap() {
   attractionManager.register(PIRATE_KEY, () => new PirateShip());
   attractionManager.register(FIREWORKS_KEY, () => new FireworksDeck());
   attractionManager.register(CLOCK_KEY, () => new CenturyClock());
-  attractionManager.register(VILLA_KEY, () => new Villa());
+  // 【v3】VILLA_KEY 已迁到 facilityRuntime（嵌入视图）：不再作为独立设施注册，
+  // 否则 onEnterAttraction 之外的旧兼容路径（attractionManager.activate('villa')）
+  // 会走“卸载大厅”的老路，与“别墅真实落在大厅里”冲突。
   attractionManager.register(LOBBY_KEY, () => new Lobby());
 
   /* ---------- ③-b v4 T03：嵌入视图运行时（唯一场景 + 相机即视图） ----------
@@ -855,10 +872,13 @@ async function bootstrap() {
   /* 【阶段二·模块 2】木马 / 海盗船嵌入视图（大厅背景无缝保留） */
   facilityRuntime.register(CAROUSEL_KEY, () => new CarouselEmbedView());
   facilityRuntime.register(PIRATE_KEY, () => new PirateShipEmbedView());
+  /* 【v3】我的家 · 现代别墅：同场并置（盖在都会区 CITY_VILLA 的地皮上） */
+  facilityRuntime.register(VILLA_KEY, () => new VillaEmbedView(baseCtx));
   dayNightCycle.registerEmbeddedContext(DEMO_EMBED_KEY);
   dayNightCycle.registerEmbeddedContext(FERRIS_WHEEL_KEY);
   dayNightCycle.registerEmbeddedContext(CAROUSEL_KEY);
   dayNightCycle.registerEmbeddedContext(PIRATE_KEY);
+  dayNightCycle.registerEmbeddedContext(VILLA_KEY);
 
   /* ---------- ④ 预热阶段整体容错：任一步失败都不连累大厅加载 ----------
    * 【v4 T01 收官】除 Lobby + 全局单例外，10 个设施已改为懒激活，且 Lobby

@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { BUS_STOP, HOSPITAL } from './city-layout.js';
+import { BUS_STOP, CITY_ROADS, HOSPITAL, isOnRoad } from './city-layout.js';
 
 /** 简单部件合并：腿 + 鞋只需一次合并，不引入额外 draw。 */
 function mergeSimple(parts) {
@@ -37,17 +37,21 @@ const NORTH_NODES = Object.freeze([
   { x: 15.1, z: 157.75 }, { x: 15.1, z: 182.25 },
   { x: 32.9, z: 182.25 }, { x: 32.9, z: 157.75 },
 ]);
+// 西环线的北边必须贴在 cross150 南侧人行道中心（150−6.8=143.2）。
+// 旧值 145.5 落在 [144,156] 沥青带里，等于让行人整天站在机动车道上等灯。
 const WEST_NODES = Object.freeze([
-  { x: -90, z: 118.5 }, { x: -90, z: 145.5 },
-  { x: -55, z: 145.5 }, { x: -55, z: 118.5 },
+  { x: -90, z: 118.5 }, { x: -90, z: 143.2 },
+  { x: -55, z: 143.2 }, { x: -55, z: 118.5 },
 ]);
 const EAST_NODES = Object.freeze([
   { x: 75.6, z: 119 }, { x: 75.6, z: 141 },
   { x: 93.2, z: 141 }, { x: 93.2, z: 119 },
 ]);
 // 北侧居民楼拆除后改为湖滨步道环线：绕湖一圈，不穿水、不压沙滩。
+// 南边取 z=201.2：水面南缘在 224−20=204，旧值 204 正好贴着水皮，
+// 行人等于从湖面上走过去。
 const RES_NODES = Object.freeze([
-  { x: -44, z: 204 }, { x: 11, z: 204 },
+  { x: -44, z: 201.2 }, { x: 11, z: 201.2 },
   { x: 11, z: 248 }, { x: -44, z: 248 },
 ]);
 
@@ -57,12 +61,28 @@ function loopOf(nodes) {
     const len = Math.hypot(b.x - a.x, b.z - a.z);
     const minX = Math.min(a.x, b.x), maxX = Math.max(a.x, b.x);
     const minZ = Math.min(a.z, b.z), maxZ = Math.max(a.z, b.z);
-    const crossesMain = minX < 32 && maxX > 16;
-    const crossesCross = [112, 150, 194].some((z) => minZ < z + 6 && maxZ > z - 6);
-    const crossing = crossesMain || crossesCross;
+    /* 只累计"真正压在机动车道里"的那一段长度：沿 x 走时看南北向走廊的路幅，
+     * 沿 z 走时看东西向走廊的路幅。旧实现用整段长度当过街时间，
+     * 35m 的人行道腿被算成需要 30.6s 绿灯，而最长绿灯只有 17.8s，
+     * 于是这批行人永远站在路口不动。 */
+    let crossZ = 0, crossX = 0;
+    for (const r of CITY_ROADS) {
+      const lo = r.center - r.width / 2, hi = r.center + r.width / 2;
+      if (r.axis === 'z') {
+        if (maxX > lo && minX < hi && minZ <= r.max && maxZ >= r.min) {
+          crossZ = Math.max(crossZ, Math.min(hi, maxX) - Math.max(lo, minX));
+        }
+      } else if (maxZ > lo && minZ < hi && minX <= r.max && maxX >= r.min) {
+        crossX = Math.max(crossX, Math.min(hi, maxZ) - Math.max(lo, minZ));
+      }
+    }
+    const crossing = crossZ > 0.5 || crossX > 0.5;
+    const axis = crossZ >= crossX ? (crossZ > 0 ? 'z' : null) : 'x';
     return {
       ax: a.x, az: a.z, bx: b.x, bz: b.z, len,
-      crossing, axis: crossesMain ? 'z' : (crossesCross ? 'x' : null),
+      crossing, axis,
+      crossLen: Math.max(crossZ, crossX),
+      midX: (a.x + b.x) / 2, midZ: (a.z + b.z) / 2,
       yaw: Math.atan2(b.x - a.x, b.z - a.z),
     };
   }));
@@ -82,24 +102,34 @@ const IDLE_PEDS = Object.freeze([
   { x: 51.0, z: 121.2, yaw: 1.2 },
   { x: -4.2, z: 121.5, yaw: 0.2 }, { x: 0.4, z: 120.9, yaw: 2.8 },
   { x: 3.8, z: 121.8, yaw: -0.5 }, { x: 6.0, z: 123.0, yaw: 2.1 },
-  { x: -29.0, z: 204.5, yaw: 0.5 }, { x: -18.0, z: 204.0, yaw: -1.0 },
-  { x: 5.0, z: 205.0, yaw: 2.7 },
+  // 湖滨三人：原坐标 z≈204~205 正落在水面里（水南缘 z=204），改到干沙带上。
+  { x: -29.0, z: 203.0, yaw: 0.5 }, { x: -18.0, z: 202.6, yaw: -1.0 },
+  { x: 5.0, z: 203.2, yaw: 2.7 },
 ]);
 const ALIGHT = path([[32.4, 38], [32.4, 29], [24, 27], [9, 25], [2, 19], [0, 12], [0, 7]], false);
 const HOSPITAL_DOOR = Object.freeze({ x: HOSPITAL.entrance.x, z: HOSPITAL.entrance.z - 0.4 });
 const HOSPITAL_WALK = Object.freeze({ x: HOSPITAL.entrance.x, z: HOSPITAL.entrance.z - 3.4 });
 
 export class CityCrowd {
-  constructor({ group, owned, signals }) {
+  constructor({ group, owned, signals, traffic = null, getGroundHeight = null }) {
     this.group = group;
     this.owned = owned;
     this.signals = signals;
+    this.traffic = traffic;
+    this.getGroundHeight = typeof getGroundHeight === 'function' ? getGroundHeight : null;
     this.time = 0;
     this.peds = [];
     this.alighters = [];
     this._activated = false;
     this._dummy = new THREE.Object3D();
     this._build();
+  }
+
+  /** 脚下地面高度：都会基座 1.16，公园一侧（公交站/下客步道）按大厅步行高度解析。 */
+  _groundY(x, z) {
+    if (!this.getGroundHeight) return 1.16;
+    const y = this.getGroundHeight(x, z);
+    return Number.isFinite(y) ? y : 1.16;
   }
 
   _build() {
@@ -178,7 +208,7 @@ export class CityCrowd {
       const p = {
         kind: 'alighter', route: ALIGHT, t: 0, speed: 1.0 + i * 0.08,
         dir: 1, phase: rng() * Math.PI * 2, alighter: true, active: false, visible: true,
-        delay: 0, lateral: (i - 1) * 0.42,
+        delay: 0, pause: 0, walking: false, lateral: (i - 1) * 0.42,
       };
       this.peds.push(p);
       this.alighters.push(p);
@@ -215,6 +245,8 @@ export class CityCrowd {
       p.t = 0;
       p.dir = 1;
       p.alighterSeen = false;
+      p.pause = 0;
+      p.walking = false;
       p.delay = (p.lateral + 0.42) / 0.42 * 1.15;
       p.hidden = p.delay > 0;
     }
@@ -222,16 +254,19 @@ export class CityCrowd {
 
   _posOfAlighter(p) {
     const r = p.route;
+    const last = r.samples.length - 1;
     const t = Math.max(0, Math.min(1, p.t));
-    const idx = Math.floor(t * 160) % 160;
+    // 旧写法 Math.floor(t * 160) % 160 在 t=1 时回绕到 0：下车客走完步道后
+    // 会在下一帧被瞬移回公交站牌底下。
+    const idx = Math.min(last - 1, Math.floor(t * last));
     const s = r.samples[idx];
-    const s2 = r.samples[(idx + 1) % 160];
+    const s2 = r.samples[idx + 1];
     let dx = s2.x - s.x, dz = s2.z - s.z;
     const len = Math.hypot(dx, dz) || 1;
     dx /= len; dz /= len;
     const yaw = Math.atan2(dx, dz);
     const lat = p.lateral || 0;
-    return { x: s.x + dz * lat, z: s.z - dx * lat, yaw, moving: true };
+    return { x: s.x + dz * lat, z: s.z - dx * lat, yaw, moving: p.walking === true };
   }
 
   _walkerPos(p) {
@@ -253,16 +288,22 @@ export class CityCrowd {
       x: start.x + (end.x - start.x) * t + (p.lateral || 0),
       z: start.z + (end.z - start.z) * t,
       yaw: p.targetInside ? Math.PI : 0,
-      moving: !p.wait,
+      // wait 在推进后会变成 -0.00x，用 !p.wait 判定等于"正在走也不摆腿"。
+      moving: !(p.wait > 0),
     };
+  }
+
+  /** 过街所需的绿灯剩余秒数：只按真正压在车道里的那段路幅算。 */
+  _clearance(seg, speed) {
+    return Math.max(1.2, seg.crossLen / Math.max(0.6, speed) + 0.8);
   }
 
   _advanceWalker(p, dt) {
     const loop = WALK_LOOPS[p.loopIndex];
     if (p.waiting) {
       const seg = loop[p.seg];
-      const clear = Math.max(1.2, seg.len / p.speed + 1.0);
-      if (!this.signals.canPedCross(seg.axis, clear, seg.bx, seg.bz)) return;
+      const clear = this._clearance(seg, p.speed);
+      if (!this.signals.canPedCross(seg.axis, clear, seg.midX, seg.midZ)) return;
       p.waiting = false;
     }
     const seg = loop[p.seg];
@@ -272,8 +313,9 @@ export class CityCrowd {
     p.seg = (p.seg + 1) % loop.length;
     const next = loop[p.seg];
     if (next.crossing) {
-      const clear = Math.max(1.2, next.len / p.speed + 1.0);
-      p.waiting = !this.signals.canPedCross(next.axis, clear, next.bx, next.bz);
+      p.waiting = !this.signals.canPedCross(
+        next.axis, this._clearance(next, p.speed), next.midX, next.midZ,
+      );
     }
   }
 
@@ -302,17 +344,26 @@ export class CityCrowd {
       if (p.delay <= 0) { p.delay = 0; p.hidden = false; }
       return;
     }
-    p.t += (p.speed * dt) / p.route.length;
+    if (p.pause > 0) {
+      // 到站后先在长椅/站牌下歇一会儿，再沿原路折返，像真的在等人/找方向。
+      p.pause -= dt;
+      p.walking = false;
+      return;
+    }
+    p.walking = true;
+    p.t += (p.speed * dt * (p.dir || 1)) / p.route.length;
     if (p.t >= 1) {
       p.t = 1;
       p.dir = -1;
-    }
-    if (p.t <= 0) {
+      p.pause = 2.4 + p.lateral;
+      p.walking = false;
+    } else if (p.t <= 0) {
+      // 走回站牌=上了下一班车：隐藏并等下次 activateAlighters()。
       p.t = 0;
       p.dir = 1;
+      p.active = false;
+      p.walking = false;
     }
-    // 下客后沿步道进出，不穿过机动车道
-    p.moving = true;
   }
 
   _candidate(p) {
@@ -329,6 +380,17 @@ export class CityCrowd {
       const q = this._candidate(o);
       const dx = q.x - x, dz = q.z - z;
       if (dx * dx + dz * dz < 0.44) return false;
+    }
+    /* 信号灯已经管住了大部分过街时机，这里补最后一道硬保证：
+     * 正在行驶的车头前方不落脚，避免"行人从车里穿过去"。
+     * 只挡速度 >1m/s 的车，等红灯的车不挡，否则行人会在斑马线前死锁。 */
+    const list = this.traffic ? this.traffic._vehicles : null;
+    if (list && isOnRoad(x, z)) {
+      for (const v of list) {
+        if (v.claimed || Math.abs(v.curSpeed) < 1) continue;
+        const dx = v.x - x, dz = v.z - z;
+        if (dx * dx + dz * dz < 2.6) return false;
+      }
     }
     return true;
   }
@@ -371,22 +433,23 @@ export class CityCrowd {
         pos = this._posOfAlighter(p);
       }
       const s = p.scale || 1;
+      const gy = this._groundY(pos.x, pos.z);
       const bob = pos.moving ? Math.sin(this.time * 7.4 + p.phase) * 0.026 : 0;
       const yaw = pos.yaw + (p.dir < 0 ? Math.PI : 0);
       const walk = pos.moving ? Math.sin(this.time * 9 + p.phase) : 0;
-      d.position.set(pos.x, 1.16 + 0.86 * s + bob, pos.z);
+      d.position.set(pos.x, gy + 0.86 * s + bob, pos.z);
       d.rotation.set(walk * 0.018, yaw, 0);
       d.scale.set(s, s, s);
       d.updateMatrix();
       this.body.setMatrixAt(i, d.matrix);
 
       const look = Math.sin(this.time * 0.52 + p.phase * 1.7) * (pos.moving ? 0.16 : 0.38);
-      d.position.set(pos.x, 1.16 + 1.67 * s + bob, pos.z);
+      d.position.set(pos.x, gy + 1.67 * s + bob, pos.z);
       d.rotation.set(0, yaw + look, 0);
       d.scale.set(s, s, s);
       d.updateMatrix();
       this.head.setMatrixAt(i, d.matrix);
-      d.position.y = 1.16 + 1.70 * s + bob;
+      d.position.y = gy + 1.70 * s + bob;
       d.updateMatrix();
       this.hair.setMatrixAt(i, d.matrix);
 
@@ -394,7 +457,7 @@ export class CityCrowd {
         const swing = pos.moving ? Math.sin(this.time * 9 + p.phase + l * Math.PI) * 0.42 : 0;
         d.position.set(
           pos.x + Math.cos(yaw) * (l ? 0.105 : -0.105) * s,
-          1.16 + 0.86 * s + bob,
+          gy + 0.86 * s + bob,
           pos.z - Math.sin(yaw) * (l ? 0.105 : -0.105) * s,
         );
         d.rotation.set(swing, yaw, 0);
@@ -404,7 +467,7 @@ export class CityCrowd {
 
         d.position.set(
           pos.x + Math.cos(yaw) * (l ? 0.225 : -0.225) * s,
-          1.16 + 1.48 * s + bob,
+          gy + 1.48 * s + bob,
           pos.z - Math.sin(yaw) * (l ? 0.225 : -0.225) * s,
         );
         d.rotation.set(-swing * 0.72, yaw, l ? -0.06 : 0.06);

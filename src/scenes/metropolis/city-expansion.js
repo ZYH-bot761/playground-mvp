@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CITY, CITY_RESIDENTIAL } from './city-layout.js';
-import { makeGlassFacade, makeNightWindows } from './city-textures.js';
+import { makeNightWindows } from './city-textures.js';
 
 const Y0 = CITY.pad.y;
 
@@ -83,10 +83,9 @@ export function buildCityExpansion({ group, owned }) {
   g.position.set(CITY.center.x, 0, CITY.center.z);
   group.add(g);
 
-  const glassMap = makeGlassFacade('#7c8d8b');
   const homeMap = homeFacadeTexture();
   const nightMap = makeNightWindows();
-  owned.textures.push(glassMap, homeMap, nightMap);
+  owned.textures.push(homeMap, nightMap);
 
   const facadeMat = new THREE.MeshStandardMaterial({
     color: 0xffffff, map: homeMap, emissive: 0xffc07a, emissiveMap: nightMap,
@@ -162,73 +161,17 @@ export function buildCityExpansion({ group, owned }) {
   owned.materials.push(homeMat);
   owned.textures.push(homeTex);
 
-  /* ---------------- 远景天际线：一个合并网格 ---------------- */
-  const skyline = [];
-  const tones = [0x6f8790, 0x7f939a, 0x637a84, 0x91a2a4, 0x596f7a];
-  const towers = [];
-  const rng = (() => { let s = 4811; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
-  const ring = [
-    // 北侧主天际线
-    ...Array.from({ length: 13 }, (_, i) => ({ x: -150 + i * 25 + rng() * 7, z: 252 + rng() * 56 })),
-    // 东西两侧
-    ...Array.from({ length: 7 }, (_, i) => ({ x: -145 - rng() * 30, z: 112 + i * 22 })),
-    ...Array.from({ length: 7 }, (_, i) => ({ x: 132 + rng() * 34, z: 110 + i * 23 })),
-  ];
-  ring.forEach((p, i) => {
-    const w = 10 + rng() * 16;
-    const d = 10 + rng() * 16;
-    const h = 24 + rng() * (i < 13 ? 92 : 58);
-    towers.push({ x: p.x, z: p.z, h });
-    const geo = box(w, h, d, p.x - CITY.center.x, 0.8 + h / 2, p.z - CITY.center.z);
-    const color = new THREE.Color(tones[i % tones.length]);
-    const c = new Float32Array(geo.attributes.position.count * 3);
-    for (let k = 0; k < geo.attributes.position.count; k += 1) {
-      c[k * 3] = color.r; c[k * 3 + 1] = color.g; c[k * 3 + 2] = color.b;
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(c, 3));
-    skyline.push(geo);
-  });
-  const skyGeo = mergeGeometries(skyline, false);
-  skyline.forEach((x) => x.dispose());
-  const skyMat = new THREE.MeshStandardMaterial({
-    vertexColors: true, map: glassMap, emissive: 0xffbd7a, emissiveMap: nightMap,
-    emissiveIntensity: 0.0, roughness: 0.9, metalness: 0.04,
-  });
-  const skyMesh = new THREE.Mesh(skyGeo, skyMat);
-  skyMesh.name = 'City/skyline';
-  skyMesh.frustumCulled = false;
-  g.add(skyMesh);
-  owned.geometries.push(skyGeo);
-  owned.materials.push(skyMat);
-
-  // 航空障碍灯：只保留 6 盏，InstancedMesh 一个 draw call。
-  const beaconPositions = towers.filter((t) => t.h > 70).slice(0, 6);
-  const beaconGeo = new THREE.SphereGeometry(0.55, 6, 4);
-  const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff4136, toneMapped: false });
-  const beacons = new THREE.InstancedMesh(beaconGeo, beaconMat, Math.max(1, beaconPositions.length));
-  beacons.name = 'City/aviation-beacons';
-  beacons.frustumCulled = false;
-  const d = new THREE.Object3D();
-  beaconPositions.forEach((t, i) => {
-    d.position.set(t.x - CITY.center.x, 1.4 + t.h + 1.2, t.z - CITY.center.z);
-    d.updateMatrix();
-    beacons.setMatrixAt(i, d.matrix);
-  });
-  beacons.instanceMatrix.needsUpdate = true;
-  g.add(beacons);
-  owned.geometries.push(beaconGeo);
-  owned.materials.push(beaconMat);
+  /* 远景天际线环已按用户要求删除：那圈玻璃塔落在城市路网之外的草坪上，
+   * 又被雾切成半截白块，观感是"显示不完整"。城市天际线由路网内真实建筑承担。 */
 
   return {
     stats: {
       residential: CITY_RESIDENTIAL.length,
-      skylineTowers: towers.length,
-      beacons: beaconPositions.length,
+      skylineTowers: 0,
+      beacons: 0,
     },
     setNight(f) {
       facadeMat.emissiveIntensity = 0.018 + f * 0.82;
-      skyMat.emissiveIntensity = f * 0.34;
-      beaconMat.color.setHex(f > 0.35 ? 0xff2418 : 0x9b302a);
       homeMat.opacity = 1;
     },
   };

@@ -113,3 +113,31 @@ export const isOnRoad = (x, z, margin = 0) => CITY_ROADS.some((r) => {
     ? x >= r.min - margin && x <= r.max + margin
     : false;
 });
+
+/**
+ * 公园四宫格的街道走廊（districts.js：13m 车行道 + 1.5m 人行道 = 16m 走廊，
+ * axisX=24 / axisZ=27，外框 x -30…90 / z -30…90）+ 停车场车道。
+ * 驾驶的路面判定必须包含它们：旧版只认都会路网，玩家在公园大沥青路上开车
+ * 也被当成草地，全程 exp(-0.32·dt) 拖慢，怎么踩油门都跑不起来。
+ */
+export const PARK_CORRIDOR = Object.freeze({
+  axisX: 24, axisZ: 27, half: 8, minX: -30, maxX: 90, minZ: -30, maxZ: 90,
+});
+
+export function isDrivable(x, z) {
+  if (isOnRoad(x, z)) return true;
+  const C = PARK_CORRIDOR;
+  if (z >= C.minZ && z <= C.maxZ && Math.abs(x - C.axisX) <= C.half) return true;
+  if (x >= C.minX && x <= C.maxX && Math.abs(z - C.axisZ) <= C.half) return true;
+  const pk = CITY.parking, dp = CITY.demoParking, pd = PARKING_DRIVE;
+  if (Math.abs(x - pk.x) <= pk.w / 2 && Math.abs(z - pk.z) <= pk.d / 2) return true;
+  if (Math.abs(x - dp.x) <= dp.w / 2 + 1 && Math.abs(z - dp.z) <= dp.d / 2 + 1) return true;
+  if (Math.abs(z - pd.z) <= pd.width / 2 && x >= pd.toX - 1 && x <= pd.fromX + 1) return true;
+  return false;
+}
+
+/**
+ * 都会基座南缘：沥青从 z=88 就开始铺（CITY_ROADS 的 min），
+ * 旧版步行地面却按 pad.minZ=94 才抬高，玩家在门廊里脚陷 1.16m。
+ */
+export const CITY_GROUND_MIN_Z = Math.min(CITY.pad.minZ, ...CITY_ROADS.map((r) => r.min));

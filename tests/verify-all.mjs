@@ -31,7 +31,7 @@ const SUITES = [
   { name: 'season',       label: '四季天气 16 项',  file: 'verify-season.mjs', marker: /allPass=true/ },
   { name: 'driving',      label: 'GTA 驾驶 21 项',  file: 'verify-driving.mjs', marker: /allPass=true/ },
   { name: 'drive-roam',   label: '漫游↔驾驶集成 7 项', file: 'verify-drive-roam.mjs', marker: /allPass=true/ },
-  { name: 'villa',        label: '可进入别墅 10 项', file: 'verify-villa.mjs', marker: /allPass=true/ },
+  { name: 'villa',        label: '可进入别墅 14 项', file: 'verify-villa.mjs', marker: /allPass=true/ },
   { name: 'phase2',       label: '生态扩张 20 项',  file: 'verify-phase2.mjs', marker: /allPass=true/ },
   { name: 'm6zoo',        label: '动物园回归 8 项', file: 'verify-m6-zoo.mjs', marker: /allPass=true/ },
 ];
@@ -41,11 +41,20 @@ function runSuite(suite) {
     const args = suite.file
       ? [`tests/${suite.file}`, ...(suite.args || [])]
       : suite.args;
-    const proc = spawn(suite.cmd || 'node', args, {
+    // Windows 上 npm 是 npm.cmd，spawn 不带 shell 时直接 ENOENT，
+    // 于是 build 套件永远跑不起来、整条门禁恒红。
+    // Node ≥20 又收紧了 .cmd 的裸 spawn（CVE-2024-27980）：必须 shell:true；
+    // 命令行拼成单个字符串，避免 DEP0190 的“args 不经转义”告警（这里全是常量）。
+    const isNpm = (suite.cmd || 'node') === 'npm';
+    const useShell = isNpm && process.platform === 'win32';
+    const opts = {
       cwd: process.cwd(),
       env: { ...process.env, PORT },
       stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    };
+    const proc = useShell
+      ? spawn(`npm.cmd ${args.join(' ')}`, { ...opts, shell: true })
+      : spawn(suite.cmd || 'node', args, opts);
     let out = '';
     const onData = (b) => { out += b.toString(); };
     proc.stdout.on('data', onData);

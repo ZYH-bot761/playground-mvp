@@ -53,7 +53,7 @@ import { movementMode } from '../components/controllers/movement-mode-manager.js
 import { IAttraction } from './attractions/i-attraction.js';
 import { Metropolis } from './metropolis/metropolis-scene.js';
 import { CityDriving } from './metropolis/city-driving.js';
-import { CITY } from './metropolis/city-layout.js';
+import { CITY, CITY_GROUND_MIN_Z } from './metropolis/city-layout.js';
 import { dayNightCycle, MODE_LABELS } from '../utils/helpers/day-night-cycle.js';
 import { seasonCycle, SEASONS, SEASON_LABELS } from '../utils/helpers/season-cycle.js';
 import { fireworkSystem, FIREWORK_COLORS } from '../utils/helpers/particle-system.js';
@@ -172,6 +172,11 @@ const TRIGGER_FRONT_GAP = 3.0;
 
 /** 【上线 QA】第一人称靠近入口的 E 交互半径（触发圈中心 3m 外，留 1.6m 容错） */
 const INTERACT_RADIUS = 4.6;
+/** 都会区别墅：到建筑体量 AABB 的进入半径。原口径 4.5m 常被门廊/台阶挤到边缘，
+ *  玩家站在门口却差半步；放宽到 6m，统一给「提示亮 = 按 E 必能进」。 */
+const VILLA_ENTER_RADIUS = 6.0;
+/** 距别墅多远内按 E 会给出「再走近一点」反馈：杜绝站在别墅旁按 E 完全无反应 */
+const VILLA_HINT_RADIUS = 16;
 /** E 进入防抖：与 pointer 的 200ms 共用同一意图，避免长按/重复触发 */
 const INTERACT_COOLDOWN = 320;
 /** 按 R 自救回到的出生点：南门内草坪中轴，朝北面向世纪钟/入口区 */
@@ -1190,10 +1195,18 @@ export class Lobby extends IAttraction {
     this._city = new Metropolis({
       root: this.root,
       anchors: { carousel: this._carouselFacadeSpin, train: this._stationTrain },
+      getGroundHeight: (x, z) => this._walkGroundHeight(x, z),
     });
     this.root.userData.metropolis = this._city;
     // 都会区建筑接入玩家步行碰撞：边界放开后不能靠“空气墙”阻止穿楼。
     this._buildingBoxes.push(...this._city.walkColliders);
+    /* 别墅门洞接入点击拾取：与 E 键、提示点击共用 _tryEnterVilla 的同一判据，
+     * 轨道/俯瞰视角把视线对准门洞点一下就能进（手机触屏同样可用）。 */
+    const villaDoorMesh = this._city.villaDoor?.root?.getObjectByName('City/villa-door');
+    if (villaDoorMesh) {
+      villaDoorMesh.userData.facilityKey = 'villa';
+      this._pickables.push(villaDoorMesh);
+    }
     this._applyShadowBudget();
     this.root.userData.districtView = DISTRICT_VIEW;
     this.root.userData.districtGrid = DISTRICT_GRID;
@@ -1829,8 +1842,25 @@ export class Lobby extends IAttraction {
       if (t >= 0 && t <= 1) y = Math.max(y, 1.14 + 0.58 + Math.sin(Math.PI * t) * 0.72 + 0.09);
     }
     // 都会区：整个城市基座抬高 1.16m，此前漏算会让玩家“沉进”城市地面。
+    // 南缘取沥青起点（CITY_GROUND_MIN_Z=88）而不是 pad.minZ=94：旧值让门廊
+    // 一带（z 88…94）明明站在 1.185 的沥青上，脚却按 0 计算，等于陷进地面。
     if (x >= CITY.pad.minX && x <= CITY.pad.maxX
-      && z >= CITY.pad.minZ && z <= CITY.pad.maxZ) y = Math.max(y, CITY.pad.y);
+      && z >= CITY_GROUND_MIN_Z && z <= CITY.pad.maxZ) y = Math.max(y, CITY.pad.y);
+    /* 公园四宫格铺装层：districts.js 把 13m 沥青 + 1.5m 人行道整体抬到
+     * 1.12~1.13、城堡/农家色块抬到 1.095，用来压住 0.9m 的草丘起伏。
+     * 步行地面若继续按 0 算，玩家沿中央大道进城时整个人埋进路面 1.1m。 */
+    const O = DISTRICT_GRID.outer, R = DISTRICT_GRID.road, CELL = DISTRICT_GRID.cell;
+    if (x >= O.minX && x <= O.maxX && z >= O.minZ && z <= O.maxZ) {
+      if (Math.abs(x - R.axisX) <= R.corridor / 2 || Math.abs(z - R.axisZ) <= R.corridor / 2) {
+        y = Math.max(y, 1.125);
+      }
+      for (const key of ['castle', 'farm']) {
+        const q = DISTRICT_GRID.quadrants[key];
+        if (Math.abs(x - q.cx) <= CELL.w / 2 && Math.abs(z - q.cz) <= CELL.h / 2) {
+          y = Math.max(y, 1.1);
+        }
+      }
+    }
     return y;
   }
 
@@ -4110,15 +4140,28 @@ export class Lobby extends IAttraction {
     if (this._ctx?.isEmbedded?.()) return;
     if (this._driving?.active || this._driving?.pending) return;
     if (this._sitState !== 'none' || this._zooFly || this._wasdBlendActive) return;
-    if (movementMode.isEngaged() || cameraRig.isTransitioning) return;
+    /* 【别墅入口修复】漫游层不再无条件吞掉 E：地面漫游（眼高 1.7m）与 WASD 一样
+     * 是"站在地上"，允许进别墅；只有飞行模式（高空）拒绝，并改由 _tryEnterVilla
+     * 给出「先按 F 切回地面」的提示，而不是静默无反应。
+     * 设施入口仍只认 WASD 第一人称：_findNearFacility 自带 _inputMode 判断，
+     * 漫游态下返回 null，不会误进游乐园的触发环。 */
+    const roamFlight = movementMode.isEngaged() && movementMode.mode !== 'ground';
+    if (roamFlight) {
+      // 飞行中按 E：不进入，但若正悬在别墅上方就明确告诉他先落地，
+      // 而不是让按键彻底静默（这正是「在家门口按 E 没反应」的体感来源之一）。
+      this._tryEnterVilla();
+      return;
+    }
+    if (cameraRig.isTransitioning) return;
     // 用实时位置重算，避免「刚走到圈内、HUD 尚未刷新」时 E 无效
     const near = this._findNearFacility();
     if (!near) {
-      // 都会区别墅门口：不在 FACILITIES 触发环里，单独按距离判定
-      if (this._nearVillaDoor && this._ctx?.onEnterAttraction) {
+      // 都会区别墅门口：不在 FACILITIES 触发环里，单独按距离判定。
+      // 命中即进入；距离稍远但仍在别墅附近时，_tryEnterVilla 会给出
+      // 「再走近一点」/「先落地」的 toast，避免玩家以为按键坏了。
+      if (this._tryEnterVilla()) {
         event.preventDefault();
-        event.stopImmediatePropagation();
-        this._ctx.onEnterAttraction('villa');
+        event.stopImmediatePropagation(); // 阻止 bubble 阶段的坐姿 E
       }
       return;
     }
@@ -4486,30 +4529,79 @@ export class Lobby extends IAttraction {
   }
 
   /**
-   * 都会区别墅门口扫描：玩家走到商场西侧别墅南门口（距离 ≤4.2m）时亮起提示。
-   * 别墅不在 FACILITIES 触发环里（那是游乐园的），而是都会区的实体建筑，
-   * 靠近门口按 E 直接进室内 Villa 独立设施。
+   * 别墅入口可用性：提示文案、E 键、点击/触屏三处共用同一判据。
+   * 旧实现里提示只看距离、E 键却额外受 movementMode 限制，导致
+   * 「提示亮着、按 E 毫无反应」——这正是"走到家门口进不去"的根因。
+   * @returns {{door:object|null, dist:number, near:boolean, busy:boolean, flight:boolean}}
    */
-  _updateVillaDoor(_dt = 0) {
+  _villaDoorState() {
     const door = this._city?.villaDoor;
     const cam = this._ctx?.camera;
-    const active = !this._disposed && !this._driving?.active && !this._driving?.pending
-      && this._sitState === 'none' && !this._zooFly && !cameraRig.isTransitioning
-      && !this._ctx?.isEmbedded?.();
-    let near = false;
-    if (active && door && cam) {
-      const dx = cam.position.x - door.doorPos.x;
-      const dz = cam.position.z - door.doorPos.z;
-      near = dz <= 1.5 && Math.hypot(dx, dz) <= 4.2; // 门口在南侧，避开屋顶误触
+    let dist = Infinity;
+    if (door && cam) {
+      // 以建筑体量 AABB 为判定基准（任意一侧都算），y 不参与，避免屋顶/高处误触
+      const b = door.colliders?.[0];
+      const x0 = THREE.MathUtils.clamp(cam.position.x, b?.minX ?? door.doorPos.x, b?.maxX ?? door.doorPos.x);
+      const z0 = THREE.MathUtils.clamp(cam.position.z, b?.minZ ?? door.doorPos.z, b?.maxZ ?? door.doorPos.z);
+      dist = Math.hypot(cam.position.x - x0, cam.position.z - z0);
     }
-    this._nearVillaDoor = near;
-    // 专用提示 DOM（懒创建一次，dispose 一并移除）
+    const busy = !!this._disposed
+      || !!this._driving?.active || !!this._driving?.pending
+      || this._sitState !== 'none' || !!this._zooFly || !!this._wasdBlendActive
+      || cameraRig.isTransitioning || !!this._ctx?.isEmbedded?.();
+    // 只有飞行模式（高空）不允许进；地面漫游与 WASD 第一人称同等对待
+    const flight = !!(movementMode.isEngaged() && movementMode.mode !== 'ground');
+    return { door, dist, near: dist <= VILLA_ENTER_RADIUS, busy, flight };
+  }
+
+  /**
+   * 进入都会区别墅（唯一入口实现，E 键 / 提示点击 / 门洞点击共用）。
+   * @returns {boolean} 是否真的发起了进入
+   */
+  _tryEnterVilla() {
+    const fn = this._ctx?.onEnterAttraction;
+    if (typeof fn !== 'function') return false;
+    const s = this._villaDoorState();
+    if (!s.door) return false;
+    if (s.busy) return false;
+    if (!s.near) {
+      // 站在别墅附近但没进触发圈：给一次明确反馈，而不是"按了没反应"
+      if (s.dist <= VILLA_HINT_RADIUS) {
+        this._showToast('再走近一点：站到别墅门口的发光圈上，再按 E');
+      }
+      return false;
+    }
+    if (s.flight) {
+      this._showToast('飞行模式下进不去别墅：先按 F 切回地面，再按 E');
+      return false;
+    }
+    const now = performance.now();
+    if (now - this._lastEnterAt < CLICK_DEBOUNCE) return false;
+    this._lastEnterAt = now;
+    console.info('[Lobby] 进入「我的别墅」→ villa（都会区实体门面）');
+    fn('villa');
+    return true;
+  }
+
+  /**
+   * 都会区别墅门口扫描：每帧刷新提示与 _nearVillaDoor。
+   * 提示文案与实际可用性严格一致（飞行模式会提示先落地），
+   * 提示本身可点击/触屏，手机没有键盘也能进门。
+   */
+  _updateVillaDoor(_dt = 0) {
+    const s = this._villaDoorState();
+    this._nearVillaDoor = !!s.door && !s.busy && s.near;
     let el = this._villaHintEl;
-    if (!el && active) {
+    if (!el && s.door) {
       el = document.createElement('div');
       el.className = 'lb-villa-hint';
-      el.textContent = '按 E 进入我的别墅';
       el.dataset.on = '0';
+      // 点击/触屏也可进入（与 E 键共用同一实现，重复触发由 200ms 防抖兜住）
+      this._addListener(el, 'click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._tryEnterVilla();
+      }, 'ui');
       document.body.appendChild(el);
       this._villaHintEl = el;
       if (!document.getElementById('lb-villa-style')) {
@@ -4518,12 +4610,21 @@ export class Lobby extends IAttraction {
         st.textContent = '.lb-villa-hint{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);'
           + 'padding:10px 20px;border-radius:999px;background:rgba(18,26,32,.88);'
           + 'color:#ffe6bc;border:1px solid rgba(255,217,160,.45);font:13px "Microsoft YaHei",sans-serif;'
-          + 'pointer-events:none;opacity:0;transition:opacity .2s;z-index:59}'
-          + '.lb-villa-hint[data-on="1"]{opacity:1}';
+          + 'pointer-events:none;user-select:none;opacity:0;transition:opacity .2s;z-index:59}'
+          + '.lb-villa-hint[data-on="1"]{opacity:1;pointer-events:auto;cursor:pointer}'
+          + '.lb-villa-hint[data-on="1"]:hover{background:rgba(46,90,110,.92)}';
         document.head.appendChild(st);
       }
     }
-    if (el) el.dataset.on = near ? '1' : '0';
+    if (!el) return;
+    // 只在与别墅同一触发圈内亮起（飞行模式也亮，但文案写明要先按 F 落地）；
+    // 驾驶/坐姿/相机过渡等不可用状态直接隐藏。
+    const on = this._nearVillaDoor;
+    el.dataset.on = on ? '1' : '0';
+    const text = s.flight
+      ? '按 F 切回地面，再按 E 进入我的别墅'
+      : '按 E 进入我的别墅（点这里也可以）';
+    if (el.textContent !== text) el.textContent = text;
   }
 
   /* ------------------------------------------------------------------------ */
@@ -4818,13 +4919,15 @@ export class Lobby extends IAttraction {
     if (!modeBtn) return;
     const wasd = this._inputMode === 'wasd';
     const compact = typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches;
+    // 触屏没有 E/R/M 物理键：窄屏且粗指针时文案改成点按口径，避免手机用户照着按键盘
+    const touch = compact && this._isCoarseDevice();
     modeBtn.dataset.mode = this._inputMode;
     modeBtn.textContent = wasd
-      ? (compact ? '⌨ WASD · M 切鼠标' : '⌨ WASD 第一人称 · M 切回鼠标')
-      : (compact ? '漫游 · WASD' : '鼠标漫游 · WASD 走动 · M 切第一人称');
+      ? (compact ? (touch ? '第一人称 · 点按切漫游' : '⌨ WASD · M 切鼠标') : '⌨ WASD 第一人称 · M 切回鼠标')
+      : (compact ? (touch ? '漫游 · 摇杆移动' : '漫游 · WASD') : '鼠标漫游 · WASD 走动 · M 切第一人称');
     if (controlsHint) {
       controlsHint.textContent = compact
-        ? '左侧摇杆移动 · 拖拽转视角 · E 进入 · R 自救'
+        ? (touch ? '左侧摇杆移动 · 拖拽转视角 · 点入口进入' : '左侧摇杆移动 · 拖拽转视角 · E 进入 · R 自救')
         : (wasd
           ? 'WASD 移动 · Shift 加速 · E 进入 · F 上车 · R 回到出生点'
           : 'WASD 走动 · 拖拽旋转 · 点击入口进入 · R 自救');
@@ -5037,7 +5140,8 @@ export class Lobby extends IAttraction {
     // 【上线 QA 误触保护】拖拽已由 pointer 位移判定；这里再封死所有非漫游态
     if (this._driving?.active || this._driving?.pending) return;
     if (this._ctx?.isEmbedded?.() || this._sitState !== 'none' || this._zooFly) return;
-    if (movementMode.isEngaged() || cameraRig.isTransitioning) return;
+    // 【别墅入口修复】地面漫游与 WASD 一样可点门洞进屋；飞行模式仍拒绝（相机在空中有误触风险）
+    if ((movementMode.isEngaged() && movementMode.mode !== 'ground') || cameraRig.isTransitioning) return;
     const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     this._ndc.set(
@@ -5062,6 +5166,8 @@ export class Lobby extends IAttraction {
 
     const key = this._pickKey(hits);
     if (!key) return;
+    // 都会区别墅：门洞不在 FACILITIES 里，走独立入口（同一套可用性判据）
+    if (key === 'villa') { this._tryEnterVilla(); return; }
     const facility = FACILITIES.find((f) => f.key === key);
     if (!facility) return;
     // OrbitControls 俯瞰视角下允许直接点击任意可见入口进入，不做距离门槛

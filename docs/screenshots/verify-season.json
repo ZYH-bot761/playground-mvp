@@ -1,6 +1,6 @@
 {
   "module": "phase3-season",
-  "at": "2026-11-18T02:40:11.095Z",
+  "at": "2026-11-19T08:01:01.971Z",
   "passed": 16,
   "total": 16,
   "allPass": true,
@@ -175,8 +175,8 @@
         "weather": "petal",
         "count": 84,
         "mem": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "calls": 1,
         "cam": [
@@ -193,8 +193,8 @@
         "weather": "rain",
         "count": 84,
         "mem": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "calls": 1,
         "cam": [
@@ -211,8 +211,8 @@
         "weather": "leaf",
         "count": 84,
         "mem": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "calls": 1,
         "cam": [
@@ -229,8 +229,8 @@
         "weather": "snow",
         "count": 84,
         "mem": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "calls": 1,
         "cam": [
@@ -245,12 +245,12 @@
       "pass": true,
       "detail": {
         "before": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "after": {
-          "geometries": 152,
-          "textures": 54
+          "geometries": 151,
+          "textures": 56
         },
         "dGeo": 0,
         "dTex": 0
@@ -270,18 +270,18 @@
   ],
   "memory": {
     "before": {
-      "geometries": 152,
-      "textures": 54
+      "geometries": 151,
+      "textures": 56
     },
     "after": {
-      "geometries": 152,
-      "textures": 54
+      "geometries": 151,
+      "textures": 56
     },
     "dGeo": 0,
     "dTex": 0
   },
   "bootMem": {
-    "geometries": 152,
-    "textures": 54
+    "geometries": 151,
+    "textures": 56
   }
 }

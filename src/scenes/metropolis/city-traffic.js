@@ -45,12 +45,18 @@ function detailedWheelGeometry() {
 /* 路线点全部放在“右行车道中心”，而不是道路中心线：
  * 主干道 16m → 北行 x=27.2 / 南行 x=20.8；横街 12m → 东行 z-3 / 西行 z+3。
  * 这样双向车流不会压黄线，也不会出现同车道对头车。 */
+/* 车道中心必须落在真正车道里，而不是压在画出来的分道线上：
+ * city-street.js 在主干道 24±3.25（=20.75 / 27.25）画虚线，公园大道同样在
+ * 24±3.25 画线，旧路线却把车流中心放在 27.2 / 20.8 —— 每台车都骑在线上。
+ * 现在按车道取中：主干道东半 [24,27.25]→25.6、[27.25,32]→29.6（公交停靠道），
+ * 西半 [20.75,24]→22.4、[16,20.75]→18.4；支路 9m 两车道取 ±2.25。 */
 const ROUTE_POINTS = {
-  city: [[27.2, 115], [27.2, 191], [66.8, 191], [66.8, 115]],
-  west: [[-47.2, 116], [-47.2, 190], [-52.8, 190], [-52.8, 116]],
-  park: [[27.2, -12], [27.2, 106], [20.8, 106], [20.8, -12]],
+  city: [[25.6, 115], [25.6, 191], [67.75, 191], [67.75, 115]],
+  west: [[-47.75, 116], [-47.75, 190], [-52.25, 190], [-52.25, 116]],
+  park: [[25.6, -12], [25.6, 106], [22.4, 106], [22.4, -12]],
   // 公交不再只在公园门口折返：先沿主干道进都会区，绕一个完整街块后回公园。
-  bus: [[28.2, -8], [28.2, 191], [66.8, 191], [66.8, 115], [20.8, 115], [20.8, -8]],
+  // 外侧 29.6 车道紧贴 x=32.4 的站台，乘客下车就是人行道。
+  bus: [[29.6, -8], [29.6, 191], [67.75, 191], [67.75, 115], [19.1, 115], [19.1, -8]],
 };
 
 function lanePoint(route, t, lane) {
@@ -60,8 +66,19 @@ function lanePoint(route, t, lane) {
 }
 
 function makeRoute(points, closed = true) {
+  /* 直边必须插入中间采样点：Catmull-Rom 只用角点时，整条 76m 直边会朝街区外侧鼓出约 2m，
+   * 北向车道因此压到中心线上、转弯时借了对向车道。补成三等分点后直边保持笔直，
+   * 圆角只留在路口附近——那正是车辆真实转向的位置。 */
+  const dense = [];
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    dense.push(a);
+    dense.push([a[0] + (b[0] - a[0]) / 3, a[1] + (b[1] - a[1]) / 3]);
+    dense.push([a[0] + (2 * (b[0] - a[0])) / 3, a[1] + (2 * (b[1] - a[1])) / 3]);
+  }
   const curve = new THREE.CatmullRomCurve3(
-    points.map(([x, z]) => new THREE.Vector3(x, 0, z)), closed, 'catmullrom', 0.2,
+    dense.map(([x, z]) => new THREE.Vector3(x, 0, z)), closed, 'catmullrom', 0.2,
   );
   const samples = curve.getSpacedPoints(256).slice(0, 256);
   const normals = [];
@@ -400,7 +417,14 @@ export class CityTraffic {
       if (o.claimed) continue;
       const dx = o.x - v.x, dz = o.z - v.z;
       if (dx * dx + dz * dz > 18) continue;
-      const ahead = dx * Math.sin(v.yaw) + dz * Math.cos(v.yaw);
+      const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+      const ahead = dx * fx + dz * fz;
+      const side = Math.abs(dx * fz - dz * fx);
+      /* 只让行"本车道前方"的车：旧版没有横向与方向判定，双向环线一旦有两股车流并排
+       * （公园大道两车道中心线相距 3.2m），彼此都算对方"正前方 <4.2m"而同时刹停，
+       * 于是两台车永远顶在路中间谁也走不了。对向车与邻道车都不该逼停本车。 */
+      if (side > 1.6) continue;
+      if (o.dx * fx + o.dz * fz < -0.4) continue;
       if (ahead > 0 && ahead < 4.2) target = Math.min(target, Math.max(0, ahead - 1.8));
     }
     // 玩家车进入 AI 前方时让行：不再出现 AI 车直接顶穿玩家车。

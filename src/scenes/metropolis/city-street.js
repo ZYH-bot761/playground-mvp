@@ -1,6 +1,6 @@
 /** 都会区地面 / 路网 / 路灯 / 红绿灯 / 公交站：路灯与信号灯全部 InstancedMesh。 */
 import * as THREE from 'three';
-import { CITY, CITY_ROADS, CITY_INTERSECTIONS, PARKING_DRIVE, BUS_STOP } from './city-layout.js';
+import { CITY, CITY_GROUND_MIN_Z, CITY_ROADS, CITY_INTERSECTIONS, PARKING_DRIVE, BUS_STOP } from './city-layout.js';
 import { makeParkingTexture, makeAsphaltDetail } from './city-textures.js';
 
 function planeGeo(w, d) {
@@ -51,8 +51,9 @@ export function buildCityBase({ group, owned }) {
   const items = [];
   const add = (x, z, w, d, color, yy = y + 0.01) => items.push({ x, z, w, d, color, y: yy });
 
-  // 基座 / 人行道 / 车道（一直铺到 z=252，避免北端步行到天际线脚下踩空）
-  add(0, (CITY.pad.minZ + CITY.pad.maxZ) / 2, 190, CITY.pad.maxZ - CITY.pad.minZ, 0x6d756d, y);
+  // 基座 / 人行道 / 车道：南缘必须铺到沥青起点（z=88），旧版基座从 94 开始，
+  // 主干道 88…94 那段等于一块悬在公园上空 1.18m 的沥青舌头。
+  add(0, (CITY_GROUND_MIN_Z + CITY.pad.maxZ) / 2, 190, CITY.pad.maxZ - CITY_GROUND_MIN_Z, 0x6d756d, y);
   for (const r of CITY_ROADS) {
     if (r.axis === 'z') {
       add(r.center, (r.min + r.max) / 2, r.width, r.max - r.min, 0x30373d, y + 0.025);

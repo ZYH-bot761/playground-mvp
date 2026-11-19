@@ -407,7 +407,9 @@ export class WASDController {
     const dz = (fz * forward + fx * right) * step;
 
     const nx = THREE.MathUtils.clamp(cam.position.x + dx, -ORBIT_PAN_BOUND, ORBIT_PAN_BOUND);
-    const nz = THREE.MathUtils.clamp(cam.position.z + dz, -WASD_WORLD_MIN_Z, ORBIT_PAN_MAX_Z);
+    // 下界必须是 WASD_WORLD_MIN_Z(-110)：写成 -WASD_WORLD_MIN_Z 会把最小值变成 +110，
+    // 任何 orbit 平移都会把相机瞬移进都会区。
+    const nz = THREE.MathUtils.clamp(cam.position.z + dz, WASD_WORLD_MIN_Z, ORBIT_PAN_MAX_Z);
     const ax = nx - cam.position.x;
     const az = nz - cam.position.z;
     if (ax === 0 && az === 0) return false;

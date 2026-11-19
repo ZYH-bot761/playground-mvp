@@ -1,7 +1,7 @@
 {
   "phase": 2,
   "title": "生态扩张：森林公园 / 动物升级 / 农家劳作",
-  "at": "2026-11-18T02:50:39.249Z",
+  "at": "2026-11-19T08:06:42.006Z",
   "pass": 20,
   "total": 20,
   "allPass": true,
@@ -231,12 +231,12 @@
       "name": "D1 新增内容机位 draw calls ≤ 900",
       "ok": true,
       "detail": {
-        "contentCalls": 472,
+        "contentCalls": 493,
         "views": {
-          "zoo": 370,
-          "safari": 472,
-          "forest": 318,
-          "farm": 346
+          "zoo": 391,
+          "safari": 493,
+          "forest": 339,
+          "farm": 367
         }
       }
     },
@@ -244,31 +244,31 @@
       "name": "D2 六个机位 triangles ≤ 300k",
       "ok": true,
       "detail": {
-        "maxTris": 174952,
+        "maxTris": 174808,
         "views": {
           "zoo": {
-            "calls": 370,
-            "triangles": 144490
+            "calls": 391,
+            "triangles": 144346
           },
           "safari": {
-            "calls": 472,
-            "triangles": 151678
+            "calls": 493,
+            "triangles": 151534
           },
           "forest": {
-            "calls": 318,
-            "triangles": 142014
+            "calls": 339,
+            "triangles": 141870
           },
           "farm": {
-            "calls": 346,
-            "triangles": 153670
+            "calls": 367,
+            "triangles": 153526
           },
           "overview": {
-            "calls": 719,
-            "triangles": 174952
+            "calls": 740,
+            "triangles": 174808
           },
           "districtOverview": {
-            "calls": 547,
-            "triangles": 153240
+            "calls": 568,
+            "triangles": 153096
           }
         }
       }
@@ -278,12 +278,12 @@
       "ok": true,
       "detail": {
         "before": {
-          "geometries": 152,
-          "textures": 56
+          "geometries": 151,
+          "textures": 58
         },
         "after": {
-          "geometries": 152,
-          "textures": 56
+          "geometries": 151,
+          "textures": 58
         },
         "dGeo": 0,
         "dTex": 0,
@@ -536,38 +536,38 @@
   },
   "budget": {
     "zoo": {
-      "calls": 370,
-      "triangles": 144490
+      "calls": 391,
+      "triangles": 144346
     },
     "safari": {
-      "calls": 472,
-      "triangles": 151678
+      "calls": 493,
+      "triangles": 151534
     },
     "forest": {
-      "calls": 318,
-      "triangles": 142014
+      "calls": 339,
+      "triangles": 141870
     },
     "farm": {
-      "calls": 346,
-      "triangles": 153670
+      "calls": 367,
+      "triangles": 153526
     },
     "overview": {
-      "calls": 719,
-      "triangles": 174952
+      "calls": 740,
+      "triangles": 174808
     },
     "districtOverview": {
-      "calls": 547,
-      "triangles": 153240
+      "calls": 568,
+      "triangles": 153096
     }
   },
   "hot": {
     "before": {
-      "geometries": 152,
-      "textures": 56
+      "geometries": 151,
+      "textures": 58
     },
     "after": {
-      "geometries": 152,
-      "textures": 56
+      "geometries": 151,
+      "textures": 58
     },
     "dGeo": 0,
     "dTex": 0,
