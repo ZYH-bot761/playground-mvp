@@ -75,20 +75,46 @@
 - **验收**：build ✓、redline 8/8、v4 13/13、driving 21/21、drive-roam 7/7、metropolis 19/19（maxTris 230997 / maxCalls 741、稳态 Δ0/0、0 报错）。
 - **边界**：WorkBuddy 的 blender 是 `mcp.json` 自定义服务，不在插件列表内，重连需在 MCP 服务管理面板操作；socket 通了之后建模链路直接可用。
 
-## 4. 当前验收基线（2026-11-17 实测）
+## 3.9 Blender 建筑精修 ①「我的别墅」外壳（2026-11-19）
+
+用户要求「先把大都会商场旁边那栋别墅用 Blender 精修，再逐个精修游乐场 / 医院 / 动物园等建筑」。沿用 3.8 已验证的**离线建模 → 量化数据编译进 JS** 管线，零 GLB / 零外部资产 / 不动 InstancedMesh 与四季 shader。
+
+- **产物**：`tools/blender/build_city_villa.py`（Blender 3.6 socket 执行，Cycles CPU 48spp 预览）、`models/blender-villa-preview.png`（两轮人工验收定稿）、`src/scenes/metropolis/city-villa-blender-model.js`（226KB 量化数据）、`tests/verify-villa-shell.mjs`（7/7 资产回归）。
+- **建模内容**：三层错落体量（2F 东退台露台、3F 再退台）+ 内凹玻璃幕墙（深色背板/玻璃/铝合金分格/窗台窗楣挑板）+ 木格栅与 2F 水平木百叶 + 层间腰线与檐下灯带 + 雨棚门廊/双开门/台阶/门廊柱 + 玻璃栏板阳台 + 屋顶女儿墙/空调外机/太阳能板/通风帽 + 东/西竖鳍与条窗 + 庭院铺装/矮墙/绿化池/阔叶树/庭院灯。**5612 tris**（WALL 612 / GLASS 264 / FRAME 2460 / WOOD 548 / DOOR 84 / DARK 588 / GLOW 168 / GREEN 888），8 个材质桶各 1 draw call；原白盒门面约 28 个 Mesh，draw call 反而下降。
+- **轴与落位**：Blender +Y(南) → Three −Z，与 `CITY_VILLA.door.z=125.7` 对齐；`city-villa.js` 对每个桶 `geo.translate(-30, 1.16, 134)`，root 保持 identity，故光环/招牌/门板/碰撞盒的世界坐标契约不变。
+- **契约保留**：root 名 `City/villa`（进室内整体隐藏）、门板 `City/villa-door`（`villaDoor` + `facilityKey` + `_pickables`）、`City/villa-ring`、`doorPos`、`colliders`、8 桶 geometry/material 全登记 `owned` 台账。材质沿用原配色（米白墙 0xe8e4dc / 深灰铝 0x3a4046 / 蓝灰玻璃 0x8fb8c8 / 暖木 0x9c7549），顶点色只做明暗调制，风格与都会区连贯。
+- **验收（本轮实测）**：build ✓；`verify-villa-shell` **7/7**；`verify-villa-door` **8/8**；`verify-villa-embed` **12/12**；`verify-metropolis` **19/19**（maxTris **236381** / maxCalls 741、5 轮 Δgeo/Δtex=0/0、0 报错）；`verify-redline` **8/8**（173,812 tris、Δ0/0、9 触发环）；`verify-v4` **13/13**。
+- ⚠️ **`tests/verify-villa.mjs` 是既有脚本漂移，非本轮回归**：该脚本断言写死旧独立设施语义（`activeKey==='villa'`、`camY≈1.6`、从 `attractionManager.active` 取 villa 私有属性），而工作区里未提交的 v3「嵌入视图」改造后是 `activeKey==='lobby'`、`camY≈2.8`，故报 2/4。同语义已由 `verify-villa-door` / `verify-villa-embed` 全绿覆盖；本轮未改动该脚本（属用户未提交的 v3 改动）。
+
+### 建筑精修面数预算表（逐个推进，勿一次性堆满）
+
+| 项 | 三角面 | 备注 |
+|---|---|---|
+| 300k 红线 | 300,000 | `verify-metropolis` / `verify-redline` 双机位断言 |
+| 本轮都会区实测峰值 | 236,381 | 已含车模 3,444 + 别墅 5,612 |
+| **剩余余量** | **63,619** | 后续每个建筑 ≤12,000，留安全垫 |
+| ② 游乐场 / ③ 医院 / ④ 动物园 / ⑤ 其他 | 各 ≤12,000 | 4×12,000=48,000 → 峰值 ≤284,381 |
+| 单建筑超配额 | 需先等量替换或压缩 | 不改基线让测试变绿 |
+
+实现顺序按「都会区同域优先、逐个交付」：别墅（已完成）→ 医院/商场等都会区实体 → 独立设施（游乐场/动物园）。每个建筑单独建模脚本、单独预览验收、单独回归、单独提交。
+
+## 4. 当前验收基线（2026-11-17 建立 · 2026-11-19 增量更新）
 
 | 套件 | 结果 | 关键指标 |
 |---|---|---|
 | `npm run build` | PASS | 155 模块；`vendor-physics` 4.34MB 保持懒加载分块 |
 | verify-camera-contract | 7/7 PASS | 受控直写审计 40 次；无 owner / 未登记写者被拒 |
-| verify-redline (BASE) | 8/8 PASS | 双机位 overview 173,956 tris / 669 calls；Δgeo=0 / Δtex=0 |
+| verify-redline (BASE) | 8/8 PASS | 双机位 overview 173,812 tris / 690 calls（11-19 实测）；Δgeo=0 / Δtex=0 |
 | verify-v4 | 13/13 PASS | 5 轮往返 Δgeo=−31 / Δtex=−16（负值=视角缓存释放）；0 报错 |
 | verify-season | 16/16 PASS | 天气峰值 760，clear 后 freeTop=3000；8 次切换 Δ0/0 |
 | verify-driving | 21/21 PASS | 上车 14 刚体 → 下车 0；驾驶相机走受控直写正常 |
 | verify-drive-roam | 7/7 PASS | 漫游地面模式可按 E 上车；驾驶中漫游让位；下车自动恢复 |
-| verify-metropolis | 19/19 PASS | 都会区提质后 maxTris 190,603 / maxCalls 722；LOD 三级保留 |
+| verify-metropolis | 19/19 PASS | 11-19 实测 maxTris **236,381** / maxCalls 741；LOD 三级保留、Δ0/0 |
 | verify-m3-npc | 7/7 PASS | 人物提质后仍 1 draw call、0 报错、900 帧 0 卡墙 |
-| verify-villa | 12/12 PASS | 都会区门口按E、四层83家具、电梯随行、3轮进出 Δ0/0、车库两车、0 报错 |
+| verify-villa | ⚠️ 2/4（既有漂移，见 3.9） | v3 嵌入视图后旧断言 `activeKey/camY` 失效；同语义由下方两脚本全绿覆盖 |
+| verify-villa-shell | 7/7 PASS | Blender 外壳 8 桶 / 5612 tris / owned 台账 / 门板拾取 / 显隐 |
+| verify-villa-door | 8/8 PASS | 都会区门口按 E、提示条点击、门洞拾取、往返闭环、0 报错 |
+| verify-villa-embed | 12/12 PASS | 同场并置、外壳隐藏、阳台真实城景、退出恢复 |
 | verify-phase2 | 20/20 PASS | 生态扩张（历史记录） |
 | verify-m6-zoo | 8/8 PASS | 动物园回归（历史记录） |
 
