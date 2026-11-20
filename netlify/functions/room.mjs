@@ -33,11 +33,16 @@ export default async (request) => {
   }
 
   try {
-    const store = getStore({ name: 'playground-multiplayer', consistency: 'strong' });
+    const store = getStore('playground-multiplayer');
     const result = await handleRoomApi({ store, body, secret: SECRET });
     return json(result.status, result.json);
   } catch (err) {
     console.error('[联机] Netlify Function 处理失败：', err);
-    return json(500, { ok: false, error: '联机服务暂时不可用' });
+    return json(500, {
+      ok: false,
+      error: '联机服务暂时不可用',
+      detail: String(err?.message || err),
+      code: String(err?.name || 'unknown'),
+    });
   }
 };
