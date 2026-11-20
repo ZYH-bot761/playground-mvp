@@ -33,7 +33,17 @@ export default async (request) => {
   }
 
   try {
-    const store = getStore('playground-multiplayer');
+    const blobs = getStore('playground-multiplayer');
+    /* @netlify/blobs 新版只提供 get({type:'json'}) / setJSON，没有 getJSON；
+     * room-core 使用 getJSON/setJSON 的抽象，这里做一层适配。 */
+    const store = {
+      async getJSON(key) {
+        return await blobs.get(key, { type: 'json', consistency: 'strong' });
+      },
+      async setJSON(key, value) {
+        await blobs.setJSON(key, value);
+      },
+    };
     const result = await handleRoomApi({ store, body, secret: SECRET });
     return json(result.status, result.json);
   } catch (err) {
