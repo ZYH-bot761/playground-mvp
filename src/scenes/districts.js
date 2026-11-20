@@ -342,6 +342,7 @@ export class Districts {
       this._zoneDisposers.push(buildCastle(detail, S, Q.castle).dispose);
     } else {
       const farm = buildFarm(detail, S, Q.farm);
+      this._farm = farm;
       this._zoneDisposers.push(farm.dispose);
       this._zoneUpdates.farm = farm.update;
       detail.userData.farmWorkers = farm.workers;
@@ -424,6 +425,11 @@ export class Districts {
    * 相机朝向与区中心方向做一次点积，背向且距离 >15m 时整区隐藏；
    * 玩家转身后下一帧立即恢复。热路径零新建。
    */
+  /** 农田收割入口：lobby 按 E 调用，x/z 为相机（玩家）世界坐标。 */
+  harvestFarm(x, z) {
+    return this._farm ? this._farm.harvestNear(x, z) : { ok: false, reason: 'none' };
+  }
+
   update(camera, dt = 0) {
     if (!camera) return;
     this._time += Math.min(0.1, Math.max(0, dt));

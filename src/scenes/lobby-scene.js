@@ -1083,6 +1083,7 @@ export class Lobby extends IAttraction {
     this._onInteractKey = this._onInteractKey.bind(this);
     this._onEmbeddedExitKey = this._onEmbeddedExitKey.bind(this);
     this._onResetKey = this._onResetKey.bind(this);
+    this._onPedHit = this._onPedHit.bind(this);
   }
 
   /* ------------------------------------------------------------------------ */
@@ -4063,6 +4064,7 @@ export class Lobby extends IAttraction {
     this._addListener(window, 'keydown', this._onInteractKey, 'input', { capture: true });
     this._addListener(window, 'keydown', this._onEmbeddedExitKey, 'input', { capture: true });
     this._addListener(window, 'keydown', this._onResetKey, 'input', { capture: true });
+    this._addListener(window, 'pg-ped-hit', this._onPedHit, 'input');
     /* 【阶段四】F 上下车。capture 阶段抢在 MovementMode（同样用 F）之前，
      * 只在「靠近车 / 正在驾驶」时消费 F，其余情况仍交给原有漫游模式切换。 */
     this._addListener(window, 'keydown', this._onVehicleKeyDown, 'input', { capture: true });
@@ -4155,6 +4157,7 @@ export class Lobby extends IAttraction {
     if (cameraRig.isTransitioning) return;
     // 用实时位置重算，避免「刚走到圈内、HUD 尚未刷新」时 E 无效
     const near = this._findNearFacility();
+    if (!near && this._tryFarmHarvest(event)) return;
     if (!near) {
       // 都会区别墅门口：不在 FACILITIES 触发环里，单独按距离判定。
       // 命中即进入；距离稍远但仍在别墅附近时，_tryEnterVilla 会给出
@@ -4172,6 +4175,39 @@ export class Lobby extends IAttraction {
     event.preventDefault();
     event.stopImmediatePropagation(); // 阻止 bubble 阶段的坐姿 E
     this._tryEnter(near.key);
+  }
+
+  /** GTA 式通缉反馈：车撞倒行人 → toast + 通缉星级（每 2 起 ★，最多 5★）。 */
+  _onPedHit(event) {
+    const total = event?.detail?.total || 0;
+    const now = performance.now();
+    // 冲进人群时每帧都会命中：toast 限频 1.5s，否则整屏刷屏。
+    if (now - (this._lastPedHitToast || 0) < 1500) return;
+    this._lastPedHitToast = now;
+    const stars = Math.min(5, Math.max(1, Math.ceil(total / 2)));
+    this._showToast(`撞倒行人 ×${total} · 通缉 ${'★'.repeat(stars)}`);
+  }
+
+  /** 四宫格农田：站在田边按 E 收割该作物，田里真的变空，农民再播种慢慢长回。 */
+  _tryFarmHarvest(event) {
+    const cam = this._ctx?.camera;
+    if (!cam || this._inputMode !== 'wasd') return false;
+    const h = this._districts?.harvestFarm?.(cam.position.x, cam.position.z);
+    if (!h) return false;
+    if (h.ok) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const cn = { rice: '水稻', corn: '玉米', wheat: '小麦', veg: '蔬菜' }[h.crop] || '作物';
+      this._showToast(`收割了一垄${cn} · 田里空了，农民正在重新播种`);
+      return true;
+    }
+    if (h.reason === 'regrowing') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this._showToast('刚收过这片：作物正在长回来，再等一会儿…');
+      return true;
+    }
+    return false;
   }
 
   /** 嵌入设施没有独立 HUD：Esc / 常驻按钮都回大厅，避免“进得去出不来” */

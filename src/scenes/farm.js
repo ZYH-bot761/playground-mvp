@@ -160,6 +160,16 @@ export function buildFarm(detail, S, center) {
     wheat: { x0: cx - 24, z0: cz + 12, w: 26, d: 12, rows: 15, cols: 24 },
     veg: { x0: cx + 6, z0: cz + 12, w: 14, d: 10, rows: 4, cols: 10 },
   };
+  const fieldRect = {
+    rice: [cx - 24, cx - 6, cz - 10, cz + 5],
+    corn: [cx + 2, cx + 22, cz - 10, cz + 6],
+    wheat: [cx - 24, cx + 2, cz + 12, cz + 24],
+    veg: [cx + 6, cx + 20, cz + 12, cz + 22],
+  };
+  // 玩家手动收割：给该田周期加相位偏移，立刻进入 收割→空地→再播种→慢生长。
+  const fieldShift = { rice: 0, corn: 0, wheat: 0, veg: 0 };
+  const manualHarvest = { queue: [], last: {} };
+  let harvestTotal = 0;
 
   // ---- 土垄 / 田块底板 / 田埂：合并成 1 个 Mesh ----
   const soilParts = [];
@@ -286,7 +296,7 @@ export function buildFarm(detail, S, center) {
     im.computeBoundingSphere();
     im.frustumCulled = true;
     im.userData = {
-      crop: type, heightRange: spec.h, rows: f.rows, cols: f.cols,
+      crop: type, harvestCrop: type, heightRange: spec.h, rows: f.rows, cols: f.cols,
       rowGap: zStep, colGap: xStep, walkable: true, instanceCount: count,
       instances: bases,
     };
@@ -352,12 +362,12 @@ export function buildFarm(detail, S, center) {
     detail.add(im);
   }
   vegLeaves.userData = {
-    crop: 'veg-leaves', heightRange: [0.3, 0.5], rows: f.rows, cols: f.cols,
+    crop: 'veg-leaves', harvestCrop: 'veg', heightRange: [0.3, 0.5], rows: f.rows, cols: f.cols,
     rowGap: vz, colGap: vx, walkable: true, instanceCount: vegCount,
     instances: vegBases,
   };
   vegFruits.userData = {
-    crop: 'veg-fruits', kinds: vegTypes.map((v) => v.name), instanceCount: vegCount,
+    crop: 'veg-fruits', harvestCrop: 'veg', kinds: vegTypes.map((v) => v.name), instanceCount: vegCount,
     instances: vegBases,
   };
   cropMeshes.push(vegLeaves, vegFruits);
@@ -390,10 +400,16 @@ export function buildFarm(detail, S, center) {
     workers.update(t); // 农民动作每帧连续，不抽帧
     if (farmAccum < 0.12) return;
     farmAccum = 0;
+    // 手动收割入队：把该田平均相位推到 0.78，接下来 4 秒内真的看到被收空再慢慢长回。
+    for (const crop of manualHarvest.queue.splice(0)) {
+      const off = fieldPhase[crop] ?? 0.6;
+      const p = (((t / CYCLE) + off + fieldShift[crop]) % 1 + 1) % 1;
+      fieldShift[crop] += (0.78 - p + 1) % 1;
+    }
 
     for (const im of [cropMeshes[0], cropMeshes[1], cropMeshes[2]]) {
       if (!im?.userData?.instances) continue;
-      const off = fieldPhase[im.userData.crop] ?? 0.6;
+      const off = (fieldPhase[im.userData.crop] ?? 0.6) + (fieldShift[im.userData.crop] || 0);
       im.userData.instances.forEach((b, i) => {
         const st = growthAt(t, off, b.jitter);
         lastPhase = st.phase;
@@ -410,7 +426,7 @@ export function buildFarm(detail, S, center) {
 
     const bases = vegLeaves.userData.instances;
     bases?.forEach((b, i) => {
-      const st = growthAt(t, fieldPhase.veg, b.jitter);
+      const st = growthAt(t, fieldPhase.veg + fieldShift.veg, b.jitter);
       const g = st.g;
       dummy.position.set(b.x, baseY, b.z);
       dummy.rotation.set(0, b.leafYaw, 0);
@@ -444,11 +460,30 @@ export function buildFarm(detail, S, center) {
     owned.materials.length = 0;
     cropMeshes.length = 0;
   };
+  /** 站在田边按 E：立刻收割该田（作物倒空），之后农民重新播种慢慢长回。 */
+  const harvestNear = (x, z) => {
+    for (const im of cropMeshes) {
+      const crop = im.userData?.harvestCrop;
+      const r = fieldRect[crop];
+      if (!crop || !r) continue;
+      if (x < r[0] - 3 || x > r[1] + 3 || z < r[2] - 3 || z > r[3] + 3) continue;
+      if (lastT - (manualHarvest.last[crop] ?? -1e9) < CYCLE * 0.6) {
+        return { ok: false, reason: 'regrowing', crop };
+      }
+      manualHarvest.queue.push(crop);
+      manualHarvest.last[crop] = lastT;
+      harvestTotal += 1;
+      return { ok: true, crop };
+    }
+    return { ok: false, reason: 'none' };
+  };
+
   return {
     dispose,
     instCount,
+    harvestNear,
     update: updateFarm,
     workers: { ...workers.stats, cropCycleSeconds: CYCLE, cropPhase: () => lastPhase },
-    stats: { cropCycleSeconds: CYCLE, fieldsWithGrowth: 4 },
+    stats: { cropCycleSeconds: CYCLE, fieldsWithGrowth: 4, harvests: () => harvestTotal },
   };
 }

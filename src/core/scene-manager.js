@@ -190,6 +190,9 @@ export class SceneManager {
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
     this._perf = PerfMonitor.maybeCreate(this.renderer);
+    /* 动态帧率调速器状态：固定画质档位跟不上 GPU 瞬时负载时，帧时间超过
+     * 16.7ms 就是玩家口中的"容易卡顿"。每秒窗口采样，慢了就降像素倍率。 */
+    this._fpsGov = { t0: 0, frames: 0, level: 1 };
   }
 
   /**
@@ -221,14 +224,43 @@ export class SceneManager {
     const height = window.innerHeight;
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._qualityPreset.pixelRatioCap));
+    this._applyPixelScale();
+  }
+
+  /** 按【档位上限 × 调速倍率】重设像素比，并同步 composer / FXAA / CSS 尺寸。 */
+  _applyPixelScale() {
+    const cap = Math.min(window.devicePixelRatio || 1, this._qualityPreset.pixelRatioCap);
+    const pr = cap * this._fpsGov.level;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.renderer.setPixelRatio(pr);
     this.renderer.setSize(width, height);
     this.composer?.setSize(width, height);
     // FXAA 需要按实际像素尺寸更新 resolution，否则高 DPI 下抗锯齿强度漂移
     if (this.fxaaPass) {
-      const pr = this.renderer.getPixelRatio();
       this.fxaaPass.material.uniforms.resolution.value.set(1 / (width * pr), 1 / (height * pr));
     }
+  }
+
+  /**
+   * 帧率调速器：1 秒窗口内 fps < 40 → 降像素倍率一档（下限 0.62，再低会糊），
+   * fps > 56 → 缓慢回升到 1。带迟滞，避免在阈值附近来回抖动重分配 RT。
+   */
+  _tickGovernor(timestamp) {
+    const g = this._fpsGov;
+    if (g.t0 === 0) { g.t0 = timestamp; return; }
+    g.frames += 1;
+    const dtMs = timestamp - g.t0;
+    if (dtMs < 1000) return;
+    const fps = (g.frames * 1000) / dtMs;
+    g.t0 = timestamp;
+    g.frames = 0;
+    let level = g.level;
+    if (fps < 40 && level > 0.62) level = Math.max(0.62, level * 0.8);
+    else if (fps > 56 && level < 1) level = Math.min(1, level + 0.1);
+    if (Math.abs(level - g.level) < 0.005) return;
+    g.level = level;
+    this._applyPixelScale();
   }
 
   /**
@@ -270,6 +302,7 @@ export class SceneManager {
       if (this.composer) this.composer.render();
       else this.renderer.render(this.scene, this.camera);
       this._perf?.sample(timestamp);
+      this._tickGovernor(timestamp);
     };
 
     this._rafId = requestAnimationFrame(loop);

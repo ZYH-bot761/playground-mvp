@@ -120,6 +120,7 @@ export class CityCrowd {
     this.time = 0;
     this.peds = [];
     this.alighters = [];
+    this.hitCount = 0;
     this._activated = false;
     this._dummy = new THREE.Object3D();
     this._build();
@@ -250,6 +251,29 @@ export class CityCrowd {
       p.delay = (p.lateral + 0.42) / 0.42 * 1.15;
       p.hidden = p.delay > 0;
     }
+  }
+
+  /**
+   * 玩家车撞人：车速 >2.5m/s 且车身 1.3m 内有行人即撞倒，行人冻结成倒地姿态。
+   * @returns {number} 本帧新撞倒的人数
+   */
+  checkVehicleHit(pose) {
+    const speed = Math.abs(pose?.speed || 0);
+    if (speed < 2.5) return 0;
+    let hits = 0;
+    for (const p of this.peds) {
+      if (p.down || p.hidden || p.visible === false) continue;
+      if (p.kind === 'alighter' && !p.active) continue;
+      const q = this._candidate(p);
+      const dx = q.x - pose.x, dz = q.z - pose.z;
+      if (dx * dx + dz * dz > 1.69) continue;
+      const yaw = Math.atan2(dx, dz);
+      p.down = { t: 0, yaw, x: q.x + Math.sin(yaw) * 0.4, z: q.z + Math.cos(yaw) * 0.4 };
+      p.waiting = false;
+      hits += 1;
+    }
+    this.hitCount += hits;
+    return hits;
   }
 
   _posOfAlighter(p) {
@@ -406,6 +430,10 @@ export class CityCrowd {
         this._hide(i, d);
         return;
       }
+      if (p.down) {
+        this._writeDown(p, i, d);
+        return;
+      }
       let pos;
       if (p.kind === 'walker') {
         pos = this._walkerPos(p);
@@ -482,6 +510,41 @@ export class CityCrowd {
     this.legs.instanceMatrix.needsUpdate = true;
   }
 
+  /** 倒地渲染：整具身体绕侧轴 ~83° 放平，头后仰、四肢摊开，不再走步态。 */
+  _writeDown(p, i, d) {
+    const s = p.scale || 1;
+    const roll = 1.45;
+    const yaw = p.down.yaw;
+    const gy = this._groundY(p.down.x, p.down.z);
+    const cr = Math.cos(roll), sr = Math.sin(roll);
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    const place = (mesh, idx, lat, hy, extraYaw = 0, extraPitch = 0) => {
+      const lx = lat * s;
+      const hh = hy * s;
+      d.position.set(
+        p.down.x + (lx * cy + hh * sr * sy),
+        gy + hh * cr + 0.1 * s,
+        p.down.z + (-lx * sy + hh * sr * cy),
+      );
+      d.rotation.set(roll + extraPitch, yaw + extraYaw, 0.18, 'YXZ');
+      d.scale.set(s, s, s);
+      d.updateMatrix();
+      mesh.setMatrixAt(idx, d.matrix);
+    };
+    place(this.body, i, 0, 0.86);
+    place(this.head, i, 0.02, 1.67, 0.55);
+    d.position.y += 0.03;
+    d.updateMatrix();
+    this.hair.setMatrixAt(i, d.matrix);
+    place(this.legs, i * 2, -0.105, 0.86, 0, -0.18);
+    place(this.legs, i * 2 + 1, 0.105, 0.86, 0, 0.1);
+    place(this.arms, i * 2, -0.225, 1.48, 0.5, 0.5);
+    place(this.arms, i * 2 + 1, 0.225, 1.48, -0.7, 0.4);
+    // 共享 dummy 的欧拉顺序会被 place 改成 YXZ，必须还原，否则同帧其它站立行人的
+    // 摆腿/摆臂（rotation.set 两参调用沿用 order）语义会被悄悄改变。
+    d.rotation.order = 'XYZ';
+  }
+
   _hide(i, d) {
     d.position.set(0, -50, 0);
     d.rotation.set(0, 0, 0);
@@ -498,6 +561,22 @@ export class CityCrowd {
 
   update(dt) {
     this.time += dt;
+    for (const p of this.peds) {
+      if (!p.down) continue;
+      p.down.t += dt;
+      if (p.down.t <= 18) continue;
+      // 事故收尾后爬起来离开：步道客换到两格之外继续走，不再回到撞击点。
+      if (p.kind === 'walker') {
+        const loop = WALK_LOOPS[p.loopIndex];
+        p.seg = (p.seg + 2) % loop.length;
+        p.t = 0.06;
+        // 换到的新格若正好跨机动车道，必须重新等灯，不能复活即穿车流。
+        p.waiting = loop[p.seg].crossing
+          ? !this.signals.canPedCross(loop[p.seg].axis, this._clearance(loop[p.seg], p.speed), loop[p.seg].midX, loop[p.seg].midZ)
+          : false;
+      }
+      p.down = null;
+    }
     this._write(dt);
   }
 
@@ -511,6 +590,8 @@ export class CityCrowd {
       mallVisitors: this.peds.filter((p) => p.idleGroup === 'mall').length,
       alighters: this.alighters.length,
       waitingAtLight: this.peds.filter((p) => p.waiting).length,
+      hitByCar: this.hitCount,
+      downedNow: this.peds.filter((p) => p.down).length,
     };
   }
 }

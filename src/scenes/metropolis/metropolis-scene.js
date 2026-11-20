@@ -118,6 +118,15 @@ export class Metropolis {
     this.air?.setNight(this.night);
     this.traffic.setNight(this.night);
     this.traffic.update(dt);
+    // 玩家车撞人判定：只在驾驶中（有 playerPose）触发，撞倒后广播事件给大厅 HUD。
+    if (this.traffic.playerPose) {
+      const hits = this.crowd.checkVehicleHit(this.traffic.playerPose);
+      if (hits > 0) {
+        window.dispatchEvent(new CustomEvent('pg-ped-hit', {
+          detail: { count: hits, total: this.crowd.hitCount },
+        }));
+      }
+    }
     this.lake.update(dt);
     this.air.update(dt);
     this.crowd.update(dt);
