@@ -318,12 +318,12 @@ const cover = [
     })],
   }),
   new Paragraph({ spacing: { before: 260, after: 100 }, children: [] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 60 }, children: [run('v2.1 · 线上联机增补 · 2026-11-21', { size: 22, bold: true, color: C.amber })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 60 }, children: [run('v2.2 · 新模型完整手册 · 2026-11-21', { size: 22, bold: true, color: C.amber })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 220 }, children: [run('从架构、坐标、设施、系统到验收与 Blender 管线：一份自包含的真相源', { size: 18, color: C.muted })] }),
   table(
     ['文档项', '内容'],
     [
-      kv('文档版本', 'v2.1 / 线上联机增补版（新增 09 章：双人联机与单人游玩）'),
+      kv('文档版本', 'v2.2 / 完整交接手册（新增 10 章任务手册与附录 B–E）'),
       kv('数据口径', '2026-11-21 当前工作区代码（含线上联机、单人入口与未提交的 v3 同场并置改造）'),
       kv('代码状态', 'npm run build PASS；核心回归全绿；Blender 车模与别墅外壳已入库'),
       kv('技术栈', 'Three.js 0.187 / Rapier 0.21 / Vite 8.3 / Playwright 1.65 / Blender 3.6.23'),
@@ -344,6 +344,36 @@ const cover = [
 const summary = [
   h1('00', '交付摘要与阅读指南', true),
   p('这不是需求文档，也不是功能宣传页，而是按当前代码逐文件核对后的工程事实手册。它回答五个问题：项目由什么组成、坐标在哪里、设施与全局系统怎么运转、性能与资源红线是什么、下一位模型绝对不能碰什么。'),
+
+  h2('0.0', '三分钟速懂（第一次接手先看）'),
+  p('一句话：这是一个 Three.js 单页 3D 微缩城市游乐场；大厅常驻，9 个游乐园设施 + 别墅嵌入视图 + 都会区驾驶/空中花园；联机是旁路层，线上用 Netlify Functions + Blobs 做双人房间，单人点「单人游玩（不联机）」。'),
+  table(
+    ['问题', '最短答案'],
+    [
+      kv('怎么跑', 'npm install → npm run dev → http://127.0.0.1:5173/；npm run build 出 dist'),
+      kv('线上在哪', 'https://chengshi1.netlify.app；账号 player1/play1234、player2/play1234'),
+      kv('玩家动线', '登录页 → 开始页 → 大厅（orbit/WASD）→ 靠近入口按 E / 点提示 → 设施；别墅门口按 E'),
+      kv('架构核心', '单渲染器 + 常驻 Lobby + 单物理世界；CameraRig 唯一写相机；Rapier 仅驾驶/投掷按需加载'),
+      kv('两套设施', '嵌入视图 6 项（含 villa）由 FacilityRuntime 接管相机；独立设施由 AttractionManager 替换 activeKey'),
+      kv('绝对不能碰', '子模块直写 camera.position；新增常驻灯；热路径 new GPU 资源；改 9 个触发环数量断言；把 AI 车改动态刚体'),
+      kv('出问题先看', 'docs/current-status.md → 09 章 → 08 章 → 浏览器控制台 / Netlify Functions 日志'),
+    ],
+    [20, 80],
+    { firstColBold: true, zebra: true },
+  ),
+  table(
+    ['阅读路线', '读什么', '能做什么'],
+    [
+      ['3 分钟', '0.0 + 0.2 + 08.1', '知道项目是什么、怎么跑、不能碰什么'],
+      ['30 分钟', '01 + 02.2 + 03 + 09.0–9.6', '能改常见代码、跑验收、推送到 Netlify'],
+      ['2 小时', '04 + 05 + 06 + 07 + 08 + 09.7–10', '能独立新增设施/联机字段并守住性能与部署红线'],
+    ],
+    [18, 42, 40],
+    { firstColBold: true, zebra: true },
+  ),
+  callout('新模型的第一条纪律', [
+    '先读 00.0 与 08.1；改任何东西前先 git status，不要把 秘密.txt、截图、临时脚本一起提交；任何相机/资源/性能改动先对照 06 的十条红线。',
+  ], 'info'),
 
   h2('0.1', '怎么读这份文档'),
   table(
@@ -400,7 +430,8 @@ const summary = [
       kv('07 验收体系', '有哪些脚本、当前基线数字、已知漂移与遗留'),
       kv('08 接手指南', '先读什么、绝对不能碰什么、如何安全改动与新增'),
       kv('09 联机与单人', '线上链接、账号、单人/组队、设备适配、同账号接管与退出释放'),
-      kv('附录', '术语表、仓库当前状态、文档生成方式、演进时间线'),
+      kv('10 任务手册', '本地跑起来、改设施、改大厅、改联机、部署回滚、验收、文档维护'),
+      kv('附录', 'A 术语/状态/生成/时间线；B 文件索引；C 接口与环境变量；D 已知风险；E 文档维护'),
     ],
     [26, 74],
     { firstColBold: true, zebra: true },
@@ -1259,6 +1290,68 @@ const handover = [
 ];
 
 /* ---------------------------------------------------------------- 附录 */
+/* ---------------------------------------------------------------- 10 任务手册 */
+const tasks = [
+  h1('10', '任务导向手册（按任务查，不按章节读）'),
+  p('这一章给「接到任务后从哪下手」。原理在 01–09；这里只给入口文件、必读章节和验收方式。任何改动都先遵守 06 的十条红线。'),
+  h2('10.1', '本地跑起来 / 最小验证'),
+  table(
+    ['步骤', '命令', '判据'],
+    [
+      ['安装', 'npm install', 'node_modules 就绪'],
+      ['开发', 'npm run dev', '5173 打开登录页 / 开始页'],
+      ['构建', 'npm run build', 'dist 生成且无报错'],
+      ['预览', 'npm run preview', '生产包可打开'],
+      ['文档', 'npm run docs:handover', '项目信息.docx 重新生成'],
+    ],
+    [16, 28, 56],
+    { firstColBold: true, zebra: true },
+  ),
+  h2('10.2', '新增一个游乐园设施'),
+  bullet('实现 IAttraction 四方法 → main.js 注册 PROJECT_NAMES / attractionManager.register → lobby-scene 加触发环 → 资源登记 DisposableRegistry → 新增 verify 脚本。'),
+  bullet('设施数量断言是 9；新增独立设施会改变 02.2 与 tests 里的数量，先全局搜索 9 相关断言。'),
+  bullet('嵌入视图要注册 EMBEDDED_KEYS 并走 FacilityRuntime；不要自己写 camera.position，必须经 CameraRig。'),
+  h2('10.3', '改大厅 / 别墅 / 入口'),
+  table(
+    ['要改', '入口文件', '注意'],
+    [
+      ['设施入口/提示', 'lobby-scene.js 的 FACILITIES / _findNearFacility / _onInteractKey', '三条路径：点击 / WASD E / orbit 中心射线 E；手机点 HUD 提示'],
+      ['相机与输入模式', 'movement-mode-manager.js / camera-rig.js / lobby-scene.js', 'CameraRig owner 仲裁；新增接管相机必须暴露 movementMode.getContext() 标志'],
+      ['别墅内部', 'villa.js / villa-embed-view.js', '四层、三段楼梯、电梯；进出 restore 机位；不要改外壳契约'],
+    ],
+    [22, 44, 34],
+    { firstColBold: true, zebra: true, size: 15 },
+  ),
+  h2('10.4', '改联机 / 房间协议'),
+  table(
+    ['层', '文件', '改动要点'],
+    [
+      ['客户端', 'src/net/multiplayer-client.js', '250ms sync；session/leave；远端插值；HUD'],
+      ['登录页', 'src/components/login-screen.js', '?u=&p=&room= 自动登录；单人入口；iOS 16px'],
+      ['线上函数', 'netlify/functions/room.mjs', 'Functions v2 POST /api/room；Blobs 适配'],
+      ['房间核心', 'netlify/functions/_lib/room-core.mjs', 'login/sync/home/leave；session 409；TTL；数据收敛'],
+      ['本地 API', 'server/local-room-api.mjs', '同协议内存实现，npm run dev 用'],
+      ['账号', 'netlify/functions/_lib/accounts.mjs', '演示账号；前端不打包密码'],
+    ],
+    [16, 38, 46],
+    { firstColBold: true, zebra: true, size: 15 },
+  ),
+  bullet('新增房间字段必须同时改 room-core、客户端、tests/verify-multiplayer-server.mjs；线上函数与本地 API 共用一个核心，不要分叉逻辑。'),
+  h2('10.5', '部署 / 回滚'),
+  bullet('git status → 只 add 相关文件 → commit → push origin main；Netlify 自动构建。'),
+  bullet('不要 git add .；会把 秘密.txt、截图、临时脚本、未完成改动带上。'),
+  bullet('push 443 / 连接重置：等待 20~60 秒重试，或 git -c http.version=HTTP/1.1 push origin main；不是代码错。'),
+  bullet('回滚：git revert <commit> 再 push；或在 Netlify 面板回滚到上一个成功部署（需要后台权限）。'),
+  h2('10.6', '验收与性能红线'),
+  bullet('build PASS；verify-multiplayer-server 10/10；verify-multiplayer 8/8（需 dev server）；单人浏览器 8/8。'),
+  bullet('性能：都会区峰值 236,381 tris / 741 calls；全场景红线 300,000 tris / 新增 calls ≤900；热路径 Δgeo=0 / Δtex=0。'),
+  bullet('新增内容先问：是否新增 geometry / texture / draw call / 常驻灯？再问好不好看。'),
+  h2('10.7', '文档 / 秘密 / 交接'),
+  bullet('改代码 → 更新 docs/current-status.md → 更新 scripts/generate-doc.js 对应表格 → npm run docs:handover → 复核 docx。'),
+  bullet('真实 PAT / Token / Site ID 只放本机 秘密.txt（已 gitignore）；项目信息.docx 只放演示账号。'),
+  bullet('交接最短路径：00.0 → 08.1 → 09.0 → 10 章任务表 → 对应源码。'),
+];
+
 const appendix = [
   h1('附录', '术语、仓库状态与生成方式', false),
 
@@ -1308,7 +1401,7 @@ const appendix = [
     '输出：D:/playground-mvp/项目信息.docx',
     '数据口径：2026-11-21 当前工作区代码 + docs/current-status.md 验收基线',
   ]),
-  bullet('本次 v2.1 在 v2.0 全量重写基础上增补 09 章：生成脚本的内容段与文档同步，不再有「手工追加章节、重新生成会丢失」的问题。'),
+  bullet('本次 v2.2 在 v2.1 基础上增补 00.0 三分钟速懂、10 章任务手册与附录 B–E：生成脚本的内容段与文档同步，不再有「手工追加章节、重新生成会丢失」的问题。'),
   bullet('项目里只保留这一份 项目信息.docx 作为唯一权威；旁路输出（DOC_OUT）只是临时文件，生成完必须立刻并回主文件名并删掉旁路副本，否则下次打开就是两份同构文档、看不出谁新谁旧。'),
   bullet('若 Word/WPS 正占用主文档：先关闭阅读器再跑生成；确实关不掉时用 DOC_OUT 输出到临时名，改完立即覆盖回 项目信息.docx 并删除临时文件。'),
   bullet('更新流程：改代码 → 更新 docs/current-status.md → 更新 scripts/generate-doc.js 中对应表格 → 重新运行生成 → 复核 docx。'),
@@ -1331,6 +1424,53 @@ const appendix = [
     [16, 30, 54],
     { firstColBold: true, zebra: true, size: 15 },
   ),
+  h2('B', '文件索引（按目录）'),
+  table(
+    ['目录 / 文件', '职责', '何时改'],
+    [
+      ['src/main.js', '基座装配：渲染器 / 场景 / 相机 / 设施注册 / 联机层 / onSkip / pagehide', '新增全局系统或联机装配'],
+      ['src/core/scene-manager.js', '单渲染器、主循环、帧率采样', '渲染链 / 帧率'],
+      ['src/core/attraction-manager.js', '独立设施 activeKey 切换', '新增独立设施'],
+      ['src/core/facility-runtime.js', '嵌入视图激活 / 退出、相机接管', '新增嵌入视图'],
+      ['src/core/camera-rig.js', '唯一相机写者：blendTo / restore / writePose', '相机过渡'],
+      ['src/scenes/lobby-scene.js', '常驻大厅、入口、别墅门、驾驶、空中花园', '大厅交互 / 入口'],
+      ['src/scenes/attractions/*', '9 个独立设施与别墅', '具体玩法'],
+      ['src/net/multiplayer-client.js', '联机客户端：轮询 / 远端 / HUD / session', '房间与同步'],
+      ['netlify/functions/*', '线上房间函数与房间核心', '线上联机'],
+      ['tests/*.mjs', '验收脚本', '新增功能必须带验收'],
+    ],
+    [30, 46, 24],
+    { firstColBold: true, zebra: true, size: 15 },
+  ),
+  h2('C', '接口、环境变量与错误码'),
+  table(
+    ['项', '值 / 说明'],
+    [
+      kv('POST /api/room', 'login / sync / home / leave；JSON；线上 Netlify Functions，本地同协议内存'),
+      kv('旧 WebSocket 协议', '已废弃；线上只保留 HTTP 短轮询，不要再新增 ws 服务端'),
+      kv('409 SESSION_REPLACED', '同账号后开设备接管，旧端停止联机'),
+      kv('401', '账号密码错误或 token 失效（客户端自动重新登录）'),
+      kv('429', '房间已满（最多 8 人）'),
+      kv('MULTIPLAYER_SECRET', 'token 签名密钥；默认 playground-online-demo-secret，生产在 Netlify 环境变量改'),
+      kv('NETLIFY_AUTH_TOKEN / SITE_ID', '仅部署与后台管理用；只放本机 秘密.txt'),
+    ],
+    [26, 74],
+    { firstColBold: true, zebra: true, size: 15 },
+  ),
+  h2('D', '已知风险与未完成（如实记录）'),
+  bullet('Netlify 国内网络不稳定；微信 / QQ 内置浏览器可能截断链接 &；建议系统浏览器与短链。'),
+  bullet('Netlify Functions 免费额度按调用次数计；250ms 轮询短时够用，长时间挂机会消耗额度。'),
+  bullet('当前没有 Netlify 后台 Token / CLI 登录：只能 push 触发自动构建并验证线上 URL/API，不能改环境变量、看构建日志或手动 deploy。'),
+  bullet('演示账号 player1/player2 是公开的；真实 PAT / Token 不写进公开仓库；秘密.txt 已 gitignore。'),
+  bullet('v3 别墅同场并置等历史未提交改动可能仍在工作区；提交前用 git status 甄别，不要 git add .。'),
+  bullet('旧 WebSocket 服务端已移除；线上联机是短轮询，不是长连接，排障时不要按 WebSocket 思路查。'),
+  h2('E', '文档维护清单'),
+  bullet('唯一权威：项目信息.docx（由 scripts/generate-doc.js 生成）；docs/current-status.md 是现状基准。'),
+  bullet('每次改代码：更新 status → 更新 generate-doc 对应表格 → npm run docs:handover → 复核 docx。'),
+  bullet('不要手工改 docx；不要提交 秘密.txt；不要删除 .gitignore 里的忽略规则。'),
+  bullet('提交前：git status；只 add 相关文件；push 后等 Netlify 构建并验证线上。'),
+  bullet('文档版本 v2.2；封面 / 页眉 / 生成日志同步更新。'),
+
   divider(),
   p('文档结束。任何模型接手时：先读 00 的权威源优先级与 08 的十分钟阅读顺序，再动第一行代码。', { run: { color: C.muted, italics: true } }),
 ];
@@ -1341,7 +1481,7 @@ const header = new Header({
     alignment: AlignmentType.RIGHT,
     spacing: { after: 0 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: C.line, space: 3 } },
-    children: [run('PLAYGROUND-MVP  ·  项目信息  ·  v2.1  ·  2026-11-21', { size: 15, color: C.muted })],
+    children: [run('PLAYGROUND-MVP  ·  项目信息  ·  v2.2  ·  2026-11-21', { size: 15, color: C.muted })],
   })],
 });
 
@@ -1506,7 +1646,7 @@ const doc = new Document({
   creator: 'playground-mvp',
   title: '项目信息',
   subject: 'GTA 级微缩城市 · 工程交接与代码事实手册',
-  description: 'v2.1：新增 09 线上双人联机与单人游玩（Netlify Functions + Blobs、双链接、账号接管与释放、设备适配）。',
+  description: 'v2.2：完整交接手册。新增 00.0 三分钟速懂、10 章任务手册与附录 B–E（文件索引/接口错误码/风险/文档维护），保留 09 联机与单人章节。',
   keywords: 'Three.js, Rapier, Vite, 微缩城市, 交接文档, 性能预算, Blender, IEmbeddedView',
   styles,
   sections: [
@@ -1531,7 +1671,7 @@ const doc = new Document({
       footers: { default: footer },
       children: [
         ...summary, ...architecture, ...regions, ...systems, ...villa,
-        ...blender, ...performance, ...verification, ...handover, ...multiplayer, ...appendix,
+        ...blender, ...performance, ...verification, ...handover, ...multiplayer, ...tasks, ...appendix,
       ],
     },
   ],
@@ -1542,8 +1682,8 @@ const buffer = await Packer.toBuffer(doc);
 fs.writeFileSync(OUT, buffer);
 
 const stat = fs.statSync(OUT);
-console.log('[项目信息.docx] 生成成功（v2.1 线上联机增补）');
+console.log('[项目信息.docx] 生成成功（v2.2 完整交接手册）');
 console.log('  路径: ' + OUT);
 console.log('  大小: ' + (stat.size / 1024).toFixed(1) + ' KB');
-console.log('  章节: 00 摘要 / 01 架构 / 02 坐标与入口 / 03 系统 / 04 别墅 / 05 Blender / 06 红线 / 07 验收 / 08 接手 / 09 联机与单人 / 附录');
+console.log('  章节: 00 摘要 / 01 架构 / 02 坐标与入口 / 03 系统 / 04 别墅 / 05 Blender / 06 红线 / 07 验收 / 08 接手 / 09 联机与单人 / 10 任务手册 / 附录 A–E');
 console.log('  数据口径: 2026-11-21 · metropolis 236,381 tris · villa-shell 5,612 tris · car 3,444 tris');
