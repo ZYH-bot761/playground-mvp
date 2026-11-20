@@ -275,7 +275,11 @@ const divider = () => new Paragraph({
   children: [],
 });
 
-const kv = (k, v) => [k, v];
+/* kv 是「一行单元格」的简写，列数不固定：三 / 四列表也用它书写数据行。
+ * 旧版写成 (k, v) => [k, v]，第 3、4 个实参被静默丢弃，docx 里就出现
+ * 表头 4 列、数据行只剩 2 格的空列（6.1 / 6.2 / 7.3 / 8.2 等全部中招）。
+ * 改为可变参数后，二列 kv 表格的写法与结果完全不变。 */
+const kv = (...cells) => cells;
 
 /* -------------------------------------------------------------------------- */
 /* 文档内容（2026-11-19 全量重写：以当前代码为唯一事实源）                      */
@@ -314,13 +318,13 @@ const cover = [
     })],
   }),
   new Paragraph({ spacing: { before: 260, after: 100 }, children: [] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 60 }, children: [run('v2.0 · 全量重写 · 2026-11-19', { size: 22, bold: true, color: C.amber })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 60 }, children: [run('v2.1 · 线上联机增补 · 2026-11-21', { size: 22, bold: true, color: C.amber })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 220 }, children: [run('从架构、坐标、设施、系统到验收与 Blender 管线：一份自包含的真相源', { size: 18, color: C.muted })] }),
   table(
     ['文档项', '内容'],
     [
-      kv('文档版本', 'v2.0 / 全量重写版（替代 v1.0–v1.2 及手工追加的 06 / 07 章）'),
-      kv('数据口径', '2026-11-19 当前工作区代码（含未提交的 v3 同场并置改造）'),
+      kv('文档版本', 'v2.1 / 线上联机增补版（新增 09 章：双人联机与单人游玩）'),
+      kv('数据口径', '2026-11-21 当前工作区代码（含线上联机、单人入口与未提交的 v3 同场并置改造）'),
       kv('代码状态', 'npm run build PASS；核心回归全绿；Blender 车模与别墅外壳已入库'),
       kv('技术栈', 'Three.js 0.187 / Rapier 0.21 / Vite 8.3 / Playwright 1.65 / Blender 3.6.23'),
       kv('权威源', 'docs/current-status.md（现状）> 本文件 > docs/project-map.md（11-15 历史快照）'),
@@ -363,7 +367,7 @@ const summary = [
     '4) 代码本身 —— 任何文档与代码冲突时，以 src/ 与 tests/ 的实际内容为准。',
   ], 'warn'),
 
-  h2('0.2', '交付结论（2026-11-19 实测）'),
+  h2('0.2', '交付结论（2026-11-21 实测）'),
   table(
     ['维度', '结论'],
     [
@@ -374,6 +378,9 @@ const summary = [
       kv('资源纪律', '稳态 152 geometries / 51 textures；进出、热路径、四季切换均 Δgeo=0 / Δtex=0'),
       kv('别墅', '同场并置嵌入视图（大厅常驻）+ 都会区商场西侧 Blender 精修外壳（5,612 tris）'),
       kv('Blender 管线', '车模 3,444 tris + 别墅外壳 5,612 tris，均以量化顶点数据编译进 JS'),
+      kv('GTA 互动（11-20）', '驾车撞人→倒地 18s→起身走开 + 通缉 ★；农田贴田按 E 收割→田里收空→农民重播慢长生；贴车 4.2m 按 E 认领正在跑的 AI 车（仅玩家车吃物理刚体，其余 AI 车仍是运动学盒）'),
+      kv('帧率调速器（11-20）', 'scene-manager 每秒采样：<40fps 降像素倍率（*0.8，下限 0.62），>56fps 每窗口 +0.1 回升；composer / FXAA / 画布同步重设'),
+      kv('线上联机（11-21）', 'Netlify Functions + Blobs 双人房间；两个链接自动登录；单人入口；同账号后开接管、退出 sendBeacon 释放；核心 10/10、双端 8/8、线上 8/8'),
       kv('交接风险', '坐标命名、draw call 口径分裂、v3 未提交改动、旧验收脚本漂移，共四项首要注意'),
     ],
     [22, 78],
@@ -386,12 +393,13 @@ const summary = [
     [
       kv('01 项目架构', '用了什么、怎么跑、代码如何分层、两套设施生命周期与相机仲裁'),
       kv('02 世界与坐标', '六个区域在哪、9+1 个入口怎么进、坐标有哪些坑'),
-      kv('03 全局系统', '昼夜、四季、交通、驾驶、NPC、渲染 LOD 怎么实现'),
+      kv('03 全局系统', '昼夜、四季、交通、驾驶、NPC、渲染 LOD，以及 11-20 的互动玩法与帧率调速器'),
       kv('04 别墅「我的家」', '四层结构、三段楼梯、电梯、电器、同场并置与外壳契约'),
       kv('05 Blender 离线建模', '为什么不用 GLB、数据格式、车模与别墅精修、后续预算与队列'),
       kv('06 性能与工程红线', '硬指标、当前实测、LOD、十条铁律、构建分包'),
       kv('07 验收体系', '有哪些脚本、当前基线数字、已知漂移与遗留'),
       kv('08 接手指南', '先读什么、绝对不能碰什么、如何安全改动与新增'),
+      kv('09 联机与单人', '线上链接、账号、单人/组队、设备适配、同账号接管与退出释放'),
       kv('附录', '术语表、仓库当前状态、文档生成方式、演进时间线'),
     ],
     [26, 74],
@@ -706,6 +714,47 @@ const systems = [
   bullet('facility-textures.js：设施名牌 2048² 单图集 + UV 子矩形，WeakSet 幂等防 BufferGeometry.copy 浅引用坑。'),
   bullet('forest-park.js：草地法线 / 粗糙度、树冠顶点扰动、河流菲涅尔；city-lake.js 水面法线滚动。'),
   bullet('所有纹理统一 SRGBColorSpace、进台账、共享只登记不重复创建。'),
+
+  h2('3.8', '互动玩法与帧率自调节（2026-11-20 新增）'),
+  p('这一节的四项能力都只做「已有系统的状态扩展」，没有新增常驻灯、没有新增每帧几何，因此不吃 6 章的三条预算。改动前先看清它们各自挂在哪个既有 update 上。'),
+  table(
+    ['系统', '玩家可见行为', '实现位置与关键数值'],
+    [
+      kv('撞人通缉', '开车撞到行人 → 对方倒地不动 18 秒 → 自己起身走开；HUD 弹「撞倒行人 ×N · 通缉 ★」', 'city-crowd.js checkVehicleHit：要求 pose.speed > 2.5m/s、车身 1.3m 内命中；p.down.t > 18 后恢复原路线。lobby-scene.js _onPedHit：hitCount 累计，每 2 起 +1★，封顶 5★，toast 限频 1.5s'),
+      kv('农田收割', '走到四宫格田边按 E → 这一垄作物收空；农民重新播种，苗慢慢长回来', 'lobby-scene.js _tryFarmHarvest → districts.harvestFarm(x, z)：只认 WASD 贴地模式；水稻 / 玉米 / 小麦 / 蔬菜四类；未成熟时返回 regrowing 并提示「再等一会儿」'),
+      kv('认领 AI 车', '站在任意一辆正在开的 AI 车旁边按 E → 直接接管驾驶，不必等它停', 'city-traffic.js findNearestCar(point, 4.2)：步行 / 地面漫游用相机点、轨道模式用视线落点（半径放宽到 6.0m）；认领后 _claimed=true，车流不再提供第二辆'),
+      kv('帧率调速器', '低端机 / 大分辨率屏幕上不再整段掉帧，画面轻微变软换流畅', 'scene-manager.js _tickGovernor：1 秒窗口算 fps；<40 时倍率 *0.8，下限 0.62；>56 时每窗口 +0.1 回到 1；变化超过 0.005 才 _applyPixelScale 重设 renderer / composer / FXAA / 画布'),
+    ],
+    [16, 34, 50],
+    { firstColBold: true, zebra: true, size: 16 },
+  ),
+  callout('四条不要踩的线', [
+    '1) 撞人判定只在 traffic.playerPose 存在（也就是正在驾驶）时跑，别挪进无条件每帧循环里全量遍历行人。',
+    '2) 已倒地的行人不参与 checkVehicleHit，18 秒内重复命中会连击 hitCount，通缉星直接爆表。',
+    '3) 调速器只动像素倍率，不动画质档位 / Bloom / 阴影贴图——重建 RenderTarget 比降分辨率更贵，反而更卡。',
+    '4) 收割是「按一次收一垄」，不要改成持续按住批量收；作物的重生依赖农民路径计时，批量收会让农民瞬间排队。',
+  ], 'warn'),
+
+  h2('3.9', '空中花园：太空电梯 + 太空高铁 + 146m 轨道环（2026-11-20 新增，同日第二版）'),
+  p('新增模块 src/scenes/sky/sky-garden.js（一个类 + 一份状态机，不新建场景、不换机位），由 lobby-scene.js 常驻持有。它和「驾驶」同类：大厅一直活着，只在乘梯 / 乘车 / 甲板漫步期间逐帧 cameraRig.writePose 借用相机，退出时把机位、雾、天穹、云与输入全部还原。第二版的全部改动都来自用户对第一版的验收反馈：视角要能自由转、上去要能走、环上要有东西逛、建模要像样。'),
+  table(
+    ['对象', '位置 / 尺寸', '玩家可见行为'],
+    [
+      kv('轨道环', '中心 (0,54)、半径 88m、梁径 1.15m、离地 146m；梁上铺 3 排 ×140 块踏步板成 7.6m 宽甲板，内外双护栏 + 扶手灯带', '从地面抬头就能看到一圈悬空的梁；到站直接落在甲板上，可以沿着环走一圈'),
+      kv('太空电梯', '基座 (-88.4, 21.9)，刻意落在环体【外侧 6m】（半径 94）；双导轨 146m、每 12m 一圈横肋、顶端站台 + 6m 栈桥接上环', '走到基座 9m 内按 E 进舱；12.5s 垂直升顶，全程可拖鼠标左右环视、抬低头看公园与全城；后半程机位压到甲板上'),
+      kv('太空高铁', '地面站台 (-64,-2)：30×12 站台板 + 6 根立柱 + 顶棚；CatmullRom 爬升曲线弧长 228.4m，190 段管体 + 120 根枕木；环上停靠点方位角 40° → (56.57, 121.41)', '站台 15m 内 E 登车；发车后 4 节车厢穿云爬升，约 20s 到站，到站镜头抬到 14m 外俯看列车与延伸的轨道，E 出舱漫步'),
+      kv('环上街区', 'Sky/district：云顶观景亭 250°、玻璃温室 140°、喷泉广场 40°（含 9m 方尖碑与悬浮光环）、空中墅 205°/320°、外悬观景台 300°、26 灯柱 + 20 行道树 + 14 长凳 + 4 座 26m 云灯塔桅杆', '沿着甲板走过去就是一排可看可绕的装置；9 个圆形碰撞圈 + 步道半径夹紧，走不进建筑也掉不下环'),
+    ],
+    [14, 46, 40],
+    { firstColBold: true, zebra: true, size: 16 },
+  ),
+  p('甲板自由漫步（第二版新增的 deck 模式）：到站后按 E 出舱，WASD / 方向键沿步道走（4.4 m/s，Shift 疾行 8.0 m/s）、拖鼠标左右环视与抬低头、滚轮缩放（FOV 68° 起）；眼高 1.72m、速度按 dt 归一，低帧率下也不会走飞。鼠标视角在乘梯、乘车、到站、行走四种状态里都生效 —— 实现上是把 _look.yaw/pitch 以相机局部轴右乘到基础机位上（FPS 手感），不用每帧改 target，也不会因为目标点变远而放大转角。E 的语义是：到站首次 E 出舱漫步，走完回来再 E 才是下行 / 返程，甲板上也可以直接用 HUD「直接落地」。'),
+  callout('这套东西的四个集成坑（改之前先读）', [
+    '1) 电梯不能压在环上：舱厢到 146m 时环梁会顶在镜头前，整屏只剩一根灰管子；必须外挂 6m 并配栈桥。',
+    '2) OrbitControls 的 maxDistance=50、极角 ≤81.8°：永远凑不到基座 9m 内、也抬不起头看天上；所以 sky-garden 的靠近判定同时接受「相机点」和「视线落点」（轨道模式取 controls.target）。',
+    '3) 后台分帧预热会 activate/deactivate 设施、把 Lobby 整个 dispose：main.js startBackgroundPrewarm 的让路条件必须包含 _skyGarden.isRiding，否则乘梯途中会被强行踢回地面。验收脚本统一加 ?no-prewarm=1 排掉这段噪声。',
+    '4) 高空观感是三个独立问题，别只改雾：① 地面灰雾被抬到 146m 后 40m 外糊成白墙（near 推到 240 也无效），只能在 110m 以上整段关掉 scene.fog；② three/addons Sky.js 是纯方向散射，在高空把整个半球过曝成奶白，要收起天穹盒；③ 大厅的云是三条独立网格 Lobby/cloud-band-72/96/118，只藏 Lobby/clouds 那个 Group 没用，必须按名字把它们全关掉。材质仍保持 fog:false。',
+  ], 'warn'),
 ];
 
 /* ---------------------------------------------------------------- 04 别墅 */
@@ -1257,10 +1306,11 @@ const appendix = [
     'npm run docs:handover      # 等价于 node scripts/generate-doc.js',
     '依赖：docx ^9.15.4（仅生成期使用，不进运行时）',
     '输出：D:/playground-mvp/项目信息.docx',
-    '数据口径：2026-11-19 当前工作区代码 + docs/current-status.md 验收基线',
+    '数据口径：2026-11-21 当前工作区代码 + docs/current-status.md 验收基线',
   ]),
-  bullet('本次 v2.0 是整份重写：生成脚本的内容段与文档同步，不再有「手工追加章节、重新生成会丢失」的问题。'),
-  bullet('若 Word/WPS 正占用主文档：用 DOC_OUT=项目信息_v2.0_完整版.docx npm run docs:handover 输出到旁路文件；关闭 WPS 后去掉该变量即可覆盖回 项目信息.docx。'),
+  bullet('本次 v2.1 在 v2.0 全量重写基础上增补 09 章：生成脚本的内容段与文档同步，不再有「手工追加章节、重新生成会丢失」的问题。'),
+  bullet('项目里只保留这一份 项目信息.docx 作为唯一权威；旁路输出（DOC_OUT）只是临时文件，生成完必须立刻并回主文件名并删掉旁路副本，否则下次打开就是两份同构文档、看不出谁新谁旧。'),
+  bullet('若 Word/WPS 正占用主文档：先关闭阅读器再跑生成；确实关不掉时用 DOC_OUT 输出到临时名，改完立即覆盖回 项目信息.docx 并删除临时文件。'),
   bullet('更新流程：改代码 → 更新 docs/current-status.md → 更新 scripts/generate-doc.js 中对应表格 → 重新运行生成 → 复核 docx。'),
   bullet('不要把历史阶段流水账堆进正文；演进结论压成 A.4 一张表，细节留在 docs/ 的历史文档里。'),
 
@@ -1274,6 +1324,9 @@ const appendix = [
       kv('2026-11-18', '阶段 6：别墅同场并置 + 入口迁移', '别墅从独立设施改嵌入视图、四层重排、三段楼梯、门口按 E 进；入口从游乐园触发环迁到都会区商场西侧'),
       kv('2026-11-19 上午', 'Blender 车模', '数据编译管线跑通；3,444 tris 替换盒车；守红线零外部资产'),
       kv('2026-11-19 中午', 'Blender 别墅外壳精修', '5,612 tris / 8 材质桶；建筑精修预算表与逐个交付队列建立'),
+      kv('2026-11-20', 'GTA 互动 + 帧率调速器', '撞人倒地 / 通缉星、农田收割重播、认领 AI 车、像素倍率自适应（见 3.8）；同步修掉表格第 3–4 列被 kv 丢弃的生成缺陷'),
+      kv('2026-11-20', '空中花园（太空电梯 / 太空高铁）', '146m 轨道环 + 外挂式太空电梯 + 228m 爬升轨道与 4 节列车；同日第二版加自由视角、甲板漫步与环上街区（见 3.9），验收 verify-sky-garden 25/25'),
+      kv('2026-11-21', '线上双人联机 + 单人入口', 'Netlify Functions + Blobs 房间、两个分享链接、同账号接管/退出释放、单人「不联机」入口与 orbit 按 E 进设施（见 09 章）'),
     ],
     [16, 30, 54],
     { firstColBold: true, zebra: true, size: 15 },
@@ -1288,7 +1341,7 @@ const header = new Header({
     alignment: AlignmentType.RIGHT,
     spacing: { after: 0 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: C.line, space: 3 } },
-    children: [run('PLAYGROUND-MVP  ·  项目信息  ·  v2.0  ·  2026-11-19', { size: 15, color: C.muted })],
+    children: [run('PLAYGROUND-MVP  ·  项目信息  ·  v2.1  ·  2026-11-21', { size: 15, color: C.muted })],
   })],
 });
 
@@ -1326,11 +1379,65 @@ const styles = {
   ],
 };
 
+/* ---------------------------------------------------------------- 09 联机 */
+const multiplayer = [
+  h1('09', '线上双人联机与单人游玩（2026-11-21）'),
+  p('联机层是旁路能力：不改大厅、别墅与设施内部玩法，只新增登录页、联机客户端、Netlify Functions 房间接口与 Netlify Blobs 房间状态。交付目标从「本机两个窗口」改为「两台真实设备打开链接即可互相看见」，并保留完全离线的单人入口。'),
+  h2('9.1', '线上入口与演示账号'),
+  table(
+    ['账号', '密码', '昵称', '用途'],
+    [
+      ['player1', 'play1234', '小星', '第一台设备 / 第一个链接'],
+      ['player2', 'play1234', '小月', '第二台设备 / 第二个链接'],
+    ],
+    [16, 18, 16, 50],
+    { firstColBold: true, zebra: true },
+  ),
+  p('线上站点：https://chengshi1.netlify.app。链接打开后自动登录并停在开始页；两台设备必须使用同一个 room（缺省 home）。'),
+  codeBlock([
+    'https://chengshi1.netlify.app/?u=player1&p=play1234&room=home',
+    'https://chengshi1.netlify.app/?u=player2&p=play1234&room=home',
+    '',
+    '# 只带账号的短链（密码手输，避免 & 被聊天软件截断）',
+    'https://chengshi1.netlify.app/?u=player1',
+    'https://chengshi1.netlify.app/?u=player2',
+  ]),
+  h2('9.2', '单人 / 组队两种入口'),
+  bullet('单人游玩：登录页「单人游玩（不联机）」跳过账号与房间，直接进入开始页；所有游乐园设施照常可进，不需要队友。'),
+  bullet('组队游玩：两个账号登录同一 room；大厅互相可见、位置 250ms 同步、顶部「一起回家」一起进别墅。'),
+  bullet('设施入口：WASD 第一人称靠近按 E；orbit 俯瞰下把视线对准入口按 E（屏幕中心射线），或直接点 HUD 提示；手机点提示即可进入。'),
+  h2('9.3', '设备与浏览器适配'),
+  bullet('电脑 / 平板 / 苹果 / 鸿蒙统一响应式布局；触屏走虚拟摇杆与提示点击，不依赖物理键盘。'),
+  bullet('登录输入框字号 16px，避免 iOS Safari 聚焦时自动放大；登录页支持分享链接自动登录与手动输入两种路径。'),
+  bullet('首屏静态加载层：JS 未下载完就显示「正在加载游乐场…」；3D 初始化失败显示明确错误，不再白屏。'),
+  bullet('手机首次加载慢来自资源体积与网络；建议用系统浏览器（Safari / Chrome）打开，微信/QQ 内置浏览器可能截断链接里的 & 参数。'),
+  h2('9.4', '账号占用、接管与释放'),
+  bullet('每次登录生成新 session；同账号后打开的设备接管，旧设备下一次 sync 收到 409 SESSION_REPLACED 后停止联机，不会两台设备互相踢。'),
+  bullet('页面关闭 / 刷新时客户端 sendBeacon leave，服务端立即释放账号；异常退出由 15s TTL 兜底。'),
+  bullet('因此 player1 / player2 可以在不同手机上反复使用；两人同时组队请各用一个账号。'),
+  h2('9.5', '架构与免费额度'),
+  bullet('前端静态托管在 Netlify；房间接口 netlify/functions/room.mjs（POST /api/room），状态存 Netlify Blobs；本地 dev 由 server/local-room-api.mjs 提供同协议内存实现。'),
+  bullet('对局中 250ms 短轮询，未进入游戏或页面后台降到 1s；Netlify Functions 免费额度按调用次数计，短时游玩足够，长时间挂机会消耗额度。'),
+  bullet('「一起回家」使用 sendBeacon 发信号，不等待响应；进入别墅的主线程卡顿不会导致信号丢失。'),
+  h2('9.6', '验收基线（2026-11-21）'),
+  table(
+    ['套件', '结果', '覆盖'],
+    [
+      ['npm run build', 'PASS', '164 模块；联机客户端与加载层进入生产构建'],
+      ['verify-multiplayer-server', '10/10 PASS', '登录、双人同步、回家、同账号接管、leave 释放、过期清理、房间隔离'],
+      ['verify-multiplayer', '8/8 PASS', '两个分享链接自动登录、互相可见、移动同步、一起回家、别墅内可见（本地与线上各跑一次）'],
+      ['单人浏览器验收', '8/8 PASS', '单人入口、跳过联机、进入大厅、进入设施、退出、焦点、orbit 按 E 进入'],
+    ],
+    [30, 18, 52],
+    { firstColBold: true, zebra: true, size: 15 },
+  ),
+];
+
 const doc = new Document({
   creator: 'playground-mvp',
   title: '项目信息',
   subject: 'GTA 级微缩城市 · 工程交接与代码事实手册',
-  description: 'v2.0 全量重写：架构、坐标、设施、全局系统、别墅同场并置、Blender 数据编译管线、性能红线、验收体系与接手指南。',
+  description: 'v2.1：新增 09 线上双人联机与单人游玩（Netlify Functions + Blobs、双链接、账号接管与释放、设备适配）。',
   keywords: 'Three.js, Rapier, Vite, 微缩城市, 交接文档, 性能预算, Blender, IEmbeddedView',
   styles,
   sections: [
@@ -1355,7 +1462,7 @@ const doc = new Document({
       footers: { default: footer },
       children: [
         ...summary, ...architecture, ...regions, ...systems, ...villa,
-        ...blender, ...performance, ...verification, ...handover, ...appendix,
+        ...blender, ...performance, ...verification, ...handover, ...multiplayer, ...appendix,
       ],
     },
   ],
@@ -1366,8 +1473,8 @@ const buffer = await Packer.toBuffer(doc);
 fs.writeFileSync(OUT, buffer);
 
 const stat = fs.statSync(OUT);
-console.log('[项目信息.docx] 生成成功（v2.0 全量重写）');
+console.log('[项目信息.docx] 生成成功（v2.1 线上联机增补）');
 console.log('  路径: ' + OUT);
 console.log('  大小: ' + (stat.size / 1024).toFixed(1) + ' KB');
-console.log('  章节: 00 摘要 / 01 架构 / 02 坐标与入口 / 03 系统 / 04 别墅 / 05 Blender / 06 红线 / 07 验收 / 08 接手 / 附录');
-console.log('  数据口径: 2026-11-19 · metropolis 236,381 tris · villa-shell 5,612 tris · car 3,444 tris');
+console.log('  章节: 00 摘要 / 01 架构 / 02 坐标与入口 / 03 系统 / 04 别墅 / 05 Blender / 06 红线 / 07 验收 / 08 接手 / 09 联机与单人 / 附录');
+console.log('  数据口径: 2026-11-21 · metropolis 236,381 tris · villa-shell 5,612 tris · car 3,444 tris');

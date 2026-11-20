@@ -110,6 +110,8 @@ export class MultiplayerClient {
 
     this._room = ROOM_RE.test(options.room || '') ? options.room : DEFAULT_ROOM;
     this._token = null;
+    this._session = null;
+    this._kicked = false;
     this._creds = null;
     this._connected = false;
     this._disposed = false;
@@ -194,6 +196,8 @@ export class MultiplayerClient {
       pass,
     });
     this._token = data.token;
+    this._session = data.session || null;
+    this._kicked = false;
     this.me = { id: data.id, name: data.name, color: data.color };
     this._connected = true;
     this._ensureHud();
@@ -236,7 +240,9 @@ export class MultiplayerClient {
     this._disposed = true;
     this._connected = false;
     this._stopSync();
+    this._sendLeave();
     this._token = null;
+    this._session = null;
     this._syncing = false;
 
     for (const peer of this.peers.values()) this._removePeer(peer);
@@ -279,6 +285,7 @@ export class MultiplayerClient {
       if (!res.ok || !data?.ok) {
         const error = new Error(data?.error || `联机服务返回 ${res.status}`);
         error.status = res.status;
+        error.code = data?.code;
         throw error;
       }
       return data;
@@ -357,6 +364,14 @@ export class MultiplayerClient {
       this._updateHud(true);
       return data;
     } catch (err) {
+      if (err?.status === 409 || err?.code === 'SESSION_REPLACED') {
+        this._kicked = true;
+        this._connected = false;
+        this._stopSync();
+        this._toast('账号已在另一台设备打开，本页已停止联机', 6000);
+        this._updateHud(true);
+        return null;
+      }
       if (err?.status === 401 || err?.status === 403) {
         this._relogin();
         return null;
@@ -374,7 +389,7 @@ export class MultiplayerClient {
   }
 
   _relogin() {
-    if (this._relogging || this._disposed || !this._creds) return;
+    if (this._kicked || this._relogging || this._disposed || !this._creds) return;
     this._relogging = true;
     this._post({
       action: 'login',
@@ -383,6 +398,7 @@ export class MultiplayerClient {
       pass: this._creds.pass,
     }).then((data) => {
       this._token = data.token;
+      this._session = data.session || null;
       this.me = { id: data.id, name: data.name, color: data.color };
       this._connected = true;
       this._updateHud(true);
@@ -393,6 +409,26 @@ export class MultiplayerClient {
     }).finally(() => {
       this._relogging = false;
     });
+  }
+
+  /** 页面卸载时释放账号：sendBeacon 比 fetch 更可靠，服务端按 session 校验归属 */
+  _sendLeave() {
+    if (!this._token || this._kicked) return;
+    const payload = JSON.stringify({ action: 'leave', room: this._room, token: this._token });
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        navigator.sendBeacon(API_PATH, new Blob([payload], { type: 'application/json' }));
+        return;
+      }
+    } catch { /* 落到 fetch keepalive */ }
+    try {
+      fetch(API_PATH, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* 页面已卸载，尽力而为 */ }
   }
 
   _currentZone() {
@@ -580,14 +616,27 @@ export class MultiplayerClient {
       return;
     }
 
-    this._post({
+    const payload = JSON.stringify({
       action: 'home',
       room: this._room,
       token: this._token,
-    }, 8000).catch((err) => {
-      console.warn('[联机] 发送回家信号失败：', err);
-      this._toast('队友可能没收到回家邀请', 3000);
     });
+    let sent = false;
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        sent = navigator.sendBeacon(API_PATH, new Blob([payload], { type: 'application/json' }));
+      }
+    } catch { /* 落到 fetch */ }
+    if (!sent) {
+      this._post({
+        action: 'home',
+        room: this._room,
+        token: this._token,
+      }, 20000).catch((err) => {
+        console.warn('[联机] 发送回家信号失败：', err);
+        this._toast('队友可能没收到回家邀请', 3000);
+      });
+    }
 
     this._enterVilla();
   }
@@ -766,15 +815,20 @@ export class MultiplayerClient {
     const myZone = this._currentZone();
 
     const meName = this.me?.name || '未登录';
-    const peerText = !this._connected
-      ? '重连中…'
-      : peer
-        ? `${peer.name} · ${peer.zone === 'villa' ? '在家' : peer.zone === 'facility' ? '在项目中' : '大厅'}${peer.ready ? '' : ' · 未进入'}`
-        : '等待队友上线';
+    const peerText = this._kicked
+      ? '账号已在其他设备打开'
+      : !this._connected
+        ? '重连中…'
+        : peer
+          ? `${peer.name} · ${peer.zone === 'villa' ? '在家' : peer.zone === 'facility' ? '在项目中' : '大厅'}${peer.ready ? '' : ' · 未进入'}`
+          : '等待队友上线';
 
     let mode = 'home';
     let label = '一起回家';
-    if (!this._connected) {
+    if (this._kicked) {
+      mode = 'offline';
+      label = '账号被接管';
+    } else if (!this._connected) {
       mode = 'offline';
       label = '联机断开';
     } else if (!peer) {

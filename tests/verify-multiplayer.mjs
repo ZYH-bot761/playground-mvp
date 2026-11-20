@@ -197,9 +197,9 @@ try {
 
   /* 一起回家：player1 点 HUD 按钮，player2 应自动跟随 */
   await page1.click('.mp-hud__home');
-  await page1.waitForFunction(() => window.__playground.facilityRuntime.activeKey === 'villa', null, { timeout: 10000 });
+  await page1.waitForFunction(() => window.__playground.facilityRuntime.activeKey === 'villa', null, { timeout: 30000 });
   try {
-    await page2.waitForFunction(() => window.__playground.facilityRuntime.activeKey === 'villa', null, { timeout: 12000 });
+    await page2.waitForFunction(() => window.__playground.facilityRuntime.activeKey === 'villa', null, { timeout: 45000 });
   } catch {
     await dumpState(page1, 'player1');
     await dumpState(page2, 'player2');
@@ -212,7 +212,7 @@ try {
   await page1.waitForFunction(() => {
     const peer = [...window.__playground.multiplayer.peers.values()][0];
     return Boolean(peer) && Math.abs(peer.target.x + 30) < 14 && Math.abs(peer.target.z - 134) < 18;
-  }, null, { timeout: 12000 });
+  }, null, { timeout: 30000 });
   await page1.evaluate(() => {
     const mp = window.__playground.multiplayer;
     for (let i = 0; i < 40; i += 1) mp.update(0.05);

@@ -609,9 +609,15 @@ loginScreen = new LoginScreen({
     startScreen.show();
     console.info(`[联机] 登录成功（房间 ${linkRoom}），等待点击「进入游乐场」`);
   },
+  onSkip: () => {
+    loginScreen.hide();
+    startScreen.show();
+    console.info('[联机] 单人模式：跳过登录，直接开始玩');
+  },
 });
 loginScreen.init();
 loginScreen.show();
+document.getElementById('boot-loading')?.classList.add('is-hidden');
 
 /* 页面卸载统一收尾：开始页 DOM / 样式 / 监听，以及 AudioContext */
 const onPageHide = (event) => {
@@ -1153,5 +1159,15 @@ bootstrap().catch((err) => {
   console.error('[基座] 初始化失败，已停止：', err);
   // 初始化失败时收起开始页，让错误状态面板可见；此时渲染循环不会启动
   startScreen?.hide();
+  loginScreen?.hide();
+  const boot = document.getElementById('boot-loading');
+  if (boot) {
+    boot.classList.remove('is-hidden');
+    boot.classList.add('is-error');
+    const text = boot.querySelector('[data-role="boot-text"]');
+    if (text) text.textContent = '3D 场景加载失败';
+    const hint = boot.querySelector('[data-role="boot-hint"]');
+    if (hint) hint.textContent = '请刷新页面重试；手机建议使用系统浏览器（Safari / Chrome）';
+  }
   setDebugPanel('基座状态: 初始化失败，请查看控制台', { showUnload: true });
 });

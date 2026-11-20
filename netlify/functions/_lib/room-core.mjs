@@ -7,14 +7,13 @@
  *   服务端用 Netlify Blobs 保存房间状态。两台手机打开不同链接、同一房间即可
  *   互相看见并一起回家。
  *
- * 存储只要求两个方法：getJSON(key) / setJSON(key, value)。
- *   - Netlify 生产：netlify/functions/room.mjs 用 @netlify/blobs 适配；
- *   - 本地 dev / 测试：createMemoryStore() 进程内 Map。
+ * 会话规则（解决同账号占用）：
+ *   - 每次登录生成新的 session，写进房间状态；旧 session 的下一次 sync 会收到
+ *     409 SESSION_REPLACED，客户端停止联机，不再互踢；
+ *   - 退出页面时客户端 sendBeacon leave，立即释放账号；异常退出由 15s TTL 兜底；
+ *   - 后打开的设备自然接管，前一台自动停止，因此同一账号可以在不同手机上反复使用。
  *
- * 协议（POST /api/room）：
- *   {action:'login', room, user, pass} → {ok, token, id, name, color, room}
- *   {action:'sync',  room, token, state} → {ok, now, peers, signal}
- *   {action:'home',  room, token} → {ok, signal}
+ * 存储只要求两个方法：getJSON(key) / setJSON(key, value)。
  * ============================================================================
  */
 import crypto from 'node:crypto';
@@ -28,6 +27,9 @@ const SIGNAL_TTL_MS = 8000;
 const HOME_COOLDOWN_MS = 2200;
 const TOKEN_TTL_MS = 30 * 24 * 3600 * 1000;
 const DEFAULT_SECRET = 'playground-online-demo-secret';
+const DEFAULT_STATE = Object.freeze({
+  x: 0, y: 1.65, z: 24, yaw: 0, speed: 0, zone: 'lobby', ready: false,
+});
 
 const ACCOUNTS = (accountsConfig?.accounts || [])
   .filter((a) => a && typeof a.user === 'string' && a.user && typeof a.pass === 'string' && a.pass)
@@ -81,8 +83,8 @@ export function createMemoryStore() {
   };
 }
 
-function signToken(user, secret, now) {
-  const payload = Buffer.from(`${user}.${now}`, 'utf8').toString('base64url');
+function signToken(user, session, secret, now) {
+  const payload = Buffer.from(`${user}.${session}.${now}`, 'utf8').toString('base64url');
   const signature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
@@ -106,20 +108,23 @@ function verifyToken(token, secret, now) {
   } catch {
     return null;
   }
-  const split = decoded.lastIndexOf('.');
-  if (split <= 0) return null;
-  const user = decoded.slice(0, split);
-  const issuedAt = Number(decoded.slice(split + 1));
-  if (!ACCOUNT_MAP.has(user) || !Number.isFinite(issuedAt)) return null;
+  const last = decoded.lastIndexOf('.');
+  if (last <= 0) return null;
+  const before = decoded.lastIndexOf('.', last - 1);
+  if (before <= 0) return null;
+  const user = decoded.slice(0, before);
+  const session = decoded.slice(before + 1, last);
+  const issuedAt = Number(decoded.slice(last + 1));
+  if (!ACCOUNT_MAP.has(user) || !session || !Number.isFinite(issuedAt)) return null;
   if (now - issuedAt > TOKEN_TTL_MS || issuedAt > now + 60_000) return null;
-  return user;
+  return { user, session };
 }
 
 const stateKey = (room) => `multiplayer/${room}/state`;
 const signalKey = (room) => `multiplayer/${room}/signal`;
 
-function fail(status, error) {
-  return { status, json: { ok: false, error } };
+function fail(status, error, code) {
+  return { status, json: { ok: false, error, ...(code ? { code } : {}) } };
 }
 
 function createSignal(user, now) {
@@ -128,6 +133,26 @@ function createSignal(user, now) {
     type: 'go_home',
     from: { id: user, name: ACCOUNT_MAP.get(user)?.name || user },
     at: now,
+  };
+}
+
+function readPlayers(current) {
+  return current?.players && typeof current.players === 'object' ? current.players : {};
+}
+
+function dropExpired(players, now) {
+  for (const [id, player] of Object.entries(players)) {
+    if (!player || now - Number(player.updatedAt) > STATE_TTL_MS) delete players[id];
+  }
+}
+
+function toPeer(player) {
+  return {
+    id: player.id,
+    name: player.name,
+    color: player.color,
+    state: player.state,
+    updatedAt: player.updatedAt,
   };
 }
 
@@ -144,7 +169,7 @@ export async function handleRoomApi({ store, body, secret = DEFAULT_SECRET, now 
   const room = normalizeRoom(msg.room);
   if (!room) return fail(400, '房间号不合法');
 
-  /* ---------------- 登录：只在这里校验密码，返回签名 token ---------------- */
+  /* ---------------- 登录：校验密码，生成新 session 并立即接管该账号 ---------------- */
   if (msg.action === 'login') {
     const user = String(msg.user || '').trim();
     const pass = String(msg.pass || '');
@@ -152,16 +177,29 @@ export async function handleRoomApi({ store, body, secret = DEFAULT_SECRET, now 
     if (!account || account.pass !== pass) return fail(401, '账号或密码不正确');
 
     const current = await store.getJSON(stateKey(room));
-    const players = current?.players && typeof current.players === 'object' ? current.players : {};
-    const activeCount = Object.values(players).filter((p) => p && now - Number(p.updatedAt) <= STATE_TTL_MS).length;
+    const players = readPlayers(current);
+    dropExpired(players, now);
+    const activeCount = Object.values(players).length;
     if (!players[user] && activeCount >= MAX_PLAYERS) return fail(429, '房间已满（最多 8 人）');
+
+    const session = crypto.randomUUID();
+    players[user] = {
+      id: user,
+      name: account.name,
+      color: account.color,
+      state: normalizeState(players[user]?.state || DEFAULT_STATE),
+      session,
+      updatedAt: now,
+    };
+    await store.setJSON(stateKey(room), { players, updatedAt: now });
 
     return {
       status: 200,
       json: {
         ok: true,
         room,
-        token: signToken(user, secret, now),
+        token: signToken(user, session, secret, now),
+        session,
         id: user,
         name: account.name,
         color: account.color,
@@ -169,41 +207,37 @@ export async function handleRoomApi({ store, body, secret = DEFAULT_SECRET, now 
     };
   }
 
-  const user = verifyToken(msg.token, secret, now);
-  if (!user) return fail(401, '登录已失效，请重新登录');
-  const account = ACCOUNT_MAP.get(user);
+  const auth = verifyToken(msg.token, secret, now);
+  if (!auth) return fail(401, '登录已失效，请重新登录');
+  const account = ACCOUNT_MAP.get(auth.user);
   if (!account) return fail(401, '账号不存在');
 
   /* ---------------- 同步：写自己 + 读队友 + 读回家信号 ---------------- */
   if (msg.action === 'sync') {
     const current = await store.getJSON(stateKey(room));
-    const players = current?.players && typeof current.players === 'object' ? current.players : {};
+    const players = readPlayers(current);
+    const existing = players[auth.user];
+    if (existing?.session && existing.session !== auth.session) {
+      return fail(409, '账号已在另一台设备打开', 'SESSION_REPLACED');
+    }
 
-    players[user] = {
-      id: user,
+    players[auth.user] = {
+      id: auth.user,
       name: account.name,
       color: account.color,
       state: normalizeState(msg.state),
+      session: auth.session,
       updatedAt: now,
     };
-    for (const [id, player] of Object.entries(players)) {
-      if (!player || now - Number(player.updatedAt) > STATE_TTL_MS) delete players[id];
-    }
-
+    dropExpired(players, now);
     await store.setJSON(stateKey(room), { players, updatedAt: now });
 
     const peers = Object.values(players)
-      .filter((p) => p.id !== user)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        state: p.state,
-        updatedAt: p.updatedAt,
-      }));
+      .filter((p) => p && p.id !== auth.user)
+      .map(toPeer);
 
     const signal = await store.getJSON(signalKey(room));
-    const activeSignal = signal && signal.from?.id !== user && now - Number(signal.at) <= SIGNAL_TTL_MS
+    const activeSignal = signal && signal.from?.id !== auth.user && now - Number(signal.at) <= SIGNAL_TTL_MS
       ? signal
       : null;
 
@@ -212,13 +246,30 @@ export async function handleRoomApi({ store, body, secret = DEFAULT_SECRET, now 
 
   /* ---------------- 一起回家：写一个短时信号，队友下次 sync 收到 ---------------- */
   if (msg.action === 'home') {
+    const current = await store.getJSON(stateKey(room));
+    const players = readPlayers(current);
+    if (players[auth.user]?.session && players[auth.user].session !== auth.session) {
+      return fail(409, '账号已在另一台设备打开', 'SESSION_REPLACED');
+    }
+
     const previous = await store.getJSON(signalKey(room));
-    if (previous?.from?.id === user && now - Number(previous.at) < HOME_COOLDOWN_MS) {
+    if (previous?.from?.id === auth.user && now - Number(previous.at) < HOME_COOLDOWN_MS) {
       return { status: 200, json: { ok: true, signal: previous, deduped: true } };
     }
-    const signal = createSignal(user, now);
+    const signal = createSignal(auth.user, now);
     await store.setJSON(signalKey(room), signal);
     return { status: 200, json: { ok: true, signal } };
+  }
+
+  /* ---------------- 退出：立即释放账号（页面关闭时 sendBeacon 调用） ---------------- */
+  if (msg.action === 'leave') {
+    const current = await store.getJSON(stateKey(room));
+    const players = readPlayers(current);
+    if (!players[auth.user] || !players[auth.user].session || players[auth.user].session === auth.session) {
+      delete players[auth.user];
+      await store.setJSON(stateKey(room), { players, updatedAt: now });
+    }
+    return { status: 200, json: { ok: true } };
   }
 
   return fail(400, '未知操作');

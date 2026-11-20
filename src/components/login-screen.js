@@ -21,6 +21,8 @@ const DEFAULT_OPTIONS = Object.freeze({
   hint: '演示账号 player1 / player2 · 密码由服务端账号配置校验。',
   accounts: [],
   onLogin: null,
+  /** 单人游玩：不登录、不联机，直接进入开始页 */
+  onSkip: null,
   /** 分享链接可直接带账号密码进入：?u=player1&p=play1234&room=home */
   defaultUser: '',
   defaultPass: '',
@@ -145,7 +147,7 @@ const STYLE_TEXT = `
   box-sizing: border-box;
   padding: 12px 14px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   color: #eef7ff;
   background: rgba(6, 12, 24, 0.62);
   border: 1px solid rgba(116, 176, 235, 0.24);
@@ -240,6 +242,28 @@ const STYLE_TEXT = `
 .pg-login__account strong { color: #8fe3ff; font-weight: 700; }
 .pg-login__account span { display: block; color: #8fa9ca; }
 
+.pg-login__skip {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a9c7e8;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(116, 176, 235, 0.24);
+  border-radius: 999px;
+  transition: border-color 0.16s ease, color 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pg-login__skip:hover,
+.pg-login__skip:focus-visible {
+  color: #dff4ff;
+  border-color: rgba(98, 208, 255, 0.55);
+  outline: none;
+}
+
 .pg-login__hint {
   margin: 16px 0 0;
   font-size: 11px;
@@ -294,6 +318,10 @@ export class LoginScreen {
       this._setError('');
       this._fields.pass.focus();
     };
+    this._onSkipClick = () => {
+      const fn = this._options.onSkip;
+      if (typeof fn === 'function') fn();
+    };
   }
 
   init(options = {}) {
@@ -333,6 +361,7 @@ export class LoginScreen {
     if (!this._root) return this;
     this._root.classList.remove('pg-login--visible');
     this._root.setAttribute('aria-hidden', 'true');
+    this._fields.user?.blur();
     this._fields.pass?.blur();
     return this;
   }
@@ -345,6 +374,7 @@ export class LoginScreen {
     if (this._root) {
       this._form?.removeEventListener('submit', this._onSubmit);
       this._accountList?.removeEventListener('click', this._onAccountClick);
+      this._fields.skip?.removeEventListener('click', this._onSkipClick);
       this._root.remove();
       this._root = null;
     }
@@ -406,6 +436,7 @@ export class LoginScreen {
           <p class="pg-login__accounts-title">演示账号 · 点一下填入账号</p>
           <div class="pg-login__account-list" data-role="account-list"></div>
         </div>
+        <button class="pg-login__skip" type="button" data-role="skip">单人游玩（不联机）</button>
         <p class="pg-login__hint" data-role="hint"></p>
       </div>
     `;
@@ -424,10 +455,12 @@ export class LoginScreen {
       submit: root.querySelector('[data-role="submit"]'),
       submitText: root.querySelector('[data-role="submit-text"]'),
       accounts: root.querySelector('[data-role="accounts"]'),
+      skip: root.querySelector('[data-role="skip"]'),
     };
 
     this._form.addEventListener('submit', this._onSubmit);
     this._accountList.addEventListener('click', this._onAccountClick);
+    this._fields.skip?.addEventListener('click', this._onSkipClick);
     document.body.appendChild(root);
   }
 
@@ -460,6 +493,9 @@ export class LoginScreen {
     });
     if (this._fields.accounts) {
       this._fields.accounts.style.display = accounts.length ? '' : 'none';
+    }
+    if (this._fields.skip) {
+      this._fields.skip.style.display = typeof options.onSkip === 'function' ? '' : 'none';
     }
   }
 

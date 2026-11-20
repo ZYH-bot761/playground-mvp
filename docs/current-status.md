@@ -136,3 +136,41 @@
 - `season-cycle.js` 用字符串替换注入 shader（对 `#include <color_fragment>`），three 升级可能静默失效，无失败分支。
 - `metropolis-scene.js` 背向时仍全量 update 子系统（省 draw 但 CPU 常开）；`zoo-scene.js` 游客 InstancedMesh `frustumCulled=false` 常驻提交。
 - 已跟踪的 `tests/_layout-probe.mjs` 与 7 个 `diag-*.mjs` 保留（历史诊断工具），未删除。
+
+## 7. 空中花园（2026-11-20 新增，同日第二版）
+
+大厅常驻的第三种「借相机」玩法（与驾驶同类）：只换相机与气氛，不卸载大厅。
+
+| 对象 | 位置 / 尺寸 | 交互 |
+|---|---|---|
+| 轨道环 | 中心 (0,54) / 半径 88m / 梁径 1.15m / 离地 146m；3 排 ×140 块踏步板铺成 7.6m 宽甲板 + 内外双护栏 + 扶手灯带 | 地面抬头可见；到站直接落在甲板上 |
+| 太空电梯 | 基座 (-88.4, 21.9)，环体外侧 6m（半径 94）；双导轨 146m + 顶端站台 + 6m 栈桥 | 基座 9m 内按 E，12.5s 垂直升顶；全程可拖鼠标环视 |
+| 太空高铁 | 站台 (-64,-2)；CatmullRom 爬升曲线弧长 228.4m；环上停靠点 (56.57, 121.41) | 站台 15m 内 E 登车，点「发车」约 20s 到站，E 出舱漫步 |
+
+环上街区（`Sky/district`，全部挂在步道外带，内带留成连续人行通道）：
+
+- 云顶观景亭 250°（8 柱 + 锥顶 + 发光冠 + 4 长椅）、玻璃温室 140°（半球 + 4 肋拱 + 7 棵树）、喷泉广场 40°（水池 + 发光水面 + 水柱 + 6 长椅 + 9m 玻璃方尖碑与悬浮光环）、两座空中墅 205° / 320°、300° 外悬玻璃观景台；
+- 甲板设施：26 灯柱 + 20 行道树 + 14 长凳（三者皆 InstancedMesh）+ 4 座 26m 云灯塔桅杆；
+- 碰撞：9 个圆 collider（半径 1.7~4.3）+ 步道半径夹在 84.6~91.4m，走不进建筑、掉不下环。
+
+甲板自由漫步：
+
+- 到站后按 E 出舱，`deck` 模式下 WASD / 方向键行走、Shift 疾行（4.4 / 8.0 m/s）、拖鼠标左右环视与抬低头、滚轮缩放；眼高 1.72m，速度按 `dt` 归一；
+- 鼠标视角全程可用：乘梯上升、乘车爬升、到站、甲板行走，`_look.yaw/pitch` 以相机局部轴叠加在基础机位上（FPS 手感），乘梯后半程机位还会压到甲板上，出舱瞬间即"站在步道上看步道延伸出去"；
+- E 语义：到站首次 E 出舱，走完回来再 E 才是下行 / 返程；甲板上也能直接用 HUD「直接落地」。
+
+- 状态机：`idle / elev-up / elev-top / elev-down / train-boarded / train-up / train-docked / train-down / deck`，`isRiding` 即非 idle；期间 Orbit / WASD / M 键全部让位，落地后机位 + 雾 + 天穹 + 云 + 输入逐项还原。
+- 高空气氛（第二版重点修的三处观感缺陷）：① `scene.fog` 在 110m 以上整段关闭（地面灰雾被抬到 146m 后 40m 外糊成白墙，把 near 推到 240 也无效）；② `Lobby/sky` 天穹收起（Sky.js 纯方向散射，在高空把整个半球过曝成奶白；只藏 Group 不够，还得关掉 `Lobby/cloud-band-118/96/72` 三条云带）；③ 甲板材质改为深蓝灰，4 座 22m "路灯感"的灯塔改成 26m 细桅杆。
+- 测试：`node tests/verify-sky-garden.mjs`（需 5173 dev server；默认带 `?no-prewarm=1` 排掉后台预热噪声），25/25 PASS，落 `docs/screenshots/sky-1~5.png`。
+- 两个必守的集成点：① `main.js startBackgroundPrewarm` 的让路条件已加入 `_skyGarden.isRiding`（否则乘梯途中会被预热 dispose 掉）；② `OrbitControls` 极角上限 81.8° 让相机抬不起头，靠近判定因此同时接受相机点与视线落点。
+
+## 3.10 线上双人联机与单人游玩（2026-11-21）
+
+- 线上地址：`https://chengshi1.netlify.app`（Netlify Functions + Netlify Blobs，非 WebSocket 常驻进程）。
+- 演示账号：`player1 / play1234`（小星）、`player2 / play1234`（小月）；链接 `?u=&p=&room=` 自动登录，两台设备必须使用同一个 room。
+- 单人：登录页「单人游玩（不联机）」跳过账号直接开始；设施入口支持 orbit 视线中心射线按 E，手机可点 HUD 提示进入。
+- 组队：大厅 250ms 短轮询同步，顶部「一起回家」把两人一起带进别墅；未进入游戏或页面后台自动降到 1s。
+- 账号：每次登录生成新 session，后打开的设备接管（旧设备下一次 sync 收到 409 `SESSION_REPLACED` 后停止，不互踢）；页面关闭 sendBeacon `leave` 立即释放，异常退出由 15s TTL 兜底。
+- 兼容：iOS 输入框 16px 防止自动放大；静态首屏加载层与 3D 初始化失败提示；建议系统浏览器（Safari/Chrome），微信内置浏览器可能截断链接里的 `&` 参数。
+- 验收：`node tests/verify-multiplayer-server.mjs` 10/10；双链接 `node tests/verify-multiplayer.mjs` 8/8（本地与线上各跑一次）；单人浏览器 8/8；`npm run build` PASS。
+- 改动边界：新增 `src/net/multiplayer-client.js`、`src/components/login-screen.js`、`netlify/functions/*`、`server/local-room-api.mjs`；大厅只扩展入口判定/提示，设施与别墅内部玩法未改。

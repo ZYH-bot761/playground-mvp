@@ -63,6 +63,7 @@ import { CoasterCarRuntime } from '../utils/helpers/coaster-car-runtime.js';
 import { buildZoo, ZOO_VIEW } from './zoo-scene.js';
 import { buildForestPark, FOREST_PARK } from './forest-park.js';
 import { buildDistricts, DISTRICT_VIEW, DISTRICT_GRID } from './districts.js';
+import { buildSkyGarden, SKY_SITES } from './sky/sky-garden.js';
 
 /* ========================================================================== */
 /* 模块级单例：跨「销毁重建」保存 orbit 相机位置与目标点                       */
@@ -1252,6 +1253,7 @@ export class Lobby extends IAttraction {
         && this._inputMode === 'wasd'
         && !this._driving?.active
         && !this._driving?.pending
+        && !this._skyGarden?.isRiding
         && this._sitState === 'none'
         && !this._wasdBlendActive
         /* 【T03 集成修复】相机被嵌入视图 / 设施过渡接管时，WASD 必须让位，
@@ -1268,6 +1270,7 @@ export class Lobby extends IAttraction {
         && !this._wasdBlendActive
         && !this._zooFly
         && !this._zooView
+        && !this._skyGarden?.isRiding
         && !movementMode.isEngaged()
         && !cameraRig.isTransitioning
         && !(this._ctx?.isEmbedded?.())
@@ -1288,6 +1291,25 @@ export class Lobby extends IAttraction {
 
     this._buildUI();
     this._bindInput();
+
+    /* ---------- ⑤-c 空中花园：太空电梯 + 太空高铁 + 146m 轨道环 ----------
+     * 与「驾驶」同类，不是嵌入视图：大厅 / 城市常驻，只有乘梯 / 乘车期间借相机。
+     * 因此不注册 EMBEDDED_KEYS，也不占 FACILITIES 的 9 个触发环——
+     * 它用 SKY_SITES 的独立距离判定（见 _onInteractKey 开头的 handleInteract）。 */
+    this._skyGarden = buildSkyGarden({
+      root: this.root,
+      camera: ctx.camera,
+      scene: ctx.scene,
+      getGroundHeight: (x, z) => this._walkGroundHeight(x, z),
+      toast: (text) => this._showToast(text),
+      getNight: () => (dayNightCycle.mode === 'night' ? 1 : dayNightCycle.mode === 'sunset' ? 0.5 : 0),
+      /* 轨道模式下 maxDistance=50 的相机永远凑不到基座 9m 内，
+       * 因此把「视线落点」也纳入判定：玩家把视角对着电梯 / 站台就能按 E。 */
+      getScanPoint: () => (this._inputMode === 'orbit' && this._controls?.target
+        ? this._controls.target
+        : this._ctx?.camera?.position),
+    });
+    this.root.userData.skyGarden = this._skyGarden;
 
     /* ---------- ④-c 模块 7 昼夜系统接线 ----------
      * Lobby 每次切换都被完整 dispose + 重建，Sky 球与所有材质都会换新实例，
@@ -1924,6 +1946,8 @@ export class Lobby extends IAttraction {
     }
     // 过山车桥墩下方留空，避免树 / 长椅长在轨道支柱里
     zones.push({ x: COASTER.cx, z: COASTER.cz, r: COASTER.lobeA + 2 });
+    // 空中花园的电梯基座 / 高铁站台：不允许长树、铺长椅，否则会穿进站台
+    for (const site of SKY_SITES) zones.push({ x: site.x, z: site.z, r: site.r });
     return zones;
   }
 
@@ -4097,6 +4121,8 @@ export class Lobby extends IAttraction {
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     if (this._sitState !== 'none') return;
+    // 【空中花园】乘梯 / 乘车期间禁止切输入模式，相机此时归 SkyGarden
+    if (this._skyGarden?.isRiding) return;
     this._toggleInputMode();
   }
 
@@ -4118,21 +4144,48 @@ export class Lobby extends IAttraction {
   /* 【上线 QA】E 进入 / Esc 退出嵌入设施 / R 自救                           */
   /* ------------------------------------------------------------------------ */
 
-  /** 第一人称下最近的可进入入口（距离触发圈中心 ≤4.6m，取最近） */
+  /**
+   * 最近的可进入入口（触发圈中心 ≤ INTERACT_RADIUS，取最近）。
+   * WASD 用相机位置；orbit 俯瞰用 OrbitControls 的视线落点，
+   * 这样单人 / 组队都能不切第一人称直接对准入口按 E 或点提示进入。
+   */
   _findNearFacility() {
-    if (this._disposed || this._inputMode !== 'wasd') return null;
+    if (this._disposed) return null;
     const cam = this._ctx?.camera;
     if (!cam) return null;
+    const scan = this._inputMode === 'orbit' ? this._controls?.target : cam.position;
+    if (!scan) return null;
     let best = null;
     for (const f of FACILITIES) {
-      const dx = cam.position.x - f.trigger.x;
-      const dz = cam.position.z - f.trigger.z;
+      const dx = scan.x - f.trigger.x;
+      const dz = scan.z - f.trigger.z;
       const distance = Math.hypot(dx, dz);
       if (distance <= INTERACT_RADIUS && (!best || distance < best.distance)) {
         best = { key: f.key, name: f.label || f.name, distance };
       }
     }
     return best;
+  }
+
+  /**
+   * orbit 模式按 E：用屏幕中心射线找入口。
+   * 玩家只要把视线对准入口按 E 就能进，不必先按 M 切第一人称。
+   * @returns {boolean} 是否已发起进入
+   */
+  _tryEnterByCenterRay() {
+    const cam = this._ctx?.camera;
+    if (!cam || !this._raycaster || !this._pickables?.length) return false;
+    this._ndc.set(0, 0);
+    this._raycaster.setFromCamera(this._ndc, cam);
+    const hits = this._raycaster.intersectObjects(this._pickables, true);
+    if (!hits.length) return false;
+    const key = this._pickKey(hits);
+    if (!key) return false;
+    if (key === 'villa') return this._tryEnterVilla();
+    const facility = FACILITIES.find((f) => f.key === key);
+    if (!facility) return false;
+    this._tryEnter(key);
+    return true;
   }
 
   _onInteractKey(event) {
@@ -4154,7 +4207,21 @@ export class Lobby extends IAttraction {
       this._tryEnterVilla();
       return;
     }
+    /* 【空中花园】E 优先给太空电梯 / 太空高铁：只有真正靠近或正在乘梯乘车时
+     * handleInteract() 才返回 true，其余情况完全不改变既有 E 语义。 */
+    if (this._skyGarden?.handleInteract()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     if (cameraRig.isTransitioning) return;
+    /* orbit 俯瞰：E 先按屏幕中心射线找入口；对准入口即可进入。
+     * 第一人称（WASD）继续走距离判定，保持原有体感。 */
+    if (this._inputMode === 'orbit' && this._tryEnterByCenterRay()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     // 用实时位置重算，避免「刚走到圈内、HUD 尚未刷新」时 E 无效
     const near = this._findNearFacility();
     if (!near && this._tryFarmHarvest(event)) return;
@@ -4287,12 +4354,12 @@ export class Lobby extends IAttraction {
     return true;
   }
 
-  /** 每帧刷新「按 E 进入」提示；仅第一人称靠近触发圈时出现 */
+  /* 每帧刷新「按 E 进入」提示；WASD 靠近或 orbit 视线落点靠近触发圈时出现 */
   _updateInteractionHint(dt = 0, force = false) {
     const el = this._interactHintEl;
     if (!el) return;
     const canScan = !this._disposed
-      && this._inputMode === 'wasd'
+      && (this._inputMode === 'wasd' || this._inputMode === 'orbit')
       && !this._wasdBlendActive
       && this._sitState === 'none'
       && !movementMode.isEngaged()
@@ -4326,10 +4393,15 @@ export class Lobby extends IAttraction {
     if (mode !== 'near') return;
     const main = this._ui?.interactMain;
     const sub = this._ui?.interactSub;
-    if (main) main.textContent = `按 E 进入 · ${this._nearFacility.name}`;
+    const touch = typeof this._isCoarseDevice === 'function' && this._isCoarseDevice();
+    if (main) main.textContent = touch
+      ? `点此进入 · ${this._nearFacility.name}`
+      : `按 E 进入 · ${this._nearFacility.name}`;
     if (sub) {
       const dist = Math.max(1, Math.round(this._nearFacility.distance));
-      sub.textContent = `距入口 ${dist}m · 手机可点击此处`;
+      sub.textContent = touch
+        ? `距入口 ${dist}m · 点这里直接进入`
+        : `距入口 ${dist}m · 手机可点击此处`;
     }
   }
 
@@ -5579,7 +5651,14 @@ export class Lobby extends IAttraction {
     /* T02 相机主控仲裁（同一时刻只有一个写相机的人）：
      * 坐姿 → _updateSit 独立接管；过渡 → CameraRig；wasd → WASDController；
      * orbit → OrbitControls。三者互斥，杜绝"双主控抖相机"。 */
-    if (this._sitState !== 'none') {
+    /* 【空中花园】乘梯 / 乘车期间相机由 SkyGarden 逐帧 writePose 持有：
+     * 必须在这条仲裁链的最前面让位，否则 OrbitControls.update() 会在同一帧
+     * 把机位拉回 target，画面表现为「一上升就被拽回地面」。 */
+    if (this._skyGarden?.isRiding) {
+      this._controls.enabled = false;
+      this._orbitKeys.clear();
+      this._wasd?.clearInput?.();
+    } else if (this._sitState !== 'none') {
       // 坐姿 / 起身由 _updateSit 在下方驱动，这里不碰 controls / WASD
     } else if (movementMode.isEngaged()) {
       /* 【六项升级·阶段二】双模式互斥状态机接管相机：ground 1.7m 贴地 + BVH
@@ -5636,6 +5715,10 @@ export class Lobby extends IAttraction {
     }
 
     this._updateAnimations(dt);
+
+    /* 【空中花园】放在 _updateAnimations 之后：那一帧里 lobby 会把天穹盒重置到
+     * (cam.x, 0, cam.z)，本模块随后把它的 y 抬到相机高度，避免升空穿出天穹。 */
+    this._skyGarden?.update(dt);
 
     // 【模块 8】坐下 / 起身相机插值 + 坐姿环顾
     this._updateSit(dt);
@@ -5705,6 +5788,13 @@ export class Lobby extends IAttraction {
     } catch (err) {
       console.error('[Lobby] dispose 步骤「相机交接」失败（继续后续清理）：', err);
     }
+
+    /* ---------- 步骤 0-b：【空中花园】先落回地面 --------------
+     * 若玩家在 146m 的空中站台时被切走（进设施 / 回菜单），不先把相机放回地面，
+     * 下面的状态存档会把高空机位写进 _lobbyMemory，下次进大厅就直接悬在半空。 */
+    this._step('空中花园落地', () => {
+      if (this._skyGarden?.isRiding) this._skyGarden.abortToGround();
+    });
 
     /* ---------- 步骤 0-b：【M5a 核心】状态存档 ----------
      * 大厅每次切换小游戏都被彻底 dispose；把 orbit 机位与目标点写入模块级
@@ -5832,6 +5922,9 @@ export class Lobby extends IAttraction {
       this._zooView = false;
       this._forest?.dispose();
       this._forest = null;
+      // 【空中花园】DOM HUD / 监听 / 自建材质与几何，先落回地面再清
+      this._skyGarden?.dispose();
+      this._skyGarden = null;
       // 【M7】四宫格骨架：移除 group + 释放 instanceMatrix / 自建材质（幂等）
       this._districts?.dispose();
       this._districts = null;

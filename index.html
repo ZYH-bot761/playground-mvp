@@ -5,8 +5,68 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>游乐场 MVP · 基座验证</title>
+    <style>
+      #boot-loading {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 24px;
+        text-align: center;
+        color: #dbe9fb;
+        background:
+          radial-gradient(60vw 60vw at 12% 88%, rgba(39, 200, 255, 0.14), transparent 70%),
+          radial-gradient(54vw 54vw at 88% 10%, rgba(154, 99, 240, 0.16), transparent 70%),
+          linear-gradient(160deg, #0a1224 0%, #0d1b30 52%, #080d1c 100%);
+        font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+        transition: opacity 0.35s ease, visibility 0.35s ease;
+      }
+      #boot-loading.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #boot-loading.is-error { z-index: 120; }
+      .boot-loading__ring {
+        width: 38px;
+        height: 38px;
+        border: 3px solid rgba(127, 209, 255, 0.25);
+        border-top-color: #7fd1ff;
+        border-radius: 50%;
+        animation: boot-spin 0.9s linear infinite;
+      }
+      #boot-loading.is-error .boot-loading__ring { display: none; }
+      .boot-loading__text {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .boot-loading__hint {
+        margin: 0;
+        max-width: 30em;
+        font-size: 12px;
+        line-height: 1.7;
+        color: #8fa9ca;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-loading__ring { animation: none; }
+        #boot-loading { transition: none; }
+      }
+    </style>
   </head>
   <body>
+    <!-- 静态首屏加载提示：JS 还没下载完时也能看到反馈，避免手机白屏误判为打不开 -->
+    <div id="boot-loading" role="status" aria-live="polite">
+      <div class="boot-loading__ring" aria-hidden="true"></div>
+      <p class="boot-loading__text" data-role="boot-text">正在加载游乐场…</p>
+      <p class="boot-loading__hint" data-role="boot-hint">首次加载需要一点时间，请保持网络畅通</p>
+    </div>
     <!-- 全屏 3D 画布挂载点；全站唯一的 module script 入口 -->
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
