@@ -48,11 +48,6 @@ export default async (request) => {
     return json(result.status, result.json);
   } catch (err) {
     console.error('[联机] Netlify Function 处理失败：', err);
-    return json(500, {
-      ok: false,
-      error: '联机服务暂时不可用',
-      detail: String(err?.message || err),
-      code: String(err?.name || 'unknown'),
-    });
+    return json(500, { ok: false, error: '联机服务暂时不可用' });
   }
 };
