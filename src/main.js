@@ -595,7 +595,7 @@ multiplayer.setRoom(linkRoom);
  * 账号校验在服务端（本地 /api/room / 线上 Netlify Functions），前端包内不打包密码。
  * 这里不调用 startScreen.show()：否则登录页背后可用键盘 Enter 绕过登录进入。 */
 loginScreen = new LoginScreen({
-  hint: `演示账号 player1 / player2 · 当前房间 ${linkRoom} · 密码见 config/accounts.mjs`,
+  hint: `演示账号 player1 / player2 · 当前房间 ${linkRoom} · 密码由服务端账号配置校验`,
   defaultUser: linkUser,
   defaultPass: linkPass,
   autoSubmit: Boolean(linkUser && linkPass),

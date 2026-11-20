@@ -18,7 +18,7 @@
  * ============================================================================
  */
 import crypto from 'node:crypto';
-import accountsConfig from '../../../config/accounts.mjs';
+import accountsConfig from './accounts.mjs';
 
 const DEFAULT_ROOM = 'home';
 const MAX_ROOM_LENGTH = 32;

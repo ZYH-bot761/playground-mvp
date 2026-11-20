@@ -18,7 +18,7 @@ const DEFAULT_OPTIONS = Object.freeze({
   eyebrow: 'PLAYGROUND · ONLINE',
   title: '双人联机大厅',
   subtitle: '两个链接、两台手机，进同一个房间。登录后能在大厅里看到对方，也能一起回家。',
-  hint: '演示账号 player1 / player2 · 密码见 config/accounts.mjs。',
+  hint: '演示账号 player1 / player2 · 密码由服务端账号配置校验。',
   accounts: [],
   onLogin: null,
   /** 分享链接可直接带账号密码进入：?u=player1&p=play1234&room=home */

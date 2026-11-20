@@ -1,6 +1,6 @@
 /**
  * 演示账号（服务端校验用，不会被前端打包）。
- * 本地 dev 的 /api/room 与 Netlify Functions 都读取这一份。
+ * 放在 Netlify Functions 目录内，保证函数打包自包含；本地 /api/room 也读取这一份。
  */
 export default {
   accounts: [

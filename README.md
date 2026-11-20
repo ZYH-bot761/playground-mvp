@@ -95,7 +95,7 @@ node tests/verify-multiplayer.mjs         # 双浏览器联机 8 项
 服务端由 `netlify/functions/room.mjs` + Netlify Blobs 保存房间状态；本地 dev 由
 `server/local-room-api.mjs` 提供同协议的内存实现，本地与线上行为一致。
 
-- 账号：`config/accounts.mjs`（`player1` / `player2`，密码也在该文件）
+- 账号：`netlify/functions/_lib/accounts.mjs`（`player1` / `player2`，密码也在该文件）
 - 房间：URL 的 `room` 参数，缺省 `home`；两人必须同房间
 - 部署：Netlify 连接本仓库，构建 `npm run build`、发布 `dist`；
   `netlify/functions/room.mjs` 会自动提供 `POST /api/room`（Blobs 无需额外配置）
