@@ -70,10 +70,10 @@ playground-mvp/
 ## 启动
 
 ```bash
-pnpm install          # 安装依赖
-pnpm dev              # 启动 dev server：http://127.0.0.1:5173/
-pnpm build            # 生产构建，输出到 dist/
-pnpm preview          # 预览构建产物
+npm install           # 安装依赖
+npm run dev           # 启动 dev server：http://127.0.0.1:5173/
+npm run build         # 生产构建，输出到 dist/
+npm run preview       # 预览构建产物
 ```
 
 Windows 也可双击 `start-playground.bat` 一键启动（自动探测 5173–5178 空闲端口并打开浏览器）。
@@ -85,7 +85,28 @@ node tests/verify-six-upgrades.mjs   # 六项升级 20 项
 node tests/verify-v4.mjs             # 全量功能 13 项
 node tests/verify-redline.mjs final  # 工程红线 8 项
 node tests/verify-m7-districts.mjs   # 四宫格专项
+node tests/verify-multiplayer-server.mjs  # 联机房间核心 8 项
+node tests/verify-multiplayer.mjs         # 双浏览器联机 8 项
 ```
+
+## 线上双人联机（Netlify）
+
+线上不使用 WebSocket：前端每 250ms 调一次 `POST /api/room`（上报自己 + 取回队友与回家信号），
+服务端由 `netlify/functions/room.mjs` + Netlify Blobs 保存房间状态；本地 dev 由
+`server/local-room-api.mjs` 提供同协议的内存实现，本地与线上行为一致。
+
+- 账号：`config/accounts.mjs`（`player1` / `player2`，密码也在该文件）
+- 房间：URL 的 `room` 参数，缺省 `home`；两人必须同房间
+- 部署：Netlify 连接本仓库，构建 `npm run build`、发布 `dist`；
+  `netlify/functions/room.mjs` 会自动提供 `POST /api/room`（Blobs 无需额外配置）
+- 分享链接（把 `<site>` 换成 Netlify 域名，`<密码>` 换成账号密码）：
+  - `https://<site>/?u=player1&p=<密码>&room=home`
+  - `https://<site>/?u=player2&p=<密码>&room=home`
+- 打开链接会自动登录并停在开始页；两台手机各开一个链接，点「进入游乐场」后
+  就能在大厅看到对方；顶部「一起回家」会把两人一起带进别墅
+
+说明：线上是 250ms 短轮询（未进入游戏或页面在后台时降到 1s），队友动作延迟低于半秒；
+Netlify Functions 免费额度有限，两人长时间挂机会消耗调用次数，演示与短时游玩足够。
 
 ## 依赖清单
 
@@ -97,6 +118,7 @@ node tests/verify-m7-districts.mjs   # 四宫格专项
 | `lil-gui` | ^0.21.0 | 毛玻璃调试控制台 |
 | `@dimforge/rapier3d-compat` | ^0.21.0 | 独立玩法设施的物理（大厅禁用） |
 | `@mediapipe/tasks-vision` | 0.10.3 | 手势识别（预留能力） |
+| `@netlify/blobs` | ^11.1.9 | 线上联机房间状态（Netlify Functions 内使用） |
 | `vite` | ^8.3.6 | dev / build 构建工具 |
 
 运行时无外部 CDN 依赖（MediaPipe WASM 仅在启用手势识别时按需加载）；几何、材质、贴图、音频均程序化生成。

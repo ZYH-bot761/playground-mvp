@@ -92,6 +92,8 @@ import { Lobby } from './scenes/lobby-scene.js';
 import { FireworksDeck } from './scenes/attractions/fireworks-deck.js';
 import { CenturyClock } from './scenes/attractions/century-clock.js';
 import { VillaEmbedView } from './components/embedded-views/villa-embed-view.js';
+import { LoginScreen } from './components/login-screen.js';
+import { MultiplayerClient } from './net/multiplayer-client.js';
 import { cameraRig } from './core/camera-rig.js';
 import { dayNightCycle } from './utils/helpers/day-night-cycle.js';
 import { seasonCycle } from './utils/helpers/season-cycle.js';
@@ -451,6 +453,7 @@ function startBackgroundPrewarm() {
     if (activeLobby?._driving?.active || activeLobby?._driving?.pending
         || activeLobby?._nearCar || activeLobby?._nearFacility
         || activeLobby?._nearVillaDoor
+        || activeLobby?._skyGarden?.isRiding   // 【空中花园】乘梯/乘车期间绝不能被预热卸载
         || (activeLobby?._sitState && activeLobby._sitState !== 'none')) {
       window.setTimeout(step, 600);
       return;
@@ -531,6 +534,9 @@ function scheduleSteadyBaselineCalibration() {
  * 真正跑起来必须同时满足「用户点了进入」+「基座就绪（bootReady）」。
  */
 let startScreen = null;
+let loginScreen = null;
+/** 联机客户端：登录后连接 /ws，只读相机位姿并渲染远端玩家 */
+const multiplayer = new MultiplayerClient();
 let startRequested = false;
 let bootReady = false;
 let loopStarted = false;
@@ -544,6 +550,7 @@ function startGameplayLoop() {
   if (loopStarted || !startRequested || !bootReady) return;
   loopStarted = true;
   sceneManager.start();
+  multiplayer.setReady(true);
   // 独立 rAF 链排在本 start() 注册的 loop 之后：第 3 个已渲染帧校准稳态基线，
   // 校准完成后才启动后台分帧预热队列（避免预热资源污染初始 baseline）。
   scheduleSteadyBaselineCalibration();
@@ -574,7 +581,37 @@ startScreen = new StartScreen({
   },
 });
 startScreen.init();
-startScreen.show();
+
+/* ---------- 线上分享链接：?u=player1&p=play1234&room=home ----------
+ * 两台手机分别打开两个链接即可自动填账号密码并登录；
+ * 同 room 才会进同一局，缺省房间 home。 */
+const joinParams = new URLSearchParams(window.location.search);
+const linkUser = (joinParams.get('u') || '').trim();
+const linkPass = joinParams.get('p') || '';
+const linkRoom = joinParams.get('room') || 'home';
+multiplayer.setRoom(linkRoom);
+
+/* ---------- 联机登录页（覆盖在开始页之上，登录成功后才露出开始页） ----------
+ * 账号校验在服务端（本地 /api/room / 线上 Netlify Functions），前端包内不打包密码。
+ * 这里不调用 startScreen.show()：否则登录页背后可用键盘 Enter 绕过登录进入。 */
+loginScreen = new LoginScreen({
+  hint: `演示账号 player1 / player2 · 当前房间 ${linkRoom} · 密码见 config/accounts.mjs`,
+  defaultUser: linkUser,
+  defaultPass: linkPass,
+  autoSubmit: Boolean(linkUser && linkPass),
+  accounts: [
+    { name: '小星', user: 'player1', hint: '第一个链接 / 第一台手机' },
+    { name: '小月', user: 'player2', hint: '第二个链接 / 第二台手机' },
+  ],
+  onLogin: async ({ user, pass }) => {
+    await multiplayer.login(user, pass);
+    loginScreen.hide();
+    startScreen.show();
+    console.info(`[联机] 登录成功（房间 ${linkRoom}），等待点击「进入游乐场」`);
+  },
+});
+loginScreen.init();
+loginScreen.show();
 
 /* 页面卸载统一收尾：开始页 DOM / 样式 / 监听，以及 AudioContext */
 const onPageHide = (event) => {
@@ -587,6 +624,16 @@ const onPageHide = (event) => {
     startScreen?.dispose();
   } catch (err) {
     console.error('[基座] 开始页清理失败：', err);
+  }
+  try {
+    loginScreen?.dispose();
+  } catch (err) {
+    console.error('[联机] 登录页清理失败：', err);
+  }
+  try {
+    multiplayer.dispose();
+  } catch (err) {
+    console.error('[联机] 客户端清理失败：', err);
   }
   try {
     audioManager.dispose();
@@ -829,6 +876,8 @@ async function bootstrap() {
       fireworkSystem.update(dt);
       seasonCycle.update(dt);
       npcManager.update(dt);
+      // 【联机】放在相机写入之后：只读取唯一相机的世界位姿，不参与相机仲裁
+      multiplayer.update(dt);
       // 【六项升级·阶段三】Lobby 重建后惰性重扫 LOD / 包围体 / mipmap；
       // 平时只有一次引用比较，热路径零新建 GPU 资源。
       renderOptimizer.update(attractionManager.active?.root ?? null);
@@ -991,6 +1040,24 @@ async function bootstrap() {
   /* 【六项升级·阶段一/五】lil-gui 毛玻璃调试面板（默认折叠，不影响开始页） */
   debugPanel.build({ sceneManager });
 
+  /* ---------- ⑥-b 联机层：场景与业务入口就绪后再注入 ----------
+   * 远端角色挂 SceneContext.worldRoot（大厅常驻、无 attractionRoot 标记），
+   * 因此进出别墅/设施时不会被清理；联机层本身只读相机，不写相机。 */
+  multiplayer.configure({
+    worldRoot: sceneContext.worldRoot,
+    camera: sceneManager.camera,
+    getZone: () => {
+      if (facilityRuntime.activeKey === VILLA_KEY) return 'villa';
+      if (facilityRuntime.isEmbeddedActive) return 'facility';
+      if (attractionManager.activeKey && attractionManager.activeKey !== LOBBY_KEY) return 'facility';
+      return 'lobby';
+    },
+    isLocalControlActive: () => movementMode.isEngaged(),
+    isDriving: () => Boolean(attractionManager.active?._driving?.active),
+    canAutoEnter: () => startRequested && bootReady,
+    enterHome: () => baseCtx.onEnterAttraction(VILLA_KEY),
+  });
+
   /* ---------- ⑦ 基座就绪：只有用户已在开始页点「进入」时才启动渲染循环 ---------- */
   bootReady = true;
   if (startRequested) {
@@ -1023,12 +1090,14 @@ async function bootstrap() {
     renderOptimizer,
     districtLabels,
     debugPanel,
+    multiplayer,
     EMBEDDED_KEYS,
     /** T04b 验收用：真实摩天轮嵌入 key（触发环 pumpkin-thrower 归一化到它） */
     get ferrisWheelKey() { return FERRIS_WHEEL_KEY; },
     /** T04b 验收用：触发环 key → 嵌入 key 的兼容映射（只读副本） */
     get triggerKeyAliases() { return { ...TRIGGER_KEY_ALIASES }; },
     get startScreen() { return startScreen; },
+    get loginScreen() { return loginScreen; },
     /** 阶段四验收：当前大厅的驾驶控制器（未激活设施时为 null） */
     get vehicleSystem() { return attractionManager.active?._driving ?? null; },
     get bootReady() { return bootReady; },

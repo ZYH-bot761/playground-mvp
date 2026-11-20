@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { defineConfig } from 'vite';
+import { attachLocalRoomApi } from './server/local-room-api.mjs';
 
 /**
  * 运行配置统一放 config/default.json（工程化目录整理后单一真相源）。
@@ -56,6 +57,17 @@ export default defineConfig({
       name: 'playground-cache-control',
       configureServer(server) { server.middlewares.use(cacheHeaders()); },
       configurePreviewServer(server) { server.middlewares.use(cacheHeaders()); },
+    },
+    {
+      /* 本地 dev / preview 提供与 Netlify Functions 同协议的 /api/room。
+       * 线上由 netlify/functions/room.mjs + Netlify Blobs 接管，前端代码不变。 */
+      name: 'playground-multiplayer',
+      configureServer(server) {
+        attachLocalRoomApi(server.middlewares);
+      },
+      configurePreviewServer(server) {
+        attachLocalRoomApi(server.middlewares);
+      },
     },
   ],
 });
